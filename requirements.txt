@@ -1,0 +1,12 @@
+pymongo
+requests
+dotenv
+flask-sqlalchemy
+flask 
+flask-cors
+flask-sqlalchemy 
+python-dotenv 
+pyjwt
+bcrypt
+flask-mail
+flask_login
