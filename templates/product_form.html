@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{% if product %}Edit Product{% else %}Create New Product{% endif %}</h2>
+
+<form method="POST">
+    <div>
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" name="name" value="{{ product.name if product else '' }}" required>
+    </div>
+    
+    <div>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="5" required>{{ product.description if product else '' }}</textarea>
+    </div>
+    
+    <div>
+        <label for="price">Price (R$):</label>
+        <input type="number" id="price" name="price" step="0.01" value="{{ product.price if product else '' }}" required>
+    </div>
+    
+    <div>
+        <label for="image_url">Image URL (optional):</label>
+        <input type="url" id="image_url" name="image_url" value="{{ product.image_url if product else '' }}">
+    </div>
+    
+    <button type="submit">{% if product %}Update{% else %}Create{% endif %} Product</button>
+    <a href="{{ url_for('list_products') }}">Cancel</a>
+</form>
+{% endblock %}

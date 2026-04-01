@@ -2,17 +2,103 @@
 <html>
 <head>
     <title>Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        .flash {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        nav {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        img {
+            max-width: 50px;
+            max-height: 50px;
+        }
+    </style>
 </head>
 <body>
 
-{% with messages = get_flashed_messages() %}
+<!-- Navigation Menu - Hide admin links from regular users -->
+{% if current_user.is_authenticated %}
+<nav>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('list_products') }}">Products</a>
+    {% if current_user.is_admin %}
+        <a href="{{ url_for('create_product') }}">Create Product</a>
+    {% endif %}
+    <a href="{{ url_for('logout') }}" style="color: red;">Logout</a>
+</nav>
+{% endif %}
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    {% for msg in messages %}
-      <p style="color:red;">{{ msg }}</p>
+    {% for category, msg in messages %}
+      <div class="flash flash-{{ category if category else 'info' }}">
+        {{ msg }}
+      </div>
     {% endfor %}
   {% endif %}
 {% endwith %}
 
+<!-- Main Content -->
 {% block content %}{% endblock %}
 
 </body>
