@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Create New Kit</h2>
+<form method="POST">
+  <div class="mb-3">
+    <label for="name" class="form-label">Kit Name </label>
+    <input type="text" class="form-control" id="name" name="name" 
+           value="{{ kit.name }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="description" class="form-label">Description</label>
+     <textarea class="form-control" id="description" name="description" rows="3">{{ kit.description }}</textarea>
+  </div>
+  <div class="mb-3">
+  <label for="image_url" class="form-label">Kit Image URL</label>
+  <input type="url" class="form-control" id="image_url" name="image_url" 
+         value="{{ kit.image_url if kit.image_url else '' }}">
+</div>
+   <button type="submit" class="btn btn-primary">Update Kit</button>
+  <a href="{{ url_for('list_kits') }}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

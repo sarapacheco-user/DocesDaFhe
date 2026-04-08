@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from models import db, User, Product
+from models import db, User, Product, Kit, KitProduct
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
 import bcrypt
@@ -15,11 +15,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 
-db.init_app(app)
 
 
 
-# Email Configuration
+
+# Email Configuration : ver como fazer isso aqui pois precisa enviar 
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
@@ -51,11 +51,20 @@ def admin_required(f):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 # -------------------------
 # CREATE DB
 # -------------------------
 with app.app_context():
     db.create_all()
+
+
+def user_can_edit_kit(kit):
+    """Return True if current_user can edit/delete the given kit."""
+    if current_user.is_admin:
+        return True
+    return (not kit.is_admin_kit) and (kit.created_by == current_user.id)
+
 
 # -------------------------
 # ROUTES
@@ -368,6 +377,143 @@ def delete_product(id):
 
     flash("Product deleted successfully!")
     return redirect(url_for('list_products'))
+
+@app.route('/kits')
+@login_required
+def list_kits():
+    if current_user.is_admin:
+        kits = Kit.query.order_by(Kit.created_at.desc()).all()
+    else:
+        # User's own kits + all admin kits
+        kits = Kit.query.filter(
+            (Kit.created_by == current_user.id) | (Kit.is_admin_kit == True)
+        ).order_by(Kit.created_at.desc()).all()
+    
+    return render_template('kits/list.html', kits=kits)
+
+@app.route('/kits/<int:kit_id>')
+@login_required
+def view_kit(kit_id):
+    kit = Kit.query.get_or_404(kit_id)
+    
+    # Check visibility: user can see own kits, admin kits, or if admin
+    if not (current_user.is_admin or kit.is_admin_kit or kit.created_by == current_user.id):
+        flash("You don't have permission to view this kit.", "error")
+        return redirect(url_for('list_kits'))
+    
+    return render_template('kits/view.html', kit=kit)
+
+
+@app.route('/kits/create', methods=['GET', 'POST'])
+@login_required
+def create_kit():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        image_url = request.form.get('image_url') or None  
+
+        if not name:
+            flash("Kit name is required.", "error")
+            return redirect(url_for('create_kit'))
+        
+        kit = Kit(
+            name=name,
+            description=description,
+            created_by=current_user.id,
+            image_url=image_url, 
+            is_admin_kit=current_user.is_admin   # Admin creates admin kit; user creates personal kit
+        )
+        db.session.add(kit)
+        db.session.commit()
+        
+        flash(f"Kit '{kit.name}' created successfully!", "success")
+        return redirect(url_for('edit_kit_products', kit_id=kit.id))
+    
+    return render_template('kits/create.html')
+
+@app.route('/kits/<int:kit_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_kit(kit_id):
+    kit = Kit.query.get_or_404(kit_id)
+    
+    if not user_can_edit_kit(kit):
+        flash("You don't have permission to edit this kit.", "error")
+        return redirect(url_for('list_kits'))
+    
+    if request.method == 'POST':
+        kit.name = request.form.get('name')
+        kit.description = request.form.get('description')
+        kit.image_url = request.form.get('image_url') or None
+        db.session.commit()
+        flash("Kit updated!", "success")
+        return redirect(url_for('view_kit', kit_id=kit.id))
+    
+    return render_template('kits/edit.html', kit=kit)
+
+
+@app.route('/kits/<int:kit_id>/delete', methods=['POST'])
+@login_required
+def delete_kit(kit_id):
+    kit = Kit.query.get_or_404(kit_id)
+    
+    if not user_can_edit_kit(kit):
+        flash("You don't have permission to delete this kit.", "error")
+        return redirect(url_for('list_kits'))
+    
+    db.session.delete(kit)
+    db.session.commit()
+    flash("Kit deleted.", "success")
+    return redirect(url_for('list_kits'))
+
+@app.route('/kits/<int:kit_id>/products', methods=['GET', 'POST'])
+@login_required
+def edit_kit_products(kit_id):
+    kit = Kit.query.get_or_404(kit_id)
+    
+    if not user_can_edit_kit(kit):
+        flash("You don't have permission to modify this kit.", "error")
+        return redirect(url_for('list_kits'))
+    
+    # Get all products (for selection)
+    all_products = Product.query.order_by(Product.name).all()
+    
+    # Get current products in kit (with quantities)
+    kit_products = {kp.product_id: kp for kp in kit.products}
+    
+    if request.method == 'POST':
+        # Process adding/updating products
+        # The form will send a list of (product_id, quantity) pairs
+        product_ids = request.form.getlist('product_id')
+        quantities = request.form.getlist('quantity')
+        
+        # First, remove unchecked products
+        submitted_ids = set(int(pid) for pid in product_ids)
+        for kp in kit.products:
+            if kp.product_id not in submitted_ids:
+                db.session.delete(kp)
+        
+        # Add or update selected products
+        for pid, qty in zip(product_ids, quantities):
+            pid = int(pid)
+            qty = int(qty) if qty.isdigit() and int(qty) > 0 else 1
+            existing = KitProduct.query.get((kit_id, pid))
+            if existing:
+                existing.quantity = qty
+            else:
+                new_kp = KitProduct(kit_id=kit_id, product_id=pid, quantity=qty)
+                db.session.add(new_kp)
+        
+        db.session.commit()
+        flash("Kit products updated!", "success")
+        return redirect(url_for('view_kit', kit_id=kit.id))
+    
+    return render_template('kits/manage_products.html',
+                           kit=kit,
+                           all_products=all_products,
+                           kit_products=kit_products)
+
+
+
 
 # -------------------------
 # RUN

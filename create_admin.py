@@ -4,25 +4,25 @@ import bcrypt
 
 with app.app_context():
     # Check if admin exists
-    admin = User.query.filter_by(email="admin@example.com").first()
+    admin = User.query.filter_by(email="adm@example.com").first()
     
     if not admin:
         # Create admin user
-        hashed_pw = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt())
+        hashed_pw = bcrypt.hashpw("adm".encode('utf-8'), bcrypt.gensalt())
         
         admin = User(
-            email="admin@example.com",
+            email="adm@example.com",
             password=hashed_pw.decode('utf-8'),
             phone="11999999999",
-            cep="12345678",
+            cep="70673040",
             is_admin=True
         )
         
         db.session.add(admin)
         db.session.commit()
         print("Admin user created successfully!")
-        print("Email: admin@example.com")
-        print("Password: admin123")
+        print("Email: adm@example.com")
+        print("Password: adm")
     else:
         print("Admin user already exists!")
         print(f"Email: {admin.email}")

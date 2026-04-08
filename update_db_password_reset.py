@@ -22,3 +22,4 @@ with app.app_context():
     conn.commit()
     conn.close()
     print("Database updated successfully!")
+    

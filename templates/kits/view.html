@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  {% if kit.image_url %}
+  <img src="{{ kit.image_url }}" class="img-fluid mb-3" alt="{{ kit.name }}" style="max-height: 300px; width: auto;">
+{% endif %}
+    <h2>{{ kit.name }}</h2>
+  <div>
+    {% if current_user.is_admin or (not kit.is_admin_kit and kit.created_by == current_user.id) %}
+      <a href="{{ url_for('edit_kit_products', kit_id=kit.id) }}" class="btn btn-sm btn-primary">Manage Products</a>
+      <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-sm btn-secondary">Edit Info</a>
+    {% endif %}
+  </div>
+</div>
+<p>{{ kit.description }}</p>
+<p><small>Created by {{ kit.creator.email }} on {{ kit.created_at.strftime('%Y-%m-%d') }}</small></p>
+
+<h3>Products in this kit</h3>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Quantity</th>
+      <th>Unit Price</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for kp in kit.products %}
+      <tr>
+        <td>{{ kp.product.name }}</td>
+        <td>{{ kp.quantity }}</td>
+        <td>${{ "%.2f"|format(kp.product.price) }}</td>
+        <td>${{ "%.2f"|format(kp.product.price * kp.quantity) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">No products added yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="{{ url_for('list_kits') }}" class="btn btn-secondary">Back to Kits</a>
+{% endblock %}
