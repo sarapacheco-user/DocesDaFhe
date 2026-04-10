@@ -5,6 +5,7 @@
   <img src="{{ kit.image_url }}" class="img-fluid mb-3" alt="{{ kit.name }}" style="max-height: 300px; width: auto;">
 {% endif %}
     <h2>{{ kit.name }}</h2>
+    
   <div>
     {% if current_user.is_admin or (not kit.is_admin_kit and kit.created_by == current_user.id) %}
       <a href="{{ url_for('edit_kit_products', kit_id=kit.id) }}" class="btn btn-sm btn-primary">Manage Products</a>
@@ -15,13 +16,13 @@
 <p>{{ kit.description }}</p>
 <p><small>Created by {{ kit.creator.email }} on {{ kit.created_at.strftime('%Y-%m-%d') }}</small></p>
 
-<h3>Products in this kit</h3>
+<h3>Produtos nesse Kit</h3>
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>Product</th>
-      <th>Quantity</th>
-      <th>Unit Price</th>
+      <th>Produto</th>
+      <th>Quantidade</th>
+      <th>Preço da unidade</th>
       <th>Total</th>
     </tr>
   </thead>
@@ -34,10 +35,10 @@
         <td>${{ "%.2f"|format(kp.product.price * kp.quantity) }}</td>
       </tr>
     {% else %}
-      <tr><td colspan="4">No products added yet.</td></tr>
+      <tr><td colspan="4">Nenhum produto foi adicionado ainda.</td></tr>
     {% endfor %}
   </tbody>
 </table>
 
-<a href="{{ url_for('list_kits') }}" class="btn btn-secondary">Back to Kits</a>
+<a href="{{ url_for('list_kits') }}" class="btn btn-secondary">Voltar para Kits</a>
 {% endblock %}

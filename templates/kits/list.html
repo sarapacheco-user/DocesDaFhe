@@ -3,7 +3,7 @@
 <h2>Kits</h2>
 
 {% if current_user.is_authenticated %}
-  <a href="{{ url_for('create_kit') }}" class="btn btn-primary mb-3">Create New Kit</a>
+  <a href="{{ url_for('create_kit') }}" class="btn btn-primary mb-3">Cria novo Kit</a>
 {% endif %}
 
 <div class="row">
@@ -14,37 +14,37 @@
     <img src="{{ kit.image_url }}" class="card-img-top" alt="{{ kit.name }}" style="height: 150px; object-fit: cover;">
   {% else %}
     <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 150px;">
-      <span>No image</span>
+      <span>Sem imagem</span>
     </div>
   {% endif %}
         <div class="card-body">
           <h5 class="card-title">{{ kit.name }}</h5>
           <p class="card-text">{{ kit.description[:100] }}</p>
            <p class="card-text">
-                <strong>Total Price: R$ {{ "%.2f"|format(kit.total_price) }}</strong>
+                <strong>Preço total: R$ {{ "%.2f"|format(kit.total_price) }}</strong>
              </p>
           <p class="card-text">
             <small class="text-muted">
               {% if kit.is_admin_kit %}
-                <span class="badge bg-primary">Admin Kit</span>
+                <span class="badge bg-primary">Kit de Adm</span>
               {% else %}
-                <span class="badge bg-secondary">Personal</span>
+                <span class="badge bg-secondary">Pessoal</span>
               {% endif %}
               by {{ kit.creator.email }}
             </small>
           </p>
-          <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+          <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
           {% if current_user.is_admin or (not kit.is_admin_kit and kit.created_by == current_user.id) %}
-            <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
             <form method="POST" action="{{ url_for('delete_kit', kit_id=kit.id) }}" style="display:inline;">
-              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this kit?')">Delete</button>
+              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this kit?')">Deletar</button>
             </form>
           {% endif %}
         </div>
       </div>
     </div>
   {% else %}
-    <p>No kits found.</p>
+    <p>Sem kits encontrados.</p>
   {% endfor %}
 </div>
 {% endblock %}
