@@ -18,7 +18,7 @@
             - **manage_products.html** *Tela de edição dos produtos do kit*
             - **view.html** *Tela de visualização do kit em sí*
     * **base.html** *Contém o código da Navbar, é só a base lógica de design para as outras telas*
-    * **change_password.html** *Tela de mudança de senha para o usuário*
+    * **change_password.html** *Tela de mudança de senha para o usuário que já está logado*
     * **dashboard.html** *Tela de início*
     * **email_reset_password.html** *Tela de recuperação de senha*
     * **forgot_password** *Tela caso o usuário tenha esquecido a senha*

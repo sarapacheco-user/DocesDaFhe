@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 
 
 
-# Email Configuration : ver como fazer isso aqui pois precisa enviar 
+# Email Configuration : ver como fazer isso aqui pois precisa enviar para o usuario depois
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
@@ -27,10 +27,14 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
+
 mail = Mail(app)
+
+
 # -------------------------
 # LOGIN MANAGER
 # -------------------------
+
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
@@ -42,7 +46,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            flash("Access denied. Admin privileges required.", "error")
+            flash("Acesso negado. Privilégios de adm são necessários.", "erro")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
@@ -53,12 +57,12 @@ def load_user(user_id):
 
 
 # -------------------------
-# CREATE DB
+# CRIA BANCO DE DADOS
 # -------------------------
 with app.app_context():
     db.create_all()
 
-
+# Verdadeiro se o usuário pode editar o kit
 def user_can_edit_kit(kit):
     """Return True if current_user can edit/delete the given kit."""
     if current_user.is_admin:
@@ -67,7 +71,7 @@ def user_can_edit_kit(kit):
 
 
 # -------------------------
-# ROUTES
+# ROTAS
 # -------------------------
 
 @app.route('/')
@@ -85,11 +89,11 @@ def signup():
 
         # Define validation functions outside or at top of route
         def validate_phone(phone):
-            # Brazilian pattern: (11) 91234-5678 or 11912345678
-            phone = re.sub(r'\D', '', phone)  # remove symbols
+            # Valida se é padrão de telefone brasileiro
+            phone = re.sub(r'\D', '', phone)  # remove símbolos
             pattern = r'^\d{10,11}$'
             return re.match(pattern, phone)
-        
+        # Validação de CEP
         def validate_cep_exists(cep):
             cep = ''.join(filter(str.isdigit, cep))
             if len(cep) != 8:
@@ -103,33 +107,33 @@ def signup():
             except:
                 return False
 
-        # Check password match
+        # Checa se a senha e a confirme a senha são as mesmas
         if password != confirm_password:
-            flash("Passwords do not match")
+            flash("Essas senhas não são as mesmas")
             return redirect(url_for('signup'))
         
-        # Check existing user
+        # Checa usuário existente
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash("User already exists")
+            flash("Usuário já registrado.")
             return redirect(url_for('signup'))
         
-        # Validate CEP format
+        # Valida CEP
         if len(cep) != 8 or not cep.isdigit():
-            flash("Invalid CEP format (must be 8 digits)")
+            flash("Formato de CEP inválido (deve ser 8 dígitos)")
             return redirect(url_for('signup'))
         
-        # Validate CEP exists via API
+        # Valida CEP pela API
         if not validate_cep_exists(cep):
-            flash("Invalid CEP - address not found")
+            flash("CEP Inválido - endereço não encontrado")
             return redirect(url_for('signup'))
         
-        # Validate phone
+        # Valida Telefone
         if not validate_phone(phone):
-            flash("Invalid phone number (must be 10-11 digits)")
+            flash("Número de telefone inválido (deve ser de 10-11 dígitos)")
             return redirect(url_for('signup'))
         
-        # Create user
+        # Cria usuário
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         new_user = User(
@@ -141,7 +145,7 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
-        flash("Account created! Please login.")
+        flash("Conta Criada! Faça o login por favor.")
         return redirect(url_for('login'))
 
     return render_template('signup.html')
@@ -163,7 +167,7 @@ def login():
 
     return render_template('login.html')
 
-# FORGOT PASSWORD - Request reset
+# Caso esqueceu senha - Request de reset FAZER ISSO MAIS PARA FRENTE
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -171,7 +175,7 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
         
         if user:
-            # Generate reset token
+            # Gera token de reset
             token = secrets.token_urlsafe(32)
             user.reset_token = token
             user.reset_token_expiry = datetime.utcnow() + timedelta(hours=24)
@@ -211,13 +215,13 @@ This link will expire in 24 hours.
     except Exception as e:
         print(f"Error sending email: {e}")
         return False
-# RESET PASSWORD - Enter new password
+# RESET de senha - Entre nova senha
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
-    # Find user with this token
+    # Encontre usuário com esse token
     user = User.query.filter_by(reset_token=token).first()
     
-    # Check if token exists and is not expired
+    # Checa se o token existe e não expirado
     if not user or user.reset_token_expiry < datetime.utcnow():
         flash('Invalid or expired reset link. Please request a new one.', 'error')
         return redirect(url_for('forgot_password'))
@@ -226,7 +230,7 @@ def reset_password(token):
         password = request.form['password']
         confirm_password = request.form['confirm-password']
         
-        # Validate password
+        # Valida senha
         if len(password) < 6:
             flash('Password must be at least 6 characters long.', 'error')
             return redirect(url_for('reset_password', token=token))
@@ -235,11 +239,11 @@ def reset_password(token):
             flash('Passwords do not match.', 'error')
             return redirect(url_for('reset_password', token=token))
         
-        # Hash new password
+        # Hasha a nova senha
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         user.password = hashed_pw.decode('utf-8')
         
-        # Clear reset token
+        # Limpa o token de reset
         user.reset_token = None
         user.reset_token_expiry = None
         db.session.commit()
@@ -250,7 +254,7 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 
-# CHANGE PASSWORD - For logged-in users
+# MUDA SENHA PARA QUEM JÁ ESTÁ LOGADO
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -259,12 +263,12 @@ def change_password():
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
         
-        # Verify current password
+        # Verifica senha atual
         if not bcrypt.checkpw(current_password.encode('utf-8'), current_user.password.encode('utf-8')):
             flash('Current password is incorrect.', 'error')
             return redirect(url_for('change_password'))
         
-        # Validate new password
+        # Valida senha atual
         if len(new_password) < 6:
             flash('New password must be at least 6 characters long.', 'error')
             return redirect(url_for('change_password'))
@@ -273,7 +277,7 @@ def change_password():
             flash('New passwords do not match.', 'error')
             return redirect(url_for('change_password'))
         
-        # Update password
+        # Atualiza a senha
         hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
         current_user.password = hashed_pw.decode('utf-8')
         db.session.commit()
@@ -283,7 +287,7 @@ def change_password():
     
     return render_template('change_password.html')
 
-# DASHBOARD (Protected)
+# DASHBOARD (Protegido)
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -295,12 +299,12 @@ def dashboard():
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
+# Rota de produtos
 @app.route('/products')
 def list_products():
     products = Product.query.all()
     return render_template('products.html', products=products)
-
+# Cria produtos
 @app.route('/products/create', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -309,16 +313,16 @@ def create_product():
         name = request.form['name']
         description = request.form['description']
         price = request.form['price']
-        image_url = request.form.get('image_url', '')  # Get optional image_url
+        image_url = request.form.get('image_url', '')  # Pega imagem image_url opcionalmente
 
-        # Validate price
+        # Valida preço 
         try:
             price = float(price)
             if price <= 0:
-                flash("Price must be greater than 0")
+                flash("Preço precisa ser maior que 0")
                 return redirect(url_for('create_product'))
         except ValueError:
-            flash("Invalid price format")
+            flash("Formato inválido")
             return redirect(url_for('create_product'))
 
         product = Product(
@@ -331,12 +335,12 @@ def create_product():
         db.session.add(product)
         db.session.commit()
 
-        flash("Product created successfully!")
+        flash("Produto Criado com Sucesso!")
         return redirect(url_for('list_products'))
 
     return render_template('product_form.html')
 
-
+# Edição de produtos
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -349,23 +353,23 @@ def edit_product(id):
         product.price = request.form['price']
         product.image_url = request.form.get('image_url', '') or None
 
-        # Validate price
+        # Valida preço
         try:
             product.price = float(product.price)
             if product.price <= 0:
-                flash("Price must be greater than 0")
+                flash("Preço precisa ser maior que 0")
                 return redirect(url_for('edit_product', id=id))
         except ValueError:
-            flash("Invalid price format")
+            flash("Formato de preço inválido")
             return redirect(url_for('edit_product', id=id))
 
         db.session.commit()
-        flash("Product updated successfully!")
+        flash("Produto atualizado com sucesso!")
         return redirect(url_for('list_products'))
 
     return render_template('product_form.html', product=product)
 
-
+# Deleção de produtos 
 @app.route('/products/delete/<int:id>')
 @login_required
 @admin_required
@@ -375,16 +379,16 @@ def delete_product(id):
     db.session.delete(product)
     db.session.commit()
 
-    flash("Product deleted successfully!")
+    flash("Produto deletado com sucesso!")
     return redirect(url_for('list_products'))
-
+# Rotas de Kits
 @app.route('/kits')
 @login_required
 def list_kits():
     if current_user.is_admin:
         kits = Kit.query.order_by(Kit.created_at.desc()).all()
     else:
-        # User's own kits + all admin kits
+        # Lista os kits do usuário e os do adm
         kits = Kit.query.filter(
             (Kit.created_by == current_user.id) | (Kit.is_admin_kit == True)
         ).order_by(Kit.created_at.desc()).all()
@@ -396,14 +400,14 @@ def list_kits():
 def view_kit(kit_id):
     kit = Kit.query.get_or_404(kit_id)
     
-    # Check visibility: user can see own kits, admin kits, or if admin
+    # Checa visibilidade 
     if not (current_user.is_admin or kit.is_admin_kit or kit.created_by == current_user.id):
         flash("You don't have permission to view this kit.", "error")
         return redirect(url_for('list_kits'))
     
     return render_template('kits/view.html', kit=kit)
 
-
+# Rota de criação de kit
 @app.route('/kits/create', methods=['GET', 'POST'])
 @login_required
 def create_kit():
@@ -421,12 +425,12 @@ def create_kit():
             description=description,
             created_by=current_user.id,
             image_url=image_url, 
-            is_admin_kit=current_user.is_admin   # Admin creates admin kit; user creates personal kit
+            is_admin_kit=current_user.is_admin   # Kit de adm ou de usuário
         )
         db.session.add(kit)
         db.session.commit()
         
-        flash(f"Kit '{kit.name}' created successfully!", "success")
+        flash(f"Kit '{kit.name}' criado com sucesso!", "success")
         return redirect(url_for('edit_kit_products', kit_id=kit.id))
     
     return render_template('kits/create.html')
@@ -437,7 +441,7 @@ def edit_kit(kit_id):
     kit = Kit.query.get_or_404(kit_id)
     
     if not user_can_edit_kit(kit):
-        flash("You don't have permission to edit this kit.", "error")
+        flash("Você não tem permissão para editar esse kit", "error")
         return redirect(url_for('list_kits'))
     
     if request.method == 'POST':
@@ -457,7 +461,7 @@ def delete_kit(kit_id):
     kit = Kit.query.get_or_404(kit_id)
     
     if not user_can_edit_kit(kit):
-        flash("You don't have permission to delete this kit.", "error")
+        flash("Você não tem permissão para deletar o kit", "error")
         return redirect(url_for('list_kits'))
     
     db.session.delete(kit)
@@ -474,25 +478,25 @@ def edit_kit_products(kit_id):
         flash("You don't have permission to modify this kit.", "error")
         return redirect(url_for('list_kits'))
     
-    # Get all products (for selection)
+    # Pega todos os produtos para a seleção
     all_products = Product.query.order_by(Product.name).all()
     
-    # Get current products in kit (with quantities)
+    # èga produtos no kit atualmente com a quantidade
     kit_products = {kp.product_id: kp for kp in kit.products}
     
     if request.method == 'POST':
-        # Process adding/updating products
+        # Processa adição e remoção
         # The form will send a list of (product_id, quantity) pairs
         product_ids = request.form.getlist('product_id')
         quantities = request.form.getlist('quantity')
         
-        # First, remove unchecked products
+        # Primeiro, remove produtos não selecionados
         submitted_ids = set(int(pid) for pid in product_ids)
         for kp in kit.products:
             if kp.product_id not in submitted_ids:
                 db.session.delete(kp)
         
-        # Add or update selected products
+        # Adiciona ou atualiza produtos selecionados
         for pid, qty in zip(product_ids, quantities):
             pid = int(pid)
             qty = int(qty) if qty.isdigit() and int(qty) > 0 else 1

@@ -57,8 +57,8 @@ class Kit(db.Model):
     is_admin_kit = db.Column(db.Boolean, default=False)   # True = admin kit
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    image_url = db.Column(db.String(500), nullable=True)   # <-- add this line
-    # Relationships
+    image_url = db.Column(db.String(500), nullable=True)   # <-- adiciona essa linha
+    # Relacionamentos
     products = db.relationship('KitProduct', backref='kit', cascade='all, delete-orphan')
     creator = db.relationship('User', backref='kits')
     @property
@@ -76,5 +76,5 @@ class KitProduct(db.Model):
     quantity = db.Column(db.Integer, default=1)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
+    # Relacionamentos
     product = db.relationship('Product')
