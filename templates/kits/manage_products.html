@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h2>Produtos do Kit "{{ kit.name }}"</h2>
+
+<form method="POST">
+  <table>
+    <thead>
+      <tr>
+        <th>Incluir</th>
+        <th>Produto</th>
+        <th>Preço</th>
+        <th>Quantidade</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in all_products %}
+        {% set kp = kit_products.get(product.id) %}
+        <tr>
+          <td>
+            <input type="checkbox" class="kit-checkbox" name="product_id" value="{{ product.id }}"
+                   {% if kp %}checked{% endif %}>
+          </td>
+          <td>{{ product.name }}</td>
+          <td>R$ {{ "%.2f"|format(product.price) }}</td>
+          <td>
+            <input type="number" name="quantity" value="{{ kp.quantity if kp else 1 }}"
+                   min="1" step="1" class="form-control qty-input">
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="manage-actions">
+    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+    <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn btn-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

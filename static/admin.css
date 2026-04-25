@@ -1,0 +1,510 @@
+/* ══════════════════════════════════════
+   ADMIN.CSS — static/css/admin.css
+══════════════════════════════════════ */
+
+:root {
+  --color-primary:         #5B6D3D;
+  --color-secondary:       #D67155;
+  --color-accent:          #F3B651;
+  --color-dark:            #932E50;
+  --color-bg:              #FAF9F6;
+  --color-white:           #FFFFFF;
+  --color-text:            #2B2B2B;
+  --color-text-light:      #6B6B6B;
+  --color-border:          #E5E5E5;
+  --color-hover-primary:   #4a5932;
+  --color-hover-accent:    #d9a13f;
+  --color-hover-secondary: #b85a42;
+  --shadow-sm:  0 2px 6px rgba(0,0,0,.05);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:  0 8px 20px rgba(0,0,0,.12);
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+}
+
+/* ── BODY ── */
+html body {
+  background: var(--color-bg) !important;
+  font-family: 'Nunito', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── TÍTULOS ── */
+html body h2 {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 1.9rem !important;
+  color: var(--color-primary) !important;
+  margin: 2rem 2rem 1.2rem !important;
+  padding-bottom: .5rem !important;
+  border-bottom: 3px solid var(--color-secondary) !important;
+  display: inline-block !important;
+  background: none !important;
+  width: auto !important;
+}
+
+html body h3 {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 1.3rem !important;
+  color: var(--color-primary) !important;
+}
+
+/* ══════════════════════════════════════
+   BOTÕES
+══════════════════════════════════════ */
+html body .btn-primary,
+html body a.btn-primary,
+html body button.btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-white) !important;
+  border-radius: 24px !important;
+  padding: .55rem 1.4rem !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: .92rem !important;
+  text-decoration: none !important;
+  transition: background .2s, transform .15s !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+html body .btn-primary:hover,
+html body a.btn-primary:hover,
+html body button.btn-primary:hover {
+  background-color: var(--color-hover-primary) !important;
+  border-color: var(--color-hover-primary) !important;
+  color: var(--color-white) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: none !important;
+}
+
+html body .btn-secondary,
+html body a.btn-secondary,
+html body button.btn-secondary {
+  background-color: transparent !important;
+  border: 2px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: 24px !important;
+  padding: .55rem 1.4rem !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: .92rem !important;
+  text-decoration: none !important;
+  transition: background .2s, transform .15s !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+html body .btn-secondary:hover,
+html body a.btn-secondary:hover,
+html body button.btn-secondary:hover {
+  background-color: var(--color-bg) !important;
+  color: var(--color-primary) !important;
+  transform: translateY(-2px) !important;
+}
+
+html body .btn-sm {
+  padding: .35rem 1rem !important;
+  font-size: .82rem !important;
+}
+
+html body h2 + a {
+  display: inline-block !important;
+  margin: 0 2rem 1.4rem !important;
+}
+
+/* ══════════════════════════════════════
+   TABELA
+══════════════════════════════════════ */
+html body table {
+  width: calc(100% - 4rem) !important;
+  margin: 0 2rem 3rem !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  background: var(--color-white) !important;
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-md) !important;
+  border: none !important;
+}
+
+html body table thead {
+  background: var(--color-primary) !important;
+}
+
+html body table thead th {
+  background: var(--color-primary) !important;
+  color: var(--color-white) !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  padding: 1rem 1.2rem !important;
+  text-align: left !important;
+  letter-spacing: .04em !important;
+  border: none !important;
+}
+
+html body table tbody tr {
+  background: var(--color-white) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  transition: background .15s !important;
+}
+
+html body table tbody tr:last-child { border-bottom: none !important; }
+
+html body table tbody tr:hover {
+  background: var(--color-bg) !important;
+}
+
+html body table tbody td {
+  padding: .9rem 1.2rem !important;
+  font-size: .92rem !important;
+  color: var(--color-text) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  vertical-align: middle !important;
+}
+
+html body table tbody tr:last-child td { border-bottom: none !important; }
+
+html body table tbody td img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: cover !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1.5px solid var(--color-border) !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  display: inline-block !important;
+}
+
+html body table tbody td a {
+  font-weight: 700 !important;
+  font-size: .88rem !important;
+  text-decoration: none !important;
+}
+
+html body table tbody td a:first-of-type { color: var(--color-primary) !important; }
+html body table tbody td a:first-of-type:hover { color: var(--color-secondary) !important; }
+html body table tbody td a:last-of-type { color: var(--color-dark) !important; }
+html body table tbody td a:last-of-type:hover { color: #6b1e38 !important; }
+
+html body table tbody td input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  accent-color: var(--color-primary) !important;
+  cursor: pointer !important;
+}
+
+html body table tbody td input[type="number"] {
+  width: 80px !important;
+  text-align: center !important;
+  border: 1.5px solid var(--color-border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: .3rem .5rem !important;
+  font-family: 'Nunito', sans-serif !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+
+/* ══════════════════════════════════════
+   CARDS DE KITS
+══════════════════════════════════════ */
+html body .card {
+  background: var(--color-white) !important;
+  border: 1.5px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden !important;
+  transition: transform .2s, box-shadow .2s !important;
+}
+
+html body .card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+html body .card img {
+  width: 100% !important;
+  height: 200px !important;
+  object-fit: cover !important;
+  max-width: unset !important;
+  max-height: 200px !important;
+  display: block !important;
+}
+
+html body .card .card-body {
+  padding: 1.1rem 1.2rem !important;
+  background: var(--color-white) !important;
+}
+
+html body .card h5,
+html body .card .card-title {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 1.1rem !important;
+  color: var(--color-primary) !important;
+  margin-bottom: .3rem !important;
+}
+
+html body .card p {
+  font-size: .9rem !important;
+  color: var(--color-text-light) !important;
+  margin-bottom: .4rem !important;
+}
+
+html body .card strong { color: var(--color-primary) !important; }
+
+/* badge Admin Kit */
+html body .badge,
+html body .badge.bg-primary {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-white) !important;
+  border-radius: 24px !important;
+  font-size: .75rem !important;
+  padding: .3rem .8rem !important;
+  font-weight: 700 !important;
+}
+
+html body .card .btn-outline-primary {
+  border: 2px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+  font-size: .82rem !important;
+  padding: .3rem .9rem !important;
+  background: transparent !important;
+  text-decoration: none !important;
+  transition: background .2s, color .2s !important;
+}
+
+html body .card .btn-outline-primary:hover {
+  background: var(--color-primary) !important;
+  color: var(--color-white) !important;
+}
+
+html body .card .btn-danger,
+html body .card a.btn-danger {
+  border: 2px solid var(--color-dark) !important;
+  color: var(--color-dark) !important;
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+  font-size: .82rem !important;
+  padding: .3rem .9rem !important;
+  background: transparent !important;
+  text-decoration: none !important;
+  transition: background .2s, color .2s !important;
+}
+
+html body .card .btn-danger:hover,
+html body .card a.btn-danger:hover {
+  background: var(--color-dark) !important;
+  color: var(--color-white) !important;
+}
+
+html body .card .bg-secondary {
+  background: #f0ede8 !important;
+  color: var(--color-text-light) !important;
+  height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  font-size: .9rem !important;
+}
+
+/* ══════════════════════════════════════
+   FORMULÁRIO
+══════════════════════════════════════ */
+html body .container {
+  padding-top: 1rem !important;
+  padding-bottom: 3rem !important;
+}
+
+html body .card-header,
+html body .card-header.bg-primary {
+  background: var(--color-primary) !important;
+  border-bottom: none !important;
+  padding: 1.2rem 1.6rem !important;
+  border-radius: 0 !important;
+}
+
+html body .card-header h3,
+html body .card-header .mb-0 {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 1.3rem !important;
+  color: var(--color-white) !important;
+  margin: 0 !important;
+}
+
+html body .form-label {
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  color: var(--color-text) !important;
+  margin-bottom: .4rem !important;
+}
+
+html body .form-control {
+  border: 1.5px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-size: .95rem !important;
+  color: var(--color-text) !important;
+  background: var(--color-bg) !important;
+  padding: .7rem 1rem !important;
+  box-shadow: none !important;
+  transition: border-color .2s, box-shadow .2s !important;
+}
+
+html body .form-control:focus {
+  border-color: var(--color-secondary) !important;
+  box-shadow: 0 0 0 3px rgba(214,113,85,.2) !important;
+  background: var(--color-white) !important;
+  outline: none !important;
+}
+
+html body .form-control::placeholder {
+  color: var(--color-text-light) !important;
+  opacity: .7 !important;
+}
+
+html body .input-group-text {
+  background: var(--color-accent) !important;
+  border: 1.5px solid var(--color-border) !important;
+  border-right: none !important;
+  border-radius: var(--radius-md) 0 0 var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-weight: 700 !important;
+}
+
+html body .input-group .form-control {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
+}
+
+html body .d-flex.justify-content-between {
+  margin-top: 1.4rem !important;
+}
+
+/* ══════════════════════════════════════
+   VIEW KIT
+══════════════════════════════════════ */
+html body .kit-view {
+  max-width: 860px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+html body .kit-view-img-wrap {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 1.4rem;
+}
+
+html body .kit-view-img {
+  width: 100% !important;
+  max-height: 300px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+html body .kit-view-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+html body .kit-view-header h2 { margin: 0 !important; border-bottom: none !important; }
+
+html body .kit-view-actions {
+  display: flex !important;
+  gap: .6rem !important;
+  flex-wrap: wrap !important;
+}
+
+html body .kit-view-desc {
+  font-size: .98rem !important;
+  color: var(--color-text-light) !important;
+  margin-bottom: .4rem !important;
+}
+
+html body .kit-view-meta {
+  font-size: .82rem !important;
+  color: var(--color-text-light) !important;
+  margin-bottom: 1.6rem !important;
+}
+
+html body .kit-view-subtitle {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 1.3rem !important;
+  color: var(--color-primary) !important;
+  margin-bottom: 1rem !important;
+}
+
+html body .kit-empty {
+  text-align: center !important;
+  color: var(--color-text-light) !important;
+  padding: 1.5rem !important;
+  font-style: italic !important;
+}
+
+/* ══════════════════════════════════════
+   MANAGE PRODUCTS
+══════════════════════════════════════ */
+html body .manage-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  margin: 1.5rem 2rem 3rem !important;
+}
+
+/* ── CART BADGE ── */
+.cart-icon-wrap {
+  position: relative;
+  display: flex; align-items: center;
+  cursor: pointer; text-decoration: none;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -8px; right: -8px;
+  background: var(--color-dark);
+  color: var(--color-white);
+  font-size: .68rem; font-weight: 800;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── UPLOAD FIELD ── */
+.upload-field {
+  display: flex; flex-direction: column;
+  gap: .4rem; margin-bottom: .9rem;
+}
+
+.upload-field label {
+  font-weight: 700;
+  font-size: .88rem;
+  color: var(--color-text);
+}
+
+.upload-field input[type="text"],
+.upload-field input[type="number"] {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: .6rem .9rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: .92rem;
+  background: var(--color-bg);
+  outline: none;
+  transition: border-color .2s;
+}
+
+.upload-field input:focus { border-color: var(--color-secondary); }
+
+.upload-field input[type="file"] {
+  font-family: 'Nunito', sans-serif;
+  font-size: .88rem;
+}

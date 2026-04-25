@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="kit-view">
+
+  {% if kit.image_url %}
+  <div class="kit-view-img-wrap">
+    <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}" class="kit-view-img">
+  </div>
+  {% endif %}
+
+  <div class="kit-view-header">
+    <h2>{{ kit.name }}</h2>
+    <div class="kit-view-actions">
+      {% if current_user.is_admin or (not kit.is_admin_kit and kit.created_by == current_user.id) %}
+        <a href="{{ url_for('edit_kit_products', kit_id=kit.id) }}" class="btn btn-primary">Gerenciar Produtos</a>
+        <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-secondary">Editar Info</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="kit-view-desc">{{ kit.description }}</p>
+  <p class="kit-view-meta">Criado por {{ kit.creator.email }} em {{ kit.created_at.strftime('%d/%m/%Y') }}</p>
+
+  <h3 class="kit-view-subtitle">Produtos do Kit</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Quantidade</th>
+        <th>Preço Unit.</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for kp in kit.products %}
+        <tr>
+          <td>{{ kp.product.name }}</td>
+          <td>{{ kp.quantity }}</td>
+          <td>R$ {{ "%.2f"|format(kp.product.price) }}</td>
+          <td>R$ {{ "%.2f"|format(kp.product.price * kp.quantity) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="kit-empty">Nenhum produto adicionado ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="manage-actions">
+    <a href="{{ url_for('list_kits') }}" class="btn btn-secondary">← Voltar para Kits</a>
+  </div>
+
+</div>
+{% endblock %}
