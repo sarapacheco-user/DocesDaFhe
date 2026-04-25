@@ -21,5 +21,9 @@ with app.app_context():
     
     conn.commit()
     conn.close()
+<<<<<<< HEAD
     print("Banco de dados atualizado com sucesso!")
+=======
+    print("Database updated successfully!")
+>>>>>>> 4a6ae9744af7949d4d8fc2a42b247b9eba546b0c
     

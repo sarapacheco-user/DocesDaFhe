@@ -20,10 +20,18 @@ with app.app_context():
         
         db.session.add(admin)
         db.session.commit()
+<<<<<<< HEAD
         print("Usuário administrador criado com sucesso!")
         print("Email: adm@example.com")
         print("Password: adm")
     else:
         print("Usuário administrador já existe!")
+=======
+        print("Admin user created successfully!")
+        print("Email: adm@example.com")
+        print("Password: adm")
+    else:
+        print("Admin user already exists!")
+>>>>>>> 4a6ae9744af7949d4d8fc2a42b247b9eba546b0c
         print(f"Email: {admin.email}")
         print(f"Is Admin: {admin.is_admin}")
