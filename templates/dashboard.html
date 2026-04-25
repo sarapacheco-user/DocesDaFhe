@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
+<style>
+  .cart-icon-wrap {
+    position: relative;
+    display: flex; align-items: center;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #932E50;
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card-link-inner { text-decoration: none; color: inherit; display: block; }
+
+  /* ── CARROSSEL DE CARDS ── */
+  .cards-carrossel-wrap {
+    position: relative;
+    max-width: 960px;
+    margin: 0 auto 2rem;
+    padding: 0 3rem;
+    overflow: hidden;
+  }
+
+  .cards-track {
+    display: flex;
+    gap: 1rem;
+    transition: transform .35s ease;
+    will-change: transform;
+  }
+
+  .cards-track .card {
+    flex: 0 0 calc(33.333% - 0.67rem);
+    min-width: calc(33.333% - 0.67rem);
+  }
+
+  .cards-btn {
+    position: absolute;
+    top: 40%;
+    transform: translateY(-50%);
+    background: var(--color-white);
+    border: 1.5px solid var(--color-border);
+    color: var(--color-primary);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    font-size: 1.4rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: background .2s, color .2s;
+    z-index: 5;
+  }
+
+  .cards-btn:hover {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .cards-btn.prev { left: 0; }
+  .cards-btn.next { right: 0; }
+
+  @media (max-width: 700px) {
+    .cards-track .card { flex: 0 0 100%; min-width: 100%; }
+    .cards-carrossel-wrap { padding: 0 2.5rem; }
+  }
+
+  /* ── CARROSSEL ── */
+  .carrossel-wrap {
+    position: relative;
+    max-width: 900px;
+    width: calc(100% - 2rem);
+    margin: 1.8rem auto;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,.12);
+    background: #FAF9F6;
+  }
+
+  .carrossel-track { display: block; width: 100%; }
+
+  .carrossel-slide { width: 100%; position: relative; display: none; }
+  .carrossel-slide.active { display: block; width: 100%; }
+
+  .carrossel-slide img {
+    width: 100%;
+    height: 340px;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .carrossel-caption {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(43,43,43,.7));
+    padding: 1.5rem 2rem 1.2rem;
+  }
+
+  .carrossel-caption h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; color: #fff; margin-bottom: .3rem;
+  }
+
+  .carrossel-caption p { color: rgba(255,255,255,.85); font-size: .95rem; }
+
+  .carrossel-fallback {
+    background: linear-gradient(135deg, #5B6D3D 0%, #8fa05a 50%, #F3B651 100%);
+    min-height: 320px; display: flex !important; align-items: stretch;
+  }
+
+  .carrossel-dots {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px; z-index: 10;
+  }
+
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,.5); cursor: pointer;
+    transition: background .2s, transform .2s;
+  }
+
+  .dot.active { background: #fff; transform: scale(1.3); }
+
+  .carousel-btn {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(43,43,43,.5);
+    color: #fff; border: none; border-radius: 50%;
+    width: 38px; height: 38px; font-size: 1.2rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10; transition: background .2s;
+  }
+
+  .carousel-btn:hover { background: #5B6D3D; }
+  .carousel-btn.prev { left: .8rem; }
+  .carousel-btn.next { right: .8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- CARROSSEL -->
+<div class="carrossel-wrap">
+  <button class="carousel-btn prev" onclick="moverCarrossel(-1)">&#8249;</button>
+
+  <div class="carrossel-track" id="carrosselTrack">
+    {% if carrossel %}
+      {% for item in carrossel %}
+      <div class="carrossel-slide {% if loop.first %}active{% endif %}">
+        <img src="{{ url_for('static', filename='uploads/carrossel/' + item.imagem) }}"
+             alt="{{ item.titulo or 'Doces da Fhê' }}">
+        {% if item.titulo or item.subtitulo %}
+        <div class="carrossel-caption">
+          {% if item.titulo %}<h2>{{ item.titulo }}</h2>{% endif %}
+          {% if item.subtitulo %}<p>{{ item.subtitulo }}</p>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="carrossel-slide active carrossel-fallback">
+        <div class="hero-content">
+          <h1>Uma explosão de sabor<br><em>em cada detalhe</em></h1>
+          <p class="subtitle">Nossos doces são feitos artesanalmente, com ingredientes selecionados e muito carinho.</p>
+          <ul class="hero-list">
+            <li>🍫 Brigadeiros gourmet</li>
+            <li>🍓 Combinações irresistíveis</li>
+            <li>✨ Texturas que derretem na boca</li>
+          </ul>
+          <button class="hero-cta">Faça sua encomenda!</button>
+        </div>
+        <div class="hero-image-area">
+          <div style="font-size:5.5rem;line-height:1.1;text-align:center;">🍫<br>🍬🍰</div>
+          <div class="hero-badge">
+            <div class="brand">Doces<br>da Fhê</div>
+            <div class="tagline">feito com amor em<br>cada detalhe 💖</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <button class="carousel-btn next" onclick="moverCarrossel(1)">&#8250;</button>
+
+  {% if carrossel|length > 1 %}
+  <div class="carrossel-dots" id="carrosselDots">
+    {% for item in carrossel %}
+    <span class="dot {% if loop.first %}active{% endif %}"
+          onclick="irParaSlide({ loop,index0 })"></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- ══ EVENTOS ESPECIAIS ══ -->
+{% for evento in eventos %}
+  {% if evento.ativo %}
+    {% set produtos_visiveis = evento.produtos | selectattr('mostrar') | list %}
+    {% if produtos_visiveis %}
+    <h2 class="section-title">{{ evento.nome }}</h2>
+    <div class="cards-carrossel-wrap">
+      <button class="cards-btn prev" onclick="moverCards('evento-{{ loop.index }}', -1)">&#8249;</button>
+      <div class="cards-track" id="evento-{{ loop.index }}">
+        {% for p in produtos_visiveis %}
+        <div class="card produto-item" data-nome="{{ p.name | lower }}">
+          <a href="{{ url_for('produto_especial_detalhe', id=p.id) }}" class="card-link-inner">
+            <div class="card-img">
+              {% if p.image_url %}
+                <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+              {% else %}🍰{% endif %}
+            </div>
+            <div class="card-body">
+              <h3>{{ p.name }}</h3>
+              <p class="weight">{{ p.description[:50] }}{% if p.description|length > 50 %}...{% endif %}</p>
+            </div>
+          </a>
+          <div class="card-footer">
+            <span class="price"><sup>R$</sup> {{ "%.2f"|format(p.price) }} <span class="per">/un</span></span>
+            <div class="qty" id="qty-e-{{ p.id }}">
+              <button onclick="changeQty('e-{{ p.id }}', -1)">−</button>
+              <span>1</span>
+              <button onclick="changeQty('e-{{ p.id }}', 1)">+</button>
+            </div>
+          </div>
+          <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+            <input type="hidden" name="especial_id" value="{{ p.id }}">
+            <input type="hidden" name="quantidade" id="qty-input-e-{{ p.id }}" value="1">
+            <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+            <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      <button class="cards-btn next" onclick="moverCards('evento-{{ loop.index }}', 1)">&#8250;</button>
+    </div>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+<!-- ══ KITS ══ -->
+{% if kits %}
+<h2 class="section-title">Kits Especiais</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('kitsGrid', -1)">&#8249;</button>
+  <div class="cards-track" id="kitsGrid">
+    {% for kit in kits %}
+    <div class="card produto-item" data-nome="{{ kit.name | lower }}">
+      <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if kit.image_url %}
+            <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+          {% else %}🎁{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ kit.name }}</h3>
+          <p class="weight">{{ kit.description[:50] if kit.description else '' }}{% if kit.description and kit.description|length > 50 %}...{% endif %}</p>
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }} <span class="per">/kit</span></span>
+        <div class="qty" id="qty-k-{{ kit.id }}">
+          <button onclick="changeQty('k-{{ kit.id }}', -1)">−</button>
+          <span>1</span>
+          <button onclick="changeQty('k-{{ kit.id }}', 1)">+</button>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+        <input type="hidden" name="quantidade" id="qty-input-k-{{ kit.id }}" value="1">
+        <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+        <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="cards-btn next" onclick="moverCards('kitsGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
+<!-- ══ TODOS OS PRODUTOS ══ -->
+{% if produtos %}
+<h2 class="section-title">Nossos Produtos</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('productGrid', -1)">&#8249;</button>
+  <div class="cards-track" id="productGrid">
+    {% for produto in produtos %}
+    <div class="card produto-item" data-nome="{{ produto.name | lower }}">
+      <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if produto.image_url %}
+            <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+          {% else %}🍰{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ produto.name }}</h3>
+          <p class="weight">{{ produto.description[:50] }}{% if produto.description|length > 50 %}...{% endif %}</p>
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+        <div class="qty" id="qty-p-{{ produto.id }}">
+          <button onclick="changeQty('p-{{ produto.id }}', -1)">−</button>
+          <span>1</span>
+          <button onclick="changeQty('p-{{ produto.id }}', 1)">+</button>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+        <input type="hidden" name="quantidade" id="qty-input-p-{{ produto.id }}" value="1">
+        <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+        <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="cards-btn next" onclick="moverCards('productGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Sobre</p>
+      <p>Blog</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<script>
+  // ── CARROSSEL ──
+  let slideAtual = 0;
+  const slides = document.querySelectorAll('.carrossel-slide');
+  const dots   = document.querySelectorAll('.dot');
+
+  function mostrarSlide(n) {
+    slides.forEach(s => s.classList.remove('active'));
+    dots.forEach(d => d.classList.remove('active'));
+    slideAtual = (n + slides.length) % slides.length;
+    slides[slideAtual].classList.add('active');
+    if (dots[slideAtual]) dots[slideAtual].classList.add('active');
+  }
+
+  function moverCarrossel(dir) { mostrarSlide(slideAtual + dir); }
+  function irParaSlide(n) { mostrarSlide(n); }
+
+  if (slides.length > 1) {
+    setInterval(() => moverCarrossel(1), 4000);
+  }
+
+  // ── CARROSSEL DE CARDS (avança 1 por vez, mostra 3) ──
+  const trackOffsets = {};
+
+  function moverCards(trackId, dir) {
+    const track = document.getElementById(trackId);
+    if (!track) return;
+
+    const cards       = track.querySelectorAll('.card');
+    const totalCards  = cards.length;
+    if (totalCards <= 3) return; // menos de 3 não precisa de carrossel
+
+    const cardWidth   = track.querySelector('.card').offsetWidth + 16; // 16 = gap
+    const maxOffset   = (totalCards - 3) * cardWidth;
+
+    if (!trackOffsets[trackId]) trackOffsets[trackId] = 0;
+
+    trackOffsets[trackId] += dir * cardWidth;
+    trackOffsets[trackId]  = Math.max(0, Math.min(trackOffsets[trackId], maxOffset));
+
+    track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
+  }
+
+  // ── QTY ── ✅ função corrigida
+  function changeQty(id, delta) {
+    const qtyDiv   = document.getElementById('qty-' + id);
+    const qtyInput = document.getElementById('qty-input-' + id);
+    const span     = qtyDiv.querySelector('span');
+    let val = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val;
+    qtyInput.value   = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  function filtrarProdutos() {
+    const termo = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.produto-item').forEach(card => {
+      card.style.display = card.dataset.nome.includes(termo) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

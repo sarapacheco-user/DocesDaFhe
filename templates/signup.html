@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+
+<div class="signup-card">
+  <h2>Criar Conta</h2>
+
+  <form method="POST">
+    <input type="text" name="name" placeholder="Nome Completo" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Senha" required>
+    <input type="password" name="confirm-password" placeholder="Confirmar Senha" required>
+    <input type="tel" name="phone" placeholder="Telefone" required>
+    <input type="text" name="cep" placeholder="CEP" required>
+    <button type="submit">Criar Conta</button>
+  </form>
+
+  <div class="signup-links">
+    <a href="/login">Já tem uma conta? Entrar</a>
+  </div>
+</div>
+{% endblock %}

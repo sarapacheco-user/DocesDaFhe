@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Loja</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary:         #5B6D3D;
+      --color-secondary:       #D67155;
+      --color-accent:          #F3B651;
+      --color-dark:            #932E50;
+      --color-bg:              #FAF9F6;
+      --color-white:           #FFFFFF;
+      --color-text:            #2B2B2B;
+      --color-text-light:      #6B6B6B;
+      --color-border:          #E5E5E5;
+      --color-hover-primary:   #4a5932;
+      --color-hover-accent:    #d9a13f;
+      --color-hover-secondary: #b85a42;
+      --shadow-sm:  0 2px 6px rgba(0,0,0,.05);
+      --shadow-md:  0 4px 12px rgba(0,0,0,.08);
+      --shadow-lg:  0 8px 20px rgba(0,0,0,.12);
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif !important;
+      background: var(--color-bg);
+      color: var(--color-text);
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* ── FLASH ── */
+    .flash { padding: 10px; margin: 10px 1.5rem; border-radius: 8px; font-size: .9rem; }
+    .flash-error   { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .flash-info    { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--color-secondary);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center;
+      box-shadow: var(--shadow-md);
+      position: sticky; top: 0; z-index: 200;
+    }
+
+    .topbar-btn {
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; gap: .7rem; padding: 0;
+    }
+
+    .topbar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; color: var(--color-white);
+      font-weight: 700; letter-spacing: .02em;
+    }
+
+    .hamburger { font-size: 1.3rem; color: var(--color-accent); }
+
+    /* ── OVERLAY ── */
+    .drawer-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(43,43,43,.45); z-index: 300;
+      backdrop-filter: blur(2px);
+    }
+
+    .drawer-overlay.show { display: block; }
+
+    /* ── DRAWER ── */
+    .drawer {
+      position: fixed; top: 0; left: -280px;
+      width: 260px; height: 100vh;
+      background: var(--color-secondary) !important;
+      z-index: 400; display: flex; flex-direction: column;
+      transition: left .3s cubic-bezier(.4,0,.2,1);
+      box-shadow: 4px 0 32px rgba(0,0,0,.2);
+      overflow-y: auto;
+    }
+
+    .drawer.open { left: 0; }
+
+    .drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4rem 1.4rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: var(--color-secondary) !important;
+    }
+
+    .drawer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; color: var(--color-white); font-weight: 700;
+    }
+
+    .drawer-close {
+      background: none; border: none; color: var(--color-accent);
+      font-size: 1.1rem; cursor: pointer; padding: .2rem .4rem;
+      border-radius: 6px; transition: background .2s;
+    }
+
+    .drawer-close:hover { background: rgba(255,255,255,.1); }
+
+    .drawer-nav {
+      flex: 1; display: flex; flex-direction: column;
+      padding: 1rem 0; gap: .2rem;
+      background: var(--color-secondary) !important;
+    }
+
+    .drawer-section {
+      font-size: .7rem; font-weight: 800;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      padding: .8rem 1.6rem .3rem;
+    }
+
+    .drawer-nav a {
+      color: rgba(255,255,255,.85); text-decoration: none;
+      font-weight: 600; font-size: .95rem;
+      padding: .8rem 1.6rem;
+      transition: background .2s, color .2s;
+      display: flex; align-items: center; gap: .6rem;
+    }
+
+    .drawer-nav a:hover {
+      background: rgba(255,255,255,.1);
+      color: var(--color-white);
+    }
+
+    .drawer-footer {
+      padding: 1.2rem 1.6rem;
+      border-top: 1px solid rgba(255,255,255,.12);
+      background: var(--color-secondary) !important;
+    }
+
+    .drawer-logout {
+      color: var(--color-accent) !important;
+      text-decoration: none; font-weight: 700;
+      font-size: .92rem; transition: color .2s;
+    }
+
+    .drawer-logout:hover { color: var(--color-white) !important; }
+
+    /* ── FLASH MODAL ── */
+    .flash-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(43,43,43,.45);
+      backdrop-filter: blur(3px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .flash-modal {
+      background: var(--color-white);
+      border-radius: 20px;
+      padding: 2rem 2.5rem;
+      max-width: 420px; width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      border: 1.5px solid var(--color-border);
+      animation: popIn .25s cubic-bezier(.4,0,.2,1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(.85); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .flash-modal-msg {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      color: var(--color-primary);
+      margin-bottom: 1.4rem;
+      line-height: 1.4;
+    }
+
+    .flash-modal-btns { display: flex; justify-content: center; gap: 1rem; }
+
+    .flash-btn-ok {
+      background: var(--color-primary);
+      color: var(--color-white);
+      border: none; border-radius: 24px;
+      padding: .65rem 2rem;
+      font-family: 'Nunito', sans-serif;
+      font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: background .2s, transform .15s;
+    }
+
+    .flash-btn-ok:hover {
+      background: var(--color-hover-primary);
+      transform: translateY(-2px);
+    }
+
+    .flash-modal-success .flash-modal-msg { color: #155724; }
+    .flash-modal-success { border-color: #c3e6cb; }
+    .flash-modal-error .flash-modal-msg { color: #721c24; }
+    .flash-modal-error { border-color: #f5c6cb; }
+    .flash-modal-info .flash-modal-msg { color: var(--color-primary); }
+    .flash-modal-warning .flash-modal-msg { color: #856404; }
+    .flash-modal-warning { border-color: #ffc107; }
+  </style>
+
+  {% block styles %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated and current_user.is_admin %}
+
+<div class="topbar">
+  <button class="topbar-btn" id="drawerToggle">
+    <span class="topbar-title">Doces da Fhê</span>
+    <span class="hamburger" id="hamburgerIcon">☰</span>
+  </button>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-logo">Doces da Fhê</span>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+
+  <nav class="drawer-nav">
+    <span class="drawer-section">Administração</span>
+    <a href="{{ url_for('dashboard') }}">Painel</a>
+    <a href="{{ url_for('list_products') }}">Gerenciar Produtos</a>
+    <a href="{{ url_for('list_kits') }}">Gerenciar Kits</a>
+    <a href="{{ url_for('listar_eventos') }}" >Eventos Especiais</a>
+    <a href="{{ url_for('carrossel_listar') }}" >Carrossel</a>
+  </nav>
+
+  <div class="drawer-footer">
+    <a href="{{ url_for('logout') }}" class="drawer-logout">Sair →</a>
+  </div>
+</div>
+
+<script>
+  const toggle  = document.getElementById('drawerToggle');
+  const drawer  = document.getElementById('drawer');
+  const overlay = document.getElementById('drawerOverlay');
+  const close   = document.getElementById('drawerClose');
+  const icon    = document.getElementById('hamburgerIcon');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    overlay.classList.add('show');
+    icon.textContent = '✕';
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('show');
+    icon.textContent = '☰';
+  }
+
+  toggle.addEventListener('click', () => {
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+
+  close.addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+</script>
+
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, msg in messages %}
+    <div class="flash-modal-overlay" id="flashOverlay-{{ loop.index }}"
+         onclick="fecharFlash('{{ loop.index }}')">
+      <div class="flash-modal flash-modal-{{ category if category else 'info' }}"
+           onclick="event.stopPropagation()">
+        <p class="flash-modal-msg">{{ msg }}</p>
+        <div class="flash-modal-btns">
+          <button class="flash-btn-ok" onclick="fecharFlash('{{ loop.index }}')">OK</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <script>
+      function fecharFlash(id) {
+        const el = document.getElementById('flashOverlay-' + id);
+        if (el) {
+          el.style.animation = 'fadeOut .2s ease forwards';
+          setTimeout(() => el.remove(), 200);
+        }
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.flash-modal-overlay').forEach(el => {
+          const id = el.id.replace('flashOverlay-', '');
+          setTimeout(() => fecharFlash(id), 3000);
+        });
+      });
+    </script>
+  {% endif %}
+{% endwith %}
+
+{% block content %}
+{% endblock %}

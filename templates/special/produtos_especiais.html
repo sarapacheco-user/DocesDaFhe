@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="evento-header">
+  <div>
+    <h2>{{ evento.nome }}</h2>
+    {% if evento.descricao %}
+      <p style="color:var(--text-mid); font-size:.9rem; margin-top:.3rem;">{{ evento.descricao }}</p>
+    {% endif %}
+  </div>
+  <div style="display:flex; gap:.8rem; align-items:center; flex-wrap:wrap;">
+    <span class="{{ 'badge-ativo' if evento.ativo else 'badge-inativo' }}">
+      {{ '✅ Evento ativo' if evento.ativo else '⛔ Evento inativo' }}
+    </span>
+    <a href="{{ url_for('criar_produto_especial', evento_id=evento.id) }}" class="btn-primary">
+      + Adicionar Produto
+    </a>
+    <a href="{{ url_for('listar_eventos') }}" class="btn-secondary">← Voltar</a>
+  </div>
+</div>
+
+{% if produtos %}
+<table>
+  <thead>
+    <tr>
+      <th>Imagem</th>
+      <th>Nome</th>
+      <th>Descrição</th>
+      <th>Preço</th>
+      <th>Categoria</th>
+      <th>Mostrar</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in produtos %}
+    <tr>
+      <td>
+        {% if p.image_url %}
+          <img src="{{ p.image_url }}" alt="{{ p.name }}">
+        {% else %}
+          🍰
+        {% endif %}
+      </td>
+      <td><strong>{{ p.name }}</strong></td>
+      <td>{{ p.description[:60] }}{% if p.description|length > 60 %}...{% endif %}</td>
+      <td>R$ {{ "%.2f"|format(p.price) }}</td>
+      <td>{{ p.category | capitalize }}</td>
+
+      <td>
+        <a href="{{ url_for('toggle_mostrar', id=p.id) }}"
+           class="toggle-btn {{ 'toggle-on' if p.mostrar else 'toggle-off' }}">
+          {{ '👁 Mostrar' if p.mostrar else '🚫 Oculto' }}
+        </a>
+      </td>
+
+      <td>
+        <a href="{{ url_for('editar_produto_especial', id=p.id) }}">Editar</a> |
+        <a href="{{ url_for('deletar_produto_especial', id=evento.id) }}"
+             onclick="return confirm('Deletar {{ p.name }}?')">Deletar</a>
+             
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p style="margin: 1rem 2rem; color: var(--text-mid);">
+    Nenhum produto cadastrado neste evento ainda.
+  </p>
+{% endif %}
+
+{% endblock %}

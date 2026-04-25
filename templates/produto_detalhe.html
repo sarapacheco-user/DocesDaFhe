@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='produto_detalhe.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a href="{{ url_for('dashboard') }}">Início</a>
+  <span>›</span>
+  {% if is_kit %}
+    <a href="{{ url_for('kits_loja') }}">Kits</a>
+    <span>›</span>
+    <span>{{ kit.name }}</span>
+  {% else %}
+    <a href="{{ url_for('categoria', nome=produto.category) }}">{{ produto.category | capitalize }}</a>
+    <span>›</span>
+    <span>{{ produto.name }}</span>
+  {% endif %}
+</div>
+
+<!-- DETALHE -->
+<div class="produto-detalhe">
+
+  <!-- IMAGEM -->
+  <div class="produto-imagem">
+    {% if produto.image_url %}
+      <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}" class="produto-img-principal" />
+    {% else %}
+      <div class="produto-img-placeholder">{{ '🎁' if is_kit else '🍰' }}</div>
+    {% endif %}
+  </div>
+
+  <!-- INFORMAÇÕES -->
+  <div class="produto-info">
+
+    <span class="produto-categoria">{{ produto.category | capitalize }}</span>
+    <h1 class="produto-nome">{{ produto.name }}</h1>
+    <p class="produto-descricao">{{ produto.description }}</p>
+
+    {% if is_kit and kit.products %}
+    <div class="kit-itens-lista">
+      <p class="kit-itens-titulo">Itens inclusos:</p>
+      {% for kp in kit.products %}
+      <div class="kit-item-linha">
+        <span>{{ kp.product.name }}</span>
+        <span class="kit-item-qty">x{{ kp.quantity }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="produto-preco-wrap">
+      <span class="produto-preco">
+        <sup>R$</sup>{{ "%.2f"|format(produto.price) }}
+        <span class="produto-preco-un">/{{ 'kit' if is_kit else 'un' }}</span>
+      </span>
+    </div>
+
+    <!-- FORMULÁRIO CARRINHO — ✅ CORRIGIDO -->
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}" class="produto-qty-wrap">
+
+      <!-- ✅ ID correto usando produto.id ou kit.id -->
+      {% if is_kit %}
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      {% else %}
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      {% endif %}
+
+      <input type="hidden" name="next" value="{{ request.url }}">
+
+      <!-- quantidade — ✅ atualiza o input hidden junto -->
+      <div class="produto-qty">
+        <button type="button" onclick="changeQty(-1)">−</button>
+        <span id="qtyValue">1</span>
+        <button type="button" onclick="changeQty(1)">+</button>
+      </div>
+      <input type="hidden" name="quantidade" id="qtyInput" value="1">
+
+      <button type="submit" class="produto-btn-cart">
+        Adicionar ao carrinho 🛒
+      </button>
+    </form>
+
+    {% if is_kit %}
+      <a href="{{ url_for('kits_loja') }}" class="produto-voltar">← Voltar para Kits</a>
+    {% else %}
+      <a href="{{ url_for('categoria', nome=produto.category) }}" class="produto-voltar">
+        ← Voltar para {{ produto.category | capitalize }}
+      </a>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- RELACIONADOS -->
+{% if relacionados %}
+<div class="relacionados-wrap">
+  <h2 class="section-title">Veja também</h2>
+  <div class="produtos-relacionados">
+    {% for rel in relacionados %}
+    <a href="{{ url_for('kit_detalhe', kit_id=rel.id) if is_kit else url_for('produto_detalhe', id=rel.id) }}"
+       class="card-rel">
+      <div class="card-rel-img">
+        {% if rel.image_url %}
+          <img src="{{ url_for('static', filename=rel.image_url) }}" alt="{{ rel.name }}">
+        {% else %}
+          {{ '🎁' if is_kit else '🍰' }}
+        {% endif %}
+      </div>
+      <div class="card-rel-body">
+        <h3>{{ rel.name }}</h3>
+        <p>R$ {{ "%.2f"|format(rel.price) }}</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Produtos</p>
+      <p>Sobre</p>
+      <p>Contato</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<script>
+  // ✅ atualiza tanto o display quanto o input hidden
+  function changeQty(delta) {
+    const display = document.getElementById('qtyValue');
+    const input   = document.getElementById('qtyInput');
+    let val = parseInt(display.textContent) + delta;
+    if (val < 1) val = 1;
+    display.textContent = val;
+    input.value = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+</script>
+
+{% endblock %}

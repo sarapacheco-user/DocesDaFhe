@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
+<style>
+  .cart-icon-wrap {
+    position: relative;
+    display: flex; align-items: center;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #932E50;
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .titulo-loja {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    color: #2B2B2B;
+    margin: 2rem auto .2rem;
+    max-width: 900px;
+    padding: 0 1rem;
+  }
+
+  .kits-grid {
+    max-width: 900px;
+    margin: 1.2rem auto 3rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.4rem;
+    padding: 0 1rem;
+  }
+
+  .kit-link {
+    text-decoration: none; color: inherit; display: block;
+  }
+
+  .kit-card {
+    background: #FFFFFF;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1.5px solid #E5E5E5;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    display: flex; flex-direction: column;
+    transition: transform .2s, box-shadow .2s;
+    height: 100%;
+  }
+
+  .kit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+  }
+
+  .kit-card-img {
+    width: 100%; aspect-ratio: 4/3;
+    object-fit: cover;
+    background: #FAF9F6;
+    display: flex; align-items: center;
+    justify-content: center; font-size: 3.5rem;
+  }
+
+  .kit-card-img img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
+  .kit-card-body {
+    padding: 1rem 1rem .8rem; flex: 1;
+  }
+
+  .kit-card-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: #2B2B2B; margin-bottom: .25rem;
+  }
+
+  .kit-card-body p {
+    font-size: .82rem; color: #6B6B6B; margin-bottom: .3rem;
+  }
+
+  .kit-card-body .kit-total {
+    font-size: 1.1rem; font-weight: 700;
+    color: #5B6D3D; margin-top: .4rem;
+  }
+
+  .kit-card-body .kit-itens {
+    font-size: .78rem; color: #6B6B6B; margin-top: .2rem;
+  }
+
+  .kits-vazio {
+    grid-column: 1 / -1; text-align: center;
+    padding: 3rem 1rem; color: #6B6B6B; font-size: 1rem;
+  }
+
+  @media (max-width: 700px) {
+    .kits-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..." oninput="filtrarKits()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- TÍTULO -->
+<h2 class="titulo-loja">Kits Especiais</h2>
+
+<!-- GRID DE KITS -->
+<div class="kits-grid" id="kitsGrid">
+  {% if kits %}
+    {% for kit in kits %}
+    <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="kit-link kit-item"
+       data-nome="{{ kit.name | lower }}">
+      <div class="kit-card">
+
+        <div class="kit-card-img">
+          {% if kit.image_url %}
+            <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+          {% else %}🎁{% endif %}
+        </div>
+
+        <div class="kit-card-body">
+          <h3>{{ kit.name }}</h3>
+          <p>{{ kit.description[:80] if kit.description else '' }}{% if kit.description and kit.description|length > 80 %}...{% endif %}</p>
+          <p class="kit-itens">{{ kit.products|length }} item(s) no kit</p>
+          <p class="kit-total"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }}</p>
+        </div>
+
+      </div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div class="kits-vazio">
+      <p>Nenhum kit disponível no momento.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Sobre</p>
+      <p>Blog</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<script>
+  function filtrarKits() {
+    const termo = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.kit-item').forEach(card => {
+      card.style.display = card.dataset.nome.includes(termo) ? '' : 'none';
+    });
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') buscarGlobal();
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<h2>Eventos Especiais</h2>
+<a href="{{ url_for('criar_evento') }}" class="btn btn-primary">Criar Evento</a>
+
+
+{% if eventos %}
+<table cellpadding="10">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Descrição</th>
+      <th>Produtos</th>
+      <th>Status</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for evento in eventos %}
+    <tr>
+      <td><strong>{{ evento.nome }}</strong></td>
+      <td>{{ evento.descricao[:60] if evento.descricao else '—' }}</td>
+      <td>{{ evento.produtos | length }} produto(s)</td>
+      <td>
+        <a href="{{ url_for('toggle_evento_ativo', id=evento.id) }}"
+           class="toggle-btn {{ 'toggle-on' if evento.ativo else 'toggle-off' }}">
+          {{ '✅ Ativo' if evento.ativo else '⛔ Inativo' }}
+        </a>
+      </td>
+      <td>
+        <a href="{{ url_for('listar_produtos_especiais', evento_id=evento.id) }}">Gerenciar</a> |
+        <a href="{{ url_for('deletar_evento', id=evento.id) }}"
+             onclick="return confirm('Deletar {{ evento.nome }}?')">Deletar</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p>Nenhum evento criado ainda.
+    {% if current_user.is_admin %}Crie seu primeiro produto!{% endif %}
+  </p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
+<style>
+  .cart-icon-wrap {
+    position: relative;
+    display: flex; align-items: center;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #932E50;
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card-link-inner {
+    text-decoration: none; color: inherit; display: block;
+  }
+
+  /* KIT CARD */
+  .kit-card-busca {
+    background: #FFFFFF;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1.5px solid #E5E5E5;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    display: flex; flex-direction: column;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none; color: inherit;
+  }
+
+  .kit-card-busca:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+  }
+
+  .kit-card-busca .kit-img {
+    width: 100%; aspect-ratio: 4/3;
+    background: #FAF9F6;
+    display: flex; align-items: center;
+    justify-content: center; font-size: 3rem; overflow: hidden;
+  }
+
+  .kit-card-busca .kit-img img { width: 100%; height: 100%; object-fit: cover; }
+  .kit-card-busca .kit-body { padding: 1rem; }
+
+  .kit-card-busca h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: #2B2B2B; margin-bottom: .3rem;
+  }
+
+  .kit-card-busca p { font-size: .82rem; color: #6B6B6B; }
+
+  .kit-card-busca .kit-preco {
+    font-size: 1.05rem; font-weight: 700;
+    color: #5B6D3D; margin-top: .4rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+             value="{{ termo }}"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- TÍTULO -->
+<h2 class="section-title">Resultados para "{{ termo }}"</h2>
+
+{% set total = produtos|length + especiais|length + kits|length %}
+{% if total == 0 %}
+  <div style="max-width:900px; margin:2rem auto; padding:0 1rem; color:#6B6B6B;">
+    <p>Nenhum resultado encontrado para "<strong>{{ termo }}</strong>". Tente outro termo!</p>
+  </div>
+{% endif %}
+
+<!-- PRODUTOS NORMAIS -->
+{% if produtos %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Produtos</h2>
+<div class="products">
+  {% for produto in produtos %}
+  <div class="card" data-nome="{{ produto.name | lower }}">
+    <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if produto.image_url %}
+          <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+        {% else %}🍰{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ produto.name }}</h3>
+        <p class="weight">{{ produto.description[:50] }}{% if produto.description|length > 50 %}...{% endif %}</p>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+      <div class="qty" id="qty-p-{{ produto.id }}">
+        <button onclick="changeQty('p-{{ produto.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('p-{{ produto.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-p-{{ produto.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- PRODUTOS ESPECIAIS -->
+{% if especiais %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Edições Especiais</h2>
+<div class="products">
+  {% for p in especiais %}
+  <div class="card" data-nome="{{ p.name | lower }}">
+    <a href="{{ url_for('produto_especial_detalhe', id=p.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if p.image_url %}
+          <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+        {% else %}🍰{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ p.name }}</h3>
+        <p class="weight">{{ p.description[:50] }}{% if p.description|length > 50 %}...{% endif %}</p>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(p.price) }} <span class="per">/un</span></span>
+      <div class="qty" id="qty-e-{{ p.id }}">
+        <button onclick="changeQty('e-{{ p.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('e-{{ p.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="especial_id" value="{{ p.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-e-{{ p.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- KITS -->
+{% if kits %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Kits</h2>
+<div class="products">
+  {% for kit in kits %}
+  <div class="card">
+    <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if kit.image_url %}
+          <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+        {% else %}🎁{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ kit.name }}</h3>
+        <p class="weight">{{ kit.description[:60] if kit.description else '' }}</p>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }} <span class="per">/kit</span></span>
+      <div class="qty" id="qty-k-{{ kit.id }}">
+        <button onclick="changeQty('k-{{ kit.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('k-{{ kit.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-k-{{ kit.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Sobre</p>
+      <p>Blog</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<script>
+  function changeQty(id, delta) {
+    const span  = document.querySelector('#qty-' + id + ' span');
+    const input = document.getElementById('qty-input-' + id);
+    let val = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val;
+    input.value = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+</script>
+
+{% endblock %}
