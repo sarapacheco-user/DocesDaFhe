@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
+<style>
+  .cart-icon-wrap {
+    position: relative;
+    display: flex; align-items: center;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #932E50;
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card-link-inner {
+    text-decoration: none; color: inherit; display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}"
+     class="{% if categoria == 'bolos' %}nav-active{% endif %}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}"
+     class="{% if categoria == 'brigadeiros' %}nav-active{% endif %}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}"
+     class="{% if categoria == 'chocolates' %}nav-active{% endif %}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}"
+     class="{% if categoria == 'bombons' %}nav-active{% endif %}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- TÍTULO -->
+<h2 class="section-title">{{ categoria | capitalize }}</h2>
+
+<!-- PRODUTOS -->
+<div class="products" id="productGrid">
+  {% if produtos %}
+    {% for produto in produtos %}
+
+    <div class="card produto-item" data-nome="{{ produto.name | lower }}">
+
+      <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if produto.image_url %}
+            <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+          {% else %}🍰{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ produto.name }}</h3>
+          <p class="weight">
+            {{ produto.description[:60] }}{% if produto.description|length > 60 %}...{% endif %}
+          </p>
+        </div>
+      </a>
+
+      <div class="card-footer">
+        <span class="price">
+          <sup>R$</sup> {{ "%.2f"|format(produto.price) }}
+          <span class="per">/un</span>
+        </span>
+        <div class="qty" id="qty-{{ produto.id }}">
+          <button onclick="changeQty('{{ produto.id }}', -1)">−</button>
+          <span>1</span>
+          <button onclick="changeQty('{{ produto.id }}', 1)">+</button>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+        <input type="hidden" name="quantidade" id="qty-input-{{ produto.id }}" value="1">
+        <input type="hidden" name="next" value="{{ request.url }}">
+        <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+      </form>
+
+    </div>
+
+    {% endfor %}
+  {% else %}
+    <div class="produtos-vazio">
+      <p>Nenhum produto encontrado nesta categoria.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Sobre</p>
+      <p>Blog</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<script>
+  function changeQty(id, delta) {
+    const span  = document.querySelector('#qty-' + id + ' span');
+    const input = document.getElementById('qty-input-' + id);
+    let val = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val;
+    input.value = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  function filtrarProdutos() {
+    const termo = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.produto-item').forEach(card => {
+      card.style.display = card.dataset.nome.includes(termo) ? '' : 'none';
+    });
+  }
+</script>
+
+{% endblock %}

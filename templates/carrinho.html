@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='carrinho.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()">🔍</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+        <span class="btn-entrar">Bem-vindo, Admin</span>
+      {% else %}
+        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+    {% endif %}
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<!-- CONTEÚDO -->
+<div class="carrinho-wrap">
+
+  <h2 class="carrinho-titulo">Carrinho de Compras</h2>
+
+  {% if itens %}
+
+  <div class="carrinho-layout">
+
+    <!-- LISTA DE ITENS -->
+    <div class="carrinho-itens">
+      {% for item in itens %}
+      <div class="carrinho-card">
+
+        <!-- IMAGEM -->
+        <div class="carrinho-img">
+          {% if item.imagem %}
+            <img src="{{ url_for('static', filename=item.imagem) }}" alt="{{ item.nome }}">
+          {% else %}
+            🍰
+          {% endif %}
+        </div>
+
+        <!-- INFO -->
+        <div class="carrinho-info">
+          <h3>{{ item.nome }}</h3>
+          <p class="carrinho-preco-unit">R$ {{ "%.2f"|format(item.preco_unit) }} /un</p>
+
+          <!-- QUANTIDADE -->
+          <form method="POST" action="{{ url_for('atualizar_carrinho', item_id=item.id) }}"
+                class="carrinho-qty-form">
+            <button type="submit" name="quantidade" value="{{ item.quantidade - 1 }}">−</button>
+            <span>{{ item.quantidade }}</span>
+            <button type="submit" name="quantidade" value="{{ item.quantidade + 1 }}">+</button>
+          </form>
+        </div>
+
+        <!-- SUBTOTAL + REMOVER -->
+        <div class="carrinho-subtotal">
+          <p>R$ {{ "%.2f"|format(item.subtotal) }}</p>
+          <form method="POST" action="{{ url_for('remover_carrinho', item_id=item.id) }}">
+            <button type="submit" class="btn-remover">Remover</button>
+          </form>
+        </div>
+
+      </div>
+      {% endfor %}
+
+      <!-- ESVAZIAR -->
+      <form method="POST" action="{{ url_for('esvaziar_carrinho') }}" class="form-esvaziar"
+            onsubmit="return confirm('Esvaziar o carrinho?')">
+        <button type="submit" class="btn-esvaziar">Esvaziar carrinho</button>
+      </form>
+    </div>
+
+    <!-- RESUMO -->
+    <div class="carrinho-resumo">
+      <h3>Resumo do Pedido</h3>
+
+      <div class="resumo-linha">
+        <span>{{ quantidade_total }} produto(s)</span>
+        <span>R$ {{ "%.2f"|format(total) }}</span>
+      </div>
+
+      <div class="resumo-total">
+        <span>Total a pagar</span>
+        <span>R$ {{ "%.2f"|format(total) }}</span>
+      </div>
+
+      <a href="#" onclick="abrirModalEntrega()" class="btn-finalizar">
+        Finalizar pelo WhatsApp 💬
+      </a>
+
+      <a href="{{ url_for('dashboard') }}" class="btn-continuar">
+        ← Continuar comprando
+      </a>
+    </div>
+
+  </div>
+
+  {% else %}
+
+  <!-- CARRINHO VAZIO -->
+  <div class="carrinho-vazio">
+    <div class="carrinho-vazio-icon">🛍️</div>
+    <h3>Seu carrinho está vazio!</h3>
+    <p>Adicione produtos para continuar.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn-finalizar">
+      Ver produtos
+    </a>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Doces da Fhê</h3>
+      <p class="footer-frase">
+        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
+        <span class="assinatura">Fhê</span>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h3>Links</h3>
+      <p>Início</p>
+      <p>Sobre</p>
+      <p>Blog</p>
+    </div>
+    <div class="footer-col">
+      <h3>Contato</h3>
+      <p>WhatsApp</p>
+      <p>Instagram</p>
+      <p>Email</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 Doces da Fhê – Todos os direitos reservados
+  </div>
+</footer>
+
+<!-- MODAL AVISO ENTREGA -->
+<div id="modalEntrega" style="display:none; position:fixed; inset:0;
+     background:rgba(43,43,43,.55); backdrop-filter:blur(3px);
+     z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:20px; padding:2.2rem 2rem;
+              max-width:420px; width:90%; text-align:center;
+              box-shadow:0 8px 40px rgba(0,0,0,.18);
+              border:1.5px solid #E5E5E5;
+              animation: popIn .25s cubic-bezier(.4,0,.2,1);">
+
+    <div style="font-size:3rem; margin-bottom:.8rem;">🛵⚠️</div>
+
+    <h3 style="font-family:'Playfair Display',serif; font-size:1.2rem;
+               color:#932E50; margin-bottom:1rem;">
+      Atenção sobre a entrega!
+    </h3>
+
+    <p style="font-size:.95rem; color:#2B2B2B; line-height:1.7; margin-bottom:.8rem;">
+      Os métodos de entrega feitos via Uber / 99 Moto <strong>Não são confiaveis</strong>.
+    </p>
+
+    <p style="font-size:.9rem; color:#932E50; font-weight:700;
+              background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
+              margin-bottom:1.4rem;">
+      ⚠️ Não garantimos a integridade do produto durante o transporte!
+    </p>
+
+    <p style="font-size:.88rem; color:#6B6B6B; margin-bottom:1.6rem;">
+      Deseja continuar mesmo assim?
+    </p>
+
+    <div style="display:flex; gap:1rem; justify-content:center;">
+      <button onclick="fecharModalEntrega()"
+              style="background:transparent; border:2px solid #5B6D3D;
+                     color:#5B6D3D; border-radius:24px; padding:.65rem 1.6rem;
+                     font-family:'Nunito',sans-serif; font-size:.95rem;
+                     font-weight:700; cursor:pointer;">
+        Cancelar
+      </button>
+      <a id="btnConfirmarPedido" href="{{ url_for('finalizar_pedido') }}"
+         style="background:#25D366; color:#fff; border:none; border-radius:24px;
+                padding:.65rem 1.6rem; font-family:'Nunito',sans-serif;
+                font-size:.95rem; font-weight:700; cursor:pointer;
+                text-decoration:none; display:inline-block;">
+        Sim, finalizar 💬
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function abrirModalEntrega() {
+    const modal = document.getElementById('modalEntrega');
+    modal.style.display = 'flex';
+  }
+
+  function fecharModalEntrega() {
+    document.getElementById('modalEntrega').style.display = 'none';
+  }
+
+  // fecha clicando fora
+  document.getElementById('modalEntrega').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalEntrega();
+  });
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+  }
+</script>
+
+{% endblock %}

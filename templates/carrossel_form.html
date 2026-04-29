@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+  /* ── UPLOAD AREA ── */
+  .upload-area {
+    max-width: 560px;
+    margin: 0 auto 2rem;
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 1.5px solid #E5E5E5;
+    padding: 1.6rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  }
+
+  .upload-area h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #5B6D3D;
+    margin-bottom: 1rem;
+  }
+
+  .upload-field {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    margin-bottom: .9rem;
+  }
+
+  .upload-field label {
+    font-weight: 700;
+    font-size: .88rem;
+    color: #2B2B2B;
+  }
+
+  .upload-field input[type="text"],
+  .upload-field input[type="number"] {
+    border: 1.5px solid #E5E5E5;
+    border-radius: 10px;
+    padding: .6rem .9rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: .92rem;
+    background: #FAF9F6;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .upload-field input[type="text"]:focus,
+  .upload-field input[type="number"]:focus {
+    border-color: #D67155;
+  }
+
+  .upload-field input[type="file"] {
+    font-family: 'Nunito', sans-serif;
+    font-size: .88rem;
+  }
+
+  .preview-box {
+    width: 100%;
+    height: 180px;
+    border-radius: 10px;
+    border: 2px dashed #E5E5E5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: .9rem;
+    background: #FAF9F6;
+    color: #6B6B6B;
+    font-size: .88rem;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .preview-box img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>Nova Imagem</h2>
+<a href="{{ url_for('carrossel_listar') }}" class="btn-secondary">Voltar</a>
+
+<!-- FORMULÁRIO DE UPLOAD -->
+<div class="upload-area">
+  <h3>Adicionar nova imagem</h3>
+
+  <form method="POST" action="{{ url_for('carrossel_adicionar') }}" enctype="multipart/form-data">
+
+    <div class="preview-box" id="previewBox">
+      <img id="previewImg" src="" alt="preview">
+      <span id="previewTexto">Selecione uma imagem para pré-visualizar</span>
+    </div>
+
+    <div class="upload-field">
+      <label>Imagem *</label>
+      <input type="file" name="imagem" accept="image/*" required
+             onchange="previewImagem(this)">
+    </div>
+
+    <div class="upload-field">
+      <label>Título (opcional)</label>
+      <input type="text" name="titulo" placeholder="Ex: Promoção de Páscoa">
+    </div>
+
+    <div class="upload-field">
+      <label>Subtítulo (opcional)</label>
+      <input type="text" name="subtitulo" placeholder="Ex: Até 30% de desconto">
+    </div>
+
+    <div class="upload-field">
+      <label>Ordem de exibição</label>
+      <input type="number" name="ordem" value="0" min="0">
+    </div>
+
+    <button type="submit" class="btn-primary" style="width:100%; margin:0;">
+      Enviar para o Carrossel
+    </button>
+
+  </form>
+</div>
+
+<script>
+  function previewImagem(input) {
+    const img   = document.getElementById('previewImg');
+    const texto = document.getElementById('previewTexto');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        img.src = e.target.result;
+        img.style.display = 'block';
+        texto.style.display = 'none';
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+
+{% endblock %}
