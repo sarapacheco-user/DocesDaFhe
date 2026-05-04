@@ -274,10 +274,10 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    produtos  = Product.query.all()
+    produtos  = Product.query.filter_by(ativo=True).all()
     eventos   = EventoEspecial.query.filter_by(ativo=True).all()
     carrossel = CarrosselItem.query.filter_by(ativo=True).order_by(CarrosselItem.ordem).all()
-    kits      = Kit.query.filter_by(is_admin_kit=True).all()
+    kits      = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
@@ -359,6 +359,18 @@ def delete_product(id):
     db.session.delete(product)
     db.session.commit()
     flash("Produto excluído com sucesso!")
+    return redirect(url_for('list_products'))
+
+
+@app.route('/products/<int:id>/toggle-ativo')
+@login_required
+@admin_required
+def toggle_product_ativo(id):
+    product = Product.query.get_or_404(id)
+    product.ativo = not product.ativo
+    db.session.commit()
+    status = 'mostrado' if product.ativo else 'ocultado'
+    flash(f'Produto "{product.name}" {status}!', 'success')
     return redirect(url_for('list_products'))
 
 
@@ -451,6 +463,18 @@ def delete_kit(kit_id):
     return redirect(url_for('list_kits'))
 
 
+@app.route('/kits/<int:kit_id>/toggle-ativo', methods=['POST'])
+@login_required
+@admin_required
+def toggle_kit_ativo(kit_id):
+    kit = Kit.query.get_or_404(kit_id)
+    kit.ativo = not kit.ativo
+    db.session.commit()
+    status = 'mostrado' if kit.ativo else 'ocultado'
+    flash(f'Kit "{kit.name}" {status}!', 'success')
+    return redirect(url_for('list_kits'))
+
+
 @app.route('/kits/<int:kit_id>/products', methods=['GET', 'POST'])
 @login_required
 def edit_kit_products(kit_id):
@@ -490,14 +514,48 @@ def edit_kit_products(kit_id):
 
 @app.route('/categoria/<nome>')
 def categoria(nome):
-    produtos = Product.query.filter_by(category=nome).all()
+    produtos = Product.query.filter_by(category=nome, ativo=True).all()
     return render_template('categoria.html', produtos=produtos, categoria=nome)
 
 
 @app.route('/kits_loja')
 def kits_loja():
-    kits = Kit.query.filter_by(is_admin_kit=True).all()
-    return render_template('kits_loja.html', kits=kits)
+    kits = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
+    produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
+    return render_template('kits_loja.html', kits=kits, produtos=produtos)
+
+
+@app.route('/montar-kit')
+@login_required
+def montar_kit():
+    produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
+    return render_template('montar_kit.html', produtos=produtos)
+
+
+@app.route('/montar-kit/adicionar', methods=['POST'])
+@login_required
+def montar_kit_adicionar():
+    produto_ids = request.form.getlist('produto_id')
+    adicionados = 0
+    for pid in produto_ids:
+        pid = int(pid)
+        qty = request.form.get(f'qty_{pid}', 1, type=int)
+        if qty < 1:
+            continue
+        item = CarrinhoItem.query.filter_by(
+            user_id=current_user.id, produto_id=pid, kit_id=None, especial_id=None
+        ).first()
+        if item:
+            item.quantidade += qty
+        else:
+            db.session.add(CarrinhoItem(user_id=current_user.id, produto_id=pid, quantidade=qty))
+        adicionados += 1
+    if adicionados:
+        db.session.commit()
+        flash(f'{adicionados} produto(s) adicionado(s) ao carrinho!', 'success')
+    else:
+        flash('Selecione pelo menos um produto para montar seu kit.', 'warning')
+    return redirect(url_for('carrinho'))
 
 
 @app.route('/produto/<int:id>')
@@ -505,7 +563,8 @@ def produto_detalhe(id):
     produto = Product.query.get_or_404(id)
     relacionados = Product.query.filter(
         Product.category == produto.category,
-        Product.id != produto.id
+        Product.id != produto.id,
+        Product.ativo == True
     ).limit(4).all()
     return render_template('produto_detalhe.html',
                            produto=produto,
@@ -530,7 +589,8 @@ def kit_detalhe(kit_id):
 
     outros_kits = Kit.query.filter(
         Kit.is_admin_kit == True,
-        Kit.id != kit_id
+        Kit.id != kit_id,
+        Kit.ativo == True
     ).limit(4).all()
 
     class KitRelAdapter:
@@ -571,14 +631,15 @@ def busca():
     termo = request.args.get('q', '').strip()
     if not termo:
         return redirect(url_for('dashboard'))
-    produtos  = Product.query.filter(Product.name.ilike(f'%{termo}%')).all()
+    produtos  = Product.query.filter(Product.name.ilike(f'%{termo}%'), Product.ativo == True).all()
     especiais = ProdutoEspecial.query.filter(
         ProdutoEspecial.name.ilike(f'%{termo}%'),
         ProdutoEspecial.mostrar == True
     ).all()
     kits = Kit.query.filter(
         Kit.name.ilike(f'%{termo}%'),
-        Kit.is_admin_kit == True
+        Kit.is_admin_kit == True,
+        Kit.ativo == True
     ).all()
     return render_template('busca.html', termo=termo,
                            produtos=produtos, especiais=especiais, kits=kits)

@@ -1,30 +1,5 @@
 /* ══════════════════════════════════════
    AUTH.CSS — login, signup, forgot_password
-   Coloque em: static/css/auth.css
-══════════════════════════════════════ */
-
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap');
-
-:root {
-  --color-primary:         #5B6D3D;
-  --color-secondary:       #D67155;
-  --color-accent:          #F3B651;
-  --color-dark:            #932E50;
-  --color-bg:              #FAF9F6;
-  --color-white:           #FFFFFF;
-  --color-text:            #2B2B2B;
-  --color-text-light:      #6B6B6B;
-  --color-border:          #E5E5E5;
-  --color-hover-primary:   #4a5932;
-  --color-hover-accent:    #d9a13f;
-  --color-hover-secondary: #b85a42;
-  --shadow-sm:  0 2px 6px rgba(0,0,0,.05);
-  --shadow-md:  0 4px 12px rgba(0,0,0,.08);
-  --shadow-lg:  0 8px 20px rgba(0,0,0,.12);
-  --radius-sm:  6px;
-  --radius-md:  10px;/* ══════════════════════════════════════
-   AUTH.CSS — login, signup, forgot_password
-   Coloque em: static/css/auth.css
 ══════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap');
@@ -203,8 +178,6 @@ body {
 
 .signup-card input::placeholder { color: var(--color-text-light); opacity: .75; }
 
-.signup-card input[type="tel"] { margin-top: .4rem; }
-
 .signup-card button[type="submit"] {
   width: 100%; background: var(--color-primary);
   color: var(--color-white); border: none; border-radius: 24px;
@@ -309,282 +282,34 @@ body {
 
 .forgot-links a:hover { color: var(--color-primary); text-decoration: underline; }
 
-/* ── RESPONSIVO ── */
-@media (max-width: 480px) {
+/* ══════════════════════════════════════
+   RESPONSIVO
+══════════════════════════════════════ */
+
+/* ── TABLET (≤600px) ── */
+@media (max-width: 600px) {
+  body { padding: 1.5rem .8rem; justify-content: flex-start; padding-top: 2.5rem; }
+
+  .login-card,
+  .signup-card,
+  .forgot-card { max-width: 100%; }
+
   .login-card form,
   .signup-card form,
-  .forgot-card form { padding: 1.8rem 1.2rem 1.4rem; }
+  .forgot-card form { padding: 1.8rem 1.4rem 1.5rem; border-radius: 16px; }
+}
+
+/* ── MOBILE (≤480px) ── */
+@media (max-width: 480px) {
+  body { padding: 1.2rem .6rem; padding-top: 2rem; }
 
   .login-card h2,
   .signup-card h2,
   .forgot-card h2 { font-size: 1.6rem; }
-}
-  --radius-lg:  16px;
-}
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-.navbar { display: none !important; }
-
-body {
-  font-family: 'Nunito', sans-serif;
-  background: linear-gradient(135deg, #e8eed8 0%, #c5d49a 50%, #8fa05a 100%) !important;
-  min-height: 100vh;
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text);
-  padding: 2rem 1rem;
-  margin: 0 !important;
-}
-
-/* ══════════════════════════════════════
-   LOGIN CARD
-══════════════════════════════════════ */
-.login-card {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-}
-
-.login-card h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 2rem;
-  color: var(--color-primary);
-  text-align: center;
-  margin-bottom: 1.4rem;
-}
-
-.login-card h2::after {
-  content: '';
-  display: block;
-  width: 48px; height: 3px;
-  background: var(--color-secondary);
-  border-radius: 4px;
-  margin: .5rem auto 0;
-}
-
-.login-card form {
-  background: var(--color-white);
-  border-radius: 20px;
-  padding: 2.2rem 2rem 1.8rem;
-  box-shadow: var(--shadow-lg);
-  border: 1.5px solid var(--color-border);
-  display: flex; flex-direction: column; gap: 1rem;
-}
-
-.login-card input[type="email"],
-.login-card input[type="password"] {
-  width: 100%; padding: .75rem 1.1rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: 24px;
-  font-family: 'Nunito', sans-serif;
-  font-size: .95rem; color: var(--color-text);
-  background: var(--color-bg);
-  outline: none; transition: border-color .2s, box-shadow .2s;
-}
-
-.login-card input[type="email"]:focus,
-.login-card input[type="password"]:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px rgba(214,113,85,.2);
-  background: var(--color-white);
-}
-
-.login-card input::placeholder {
-  color: var(--color-text-light); opacity: .75;
-}
-
-.login-card button[type="submit"] {
-  width: 100%;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none; border-radius: 24px; padding: .75rem 0;
-  font-family: 'Nunito', sans-serif;
-  font-size: 1rem; font-weight: 700; cursor: pointer;
-  letter-spacing: .04em; transition: background .2s, transform .15s;
-}
-
-.login-card button[type="submit"]:hover {
-  background: var(--color-hover-primary);
-  transform: translateY(-2px);
-}
-
-.login-links {
-  display: flex; justify-content: space-between;
-  align-items: center; margin-top: .9rem; padding: 0 .2rem;
-}
-
-.login-links a {
-  font-size: .88rem; font-weight: 700;
-  color: var(--color-secondary);
-  text-decoration: none; transition: color .2s;
-}
-
-.login-links a:hover { color: var(--color-primary); text-decoration: underline; }
-
-/* ══════════════════════════════════════
-   SIGNUP CARD
-══════════════════════════════════════ */
-.signup-card {
-  width: 100%; max-width: 420px;
-  display: flex !important; flex-direction: column;
-}
-
-.signup-card h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 2rem; color: var(--color-primary);
-  text-align: center; margin-bottom: 1.4rem;
-}
-
-.signup-card h2::after {
-  content: '';
-  display: block; width: 48px; height: 3px;
-  background: var(--color-secondary);
-  border-radius: 4px; margin: .5rem auto 0;
-}
-
-.signup-card form {
-  background: var(--color-white);
-  border-radius: 20px; padding: 2.2rem 2rem 1.8rem;
-  box-shadow: var(--shadow-lg);
-  border: 1.5px solid var(--color-border);
-  display: flex !important; flex-direction: column; gap: .85rem;
-}
-
-.signup-card input {
-  width: 100%; padding: .75rem 1.1rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: 24px;
-  font-family: 'Nunito', sans-serif;
-  font-size: .95rem; color: var(--color-text);
-  background: var(--color-bg);
-  outline: none; transition: border-color .2s, box-shadow .2s;
-}
-
-.signup-card input:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px rgba(214,113,85,.2);
-  background: var(--color-white);
-}
-
-.signup-card input::placeholder { color: var(--color-text-light); opacity: .75; }
-
-.signup-card input[type="tel"] { margin-top: .4rem; }
-
-.signup-card button[type="submit"] {
-  width: 100%; background: var(--color-primary);
-  color: var(--color-white); border: none; border-radius: 24px;
-  padding: .75rem 0; font-family: 'Nunito', sans-serif;
-  font-size: 1rem; font-weight: 700; cursor: pointer;
-  letter-spacing: .04em; margin-top: .3rem;
-  transition: background .2s, transform .15s;
-}
-
-.signup-card button[type="submit"]:hover {
-  background: var(--color-hover-primary); transform: translateY(-2px);
-}
-
-.signup-links {
-  display: flex !important; justify-content: center; margin-top: .9rem;
-}
-
-.signup-links a {
-  font-size: .88rem; font-weight: 700;
-  color: var(--color-secondary);
-  text-decoration: none; transition: color .2s;
-}
-
-.signup-links a:hover { color: var(--color-primary); text-decoration: underline; }
-
-/* ══════════════════════════════════════
-   FORGOT PASSWORD CARD
-══════════════════════════════════════ */
-.forgot-card {
-  width: 100%; max-width: 400px;
-  display: flex !important; flex-direction: column;
-}
-
-.forgot-card h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 2rem; color: var(--color-primary);
-  text-align: center; margin-bottom: .6rem;
-}
-
-.forgot-card h2::after {
-  content: '';
-  display: block; width: 48px; height: 3px;
-  background: var(--color-secondary);
-  border-radius: 4px; margin: .5rem auto 0;
-}
-
-.subtitle {
-  font-size: .9rem; color: var(--color-text-light);
-  text-align: center; margin-bottom: 1.4rem;
-  line-height: 1.5; padding: 0 .5rem;
-}
-
-.forgot-card form {
-  background: var(--color-white);
-  border-radius: 20px; padding: 2.2rem 2rem 1.8rem;
-  box-shadow: var(--shadow-lg);
-  border: 1.5px solid var(--color-border);
-  display: flex !important; flex-direction: column; gap: 1rem;
-}
-
-.forgot-card input[type="email"] {
-  width: 100%; padding: .75rem 1.1rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: 24px;
-  font-family: 'Nunito', sans-serif;
-  font-size: .95rem; color: var(--color-text);
-  background: var(--color-bg); outline: none;
-  transition: border-color .2s, box-shadow .2s;
-}
-
-.forgot-card input[type="email"]:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px rgba(214,113,85,.2);
-  background: var(--color-white);
-}
-
-.forgot-card input[type="email"]::placeholder {
-  color: var(--color-text-light); opacity: .75;
-}
-
-.forgot-card button[type="submit"] {
-  width: 100%; background: var(--color-primary);
-  color: var(--color-white); border: none; border-radius: 24px;
-  padding: .75rem 0; font-family: 'Nunito', sans-serif;
-  font-size: 1rem; font-weight: 700; cursor: pointer;
-  letter-spacing: .04em; transition: background .2s, transform .15s;
-}
-
-.forgot-card button[type="submit"]:hover {
-  background: var(--color-hover-primary); transform: translateY(-2px);
-}
-
-.forgot-links {
-  display: flex !important; justify-content: center; margin-top: .9rem;
-}
-
-.forgot-links a {
-  font-size: .88rem; font-weight: 700;
-  color: var(--color-secondary);
-  text-decoration: none; transition: color .2s;
-}
-
-.forgot-links a:hover { color: var(--color-primary); text-decoration: underline; }
-
-/* ── RESPONSIVO ── */
-@media (max-width: 480px) {
   .login-card form,
   .signup-card form,
-  .forgot-card form { padding: 1.8rem 1.2rem 1.4rem; }
+  .forgot-card form { padding: 1.5rem 1.1rem 1.3rem; gap: .8rem; }
 
-  .login-card h2,
-  .signup-card h2,
-  .forgot-card h2 { font-size: 1.6rem; }
+  .login-links { flex-direction: column; gap: .5rem; align-items: center; }
 }

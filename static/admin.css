@@ -508,3 +508,81 @@ html body .manage-actions {
   font-family: 'Nunito', sans-serif;
   font-size: .88rem;
 }
+
+/* ══════════════════════════════════════
+   RESPONSIVO
+══════════════════════════════════════ */
+
+/* ── TABLET (≤768px) ── */
+@media (max-width: 768px) {
+  html body h2 {
+    font-size: 1.5rem !important;
+    margin: 1.2rem 1rem .8rem !important;
+  }
+  html body h2 + a {
+    margin: 0 1rem 1rem !important;
+  }
+
+  /* tabela: scroll horizontal */
+  html body table {
+    width: calc(100% - 2rem) !important;
+    margin: 0 1rem 2rem !important;
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+  }
+  html body table thead,
+  html body table tbody,
+  html body table tr { display: table !important; width: 100% !important; }
+
+  /* cards de kits em 2 colunas */
+  html body .container .row.g-4 {
+    gap: .8rem !important;
+  }
+  html body .col-md-6 { width: 50% !important; }
+  html body .col-lg-4 { width: 50% !important; }
+
+  /* manage actions */
+  html body .manage-actions {
+    flex-wrap: wrap !important;
+    margin: 1.2rem 1rem 2rem !important;
+    gap: .6rem !important;
+  }
+
+  /* kit view */
+  html body .kit-view { padding: 0 1rem !important; }
+  html body .kit-view-header { flex-direction: column !important; align-items: flex-start !important; }
+}
+
+/* ── MOBILE (≤480px) ── */
+@media (max-width: 480px) {
+  html body h2 {
+    font-size: 1.3rem !important;
+    margin: 1rem .8rem .6rem !important;
+  }
+
+  /* tabela */
+  html body table {
+    width: calc(100% - 1.6rem) !important;
+    margin: 0 .8rem 1.5rem !important;
+  }
+  html body table thead th { padding: .7rem .8rem !important; font-size: .82rem !important; }
+  html body table tbody td { padding: .7rem .8rem !important; font-size: .85rem !important; }
+  html body table tbody td img { width: 36px !important; height: 36px !important; }
+
+  /* cards em 1 coluna */
+  html body .col-md-6,
+  html body .col-lg-4 { width: 100% !important; }
+
+  /* botões empilhados */
+  html body .card .d-flex.gap-2 {
+    flex-direction: column !important;
+    gap: .4rem !important;
+  }
+  html body .card .btn-outline-primary,
+  html body .card .btn-danger { width: 100% !important; text-align: center !important; }
+
+  html body .manage-actions { margin: 1rem .8rem 1.5rem !important; }
+  html body .kit-view { padding: 0 .8rem !important; }
+}

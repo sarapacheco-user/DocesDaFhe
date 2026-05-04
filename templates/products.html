@@ -21,12 +21,12 @@
         <th>Descrição</th>
         <th>Preço</th>
         <th>Imagem</th>
-        {% if current_user.is_admin %}<th>Ações</th>{% endif %}
+        {% if current_user.is_admin %}<th>Status</th><th>Ações</th>{% endif %}
       </tr>
     </thead>
     <tbody>
       {% for product in products %}
-      <tr>
+      <tr {% if not product.ativo %}style="opacity:0.5;"{% endif %}>
         <td>{{ product.id }}</td>
         <td>{{ product.category }}</td>
         <td>{{ product.name }}</td>
@@ -41,6 +41,16 @@
         </td>
         {% if current_user.is_admin %}
         <td>
+          {% if product.ativo %}
+            <span style="color:green;">Visível</span>
+          {% else %}
+            <span style="color:gray;">Oculto</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('toggle_product_ativo', id=product.id) }}">
+            {% if product.ativo %}Ocultar{% else %}Mostrar{% endif %}
+          </a> |
           <a href="{{ url_for('edit_product', id=product.id) }}">Editar</a> |
           <a href="{{ url_for('delete_product', id=product.id) }}"
              onclick="return confirm('Deletar {{ product.name }}?')">Deletar</a>

@@ -39,6 +39,7 @@ class Product(db.Model):
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
     category    = db.Column(db.String(100), nullable=True, default='geral')  # ✅ NOVO
+    ativo       = db.Column(db.Boolean, default=True, nullable=False)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -54,6 +55,7 @@ class Kit(db.Model):
     created_by = db.Column(
         db.Integer, db.ForeignKey('users.id'), nullable=False)
     is_admin_kit = db.Column(db.Boolean, default=False)   # True = admin kit
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

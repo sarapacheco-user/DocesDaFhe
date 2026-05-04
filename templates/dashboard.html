@@ -186,7 +186,7 @@
   <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
   <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
   <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
-  <a href="{{ url_for('categoria', nome='bombons') }}">Bombons</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
   <a href="{{ url_for('kits_loja') }}">Kits</a>
   <a href="#">Blog</a>
 </nav>
@@ -289,12 +289,25 @@
   {% endif %}
 {% endfor %}
 
-<!-- ══ KITS ══ -->
-{% if kits %}
-<h2 class="section-title">Kits Especiais</h2>
+<!-- ══ MONTE SEU KIT ══ -->
+<h2 class="section-title">Kits</h2>
 <div class="cards-carrossel-wrap">
-  <button class="cards-btn prev" onclick="moverCards('kitsGrid', -1)">&#8249;</button>
-  <div class="cards-track" id="kitsGrid">
+  <button class="cards-btn prev" onclick="moverCards('kitsGridAll', -1)">&#8249;</button>
+  <div class="cards-track" id="kitsGridAll">
+
+    <!-- Card especial: Monte seu Kit -->
+    <div class="card" style="background: linear-gradient(145deg,#5B6D3D,#8fa05a); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:260px; border:none;">
+      <div style="font-size:3rem; margin-bottom:.6rem;">🎁</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.1rem; color:#fff; margin-bottom:.4rem;">Monte seu Kit</h3>
+      <p style="font-size:.8rem; color:rgba(255,255,255,.85); margin-bottom:1rem; padding:0 .8rem;">
+        Escolha os produtos que você quer e crie seu kit personalizado!
+      </p>
+      <a href="{{ url_for('montar_kit') }}"
+         style="background:#F3B651; color:#2B2B2B; border-radius:10px; padding:.55rem 1.2rem; font-weight:700; text-decoration:none; font-size:.9rem;">
+        Montar agora ✨
+      </a>
+    </div>
+
     {% for kit in kits %}
     <div class="card produto-item" data-nome="{{ kit.name | lower }}">
       <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
@@ -324,10 +337,10 @@
       </form>
     </div>
     {% endfor %}
+
   </div>
-  <button class="cards-btn next" onclick="moverCards('kitsGrid', 1)">&#8250;</button>
+  <button class="cards-btn next" onclick="moverCards('kitsGridAll', 1)">&#8250;</button>
 </div>
-{% endif %}
 
 <!-- ══ TODOS OS PRODUTOS ══ -->
 {% if produtos %}
@@ -372,28 +385,50 @@
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-container">
+
+    <!-- ENDEREÇO -->
     <div class="footer-col">
-      <h3>Doces da Fhê</h3>
-      <p class="footer-frase">
-        Feito com amor em cada detalhe, porque todo sentimento merece ser doce.<br>
-        <span class="assinatura">Fhê</span>
-      </p>
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">São Paulo | Cid. Tiradentes ZL</p>
     </div>
+
+    <!-- FUNCIONAMENTO -->
     <div class="footer-col">
-      <h3>Links</h3>
-      <p>Início</p>
-      <p>Sobre</p>
-      <p>Blog</p>
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Sábado</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> de 11:00 às 20:30</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/?ref=NONE_xav_ig_profile_page_web" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 192 192" fill="currentColor">
+            <path d="M141.537 88.988c-.49-2.438-1.127-4.816-1.902-7.122a68.575 68.575 0 0 0-1.437-3.893c-3.353-8.212-8.213-15.281-14.4-20.98C113.04 47.66 103.16 44 92.166 44c-12.6 0-23.893 4.614-32.34 13.197C51.2 65.97 46.667 77.817 46.667 91.5c0 13.686 4.533 25.53 13.16 34.302 8.447 8.584 19.74 13.198 32.34 13.198 8.374 0 16.099-2.21 22.934-6.568 6.14-3.953 11.178-9.506 14.747-16.118a59.048 59.048 0 0 0 1.44-3.02c.458-1.068.875-2.156 1.25-3.261.484-1.435.9-2.893 1.247-4.37.198-.844.37-1.697.514-2.558a50.59 50.59 0 0 0 .657-7.917c0-.576-.013-1.148-.038-1.717a53.43 53.43 0 0 0-.381-4.463ZM96 130c-21.5 0-38-16.5-38-38.5S74.5 53 96 53s38 16.5 38 38.5S117.5 130 96 130Zm0-60c-12.15 0-22 9.626-22 21.5S83.85 113 96 113s22-9.626 22-21.5S108.15 70 96 70Zm0 30c-4.694 0-8.5-3.806-8.5-8.5S91.306 83 96 83s8.5 3.806 8.5 8.5S100.694 100 96 100Z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      </div>
     </div>
+
+    <!-- DOCES DA FHÊ -->
     <div class="footer-col">
-      <h3>Contato</h3>
-      <p>WhatsApp</p>
-      <p>Instagram</p>
-      <p>Email</p>
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
     </div>
+
   </div>
   <div class="footer-bottom">
-    © 2026 Doces da Fhê – Todos os direitos reservados
+    Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a>
   </div>
 </footer>
 
