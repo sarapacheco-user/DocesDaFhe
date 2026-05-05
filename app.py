@@ -990,9 +990,21 @@ def finalizar_pedido():
     if not itens:
         flash('Seu carrinho está vazio!', 'error')
         return redirect(url_for('carrinho'))
- 
+
+    tipo     = request.args.get('tipo', 'buscar')       # 'buscar' ou 'entrega'
+    endereco = request.args.get('endereco', '').strip()
+
     linhas = ['🛍️ *Olá! Quero fazer um pedido:*\n']
- 
+
+    # ── TIPO DE ENTREGA ──
+    if tipo == 'entrega':
+        linhas.append('🚚 *Tipo: Entrega*')
+        if endereco:
+            linhas.append(f'📍 *Endereço de entrega:* {endereco}')
+    else:
+        linhas.append('🏍️ *Tipo: Buscar (motoboy/Uber)*')
+    linhas.append('')
+
     # ── DADOS DO CLIENTE ──
     linhas.append('👤 *Dados do Cliente:*')
     linhas.append(f'  Nome: {current_user.name or current_user.email}')
@@ -1000,7 +1012,7 @@ def finalizar_pedido():
     linhas.append(f'  📍 CEP: {current_user.cep}')
     linhas.append(f'  📱 Telefone: {current_user.phone}')
     linhas.append('')
- 
+
     # ── ITENS DO PEDIDO ──
     linhas.append('🛒 *Itens do Pedido:*')
     total = 0
@@ -1009,13 +1021,13 @@ def finalizar_pedido():
         total   += subtotal
         linhas.append(f'• *{item.nome}*')
         linhas.append(f'  Qtd: {item.quantidade} x R$ {item.preco_unit:.2f} = R$ {subtotal:.2f}')
- 
+
     linhas.append(f'\n💰 *Total: R$ {total:.2f}*')
- 
+
     import urllib.parse
     msg_encoded  = urllib.parse.quote('\n'.join(linhas))
     whatsapp_url = f'https://wa.me/{WHATSAPP_NUMBER}?text={msg_encoded}'
- 
+
     CarrinhoItem.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
     return redirect(whatsapp_url)

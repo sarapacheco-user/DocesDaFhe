@@ -206,69 +206,200 @@
   </div>
 </footer>
 
-<!-- MODAL AVISO ENTREGA -->
+<!-- ══ MODAL PEDIDO ══ -->
 <div id="modalEntrega" style="display:none; position:fixed; inset:0;
      background:rgba(43,43,43,.55); backdrop-filter:blur(3px);
      z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:20px; padding:2.2rem 2rem;
-              max-width:420px; width:90%; text-align:center;
-              box-shadow:0 8px 40px rgba(0,0,0,.18);
-              border:1.5px solid #E5E5E5;
+
+  <div class="modal-box" style="background:#fff; border-radius:20px; padding:2.2rem 2rem;
+              max-width:440px; width:90%; text-align:center;
+              box-shadow:0 8px 40px rgba(0,0,0,.18); border:1.5px solid #E5E5E5;
               animation: popIn .25s cubic-bezier(.4,0,.2,1);">
 
-    <div style="font-size:3rem; margin-bottom:.8rem;">🛵⚠️</div>
+    <!-- ── STEP 1: escolher tipo ── -->
+    <div id="step1">
+      <div style="font-size:2.6rem; margin-bottom:.6rem;">🛍️</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem;
+                 color:#2B2B2B; margin-bottom:.4rem;">Como deseja receber?</h3>
+      <p style="font-size:.88rem; color:#6B6B6B; margin-bottom:1.6rem;">
+        Escolha a forma de entrega do seu pedido.
+      </p>
 
-    <h3 style="font-family:'Playfair Display',serif; font-size:1.2rem;
-               color:#932E50; margin-bottom:1rem;">
-      Atenção sobre a entrega!
-    </h3>
+      <div style="display:flex; gap:1rem; margin-bottom:1.4rem;">
+        <!-- Buscar -->
+        <button onclick="irStepBuscar()"
+                style="flex:1; background:#fdf8f0; border:2px solid #F3B651;
+                       border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
+                       transition:background .2s, transform .15s;"
+                onmouseover="this.style.background='#fef0d0'"
+                onmouseout="this.style.background='#fdf8f0'">
+          <div style="font-size:2rem; margin-bottom:.4rem;">🚶</div>
+          <div style="font-family:'Nunito',sans-serif; font-weight:800;
+                      font-size:.95rem; color:#2B2B2B;">Buscar</div>
+        </button>
 
-    <p style="font-size:.95rem; color:#2B2B2B; line-height:1.7; margin-bottom:.8rem;">
-      Os métodos de entrega feitos via Uber / 99 Moto <strong>Não são confiaveis</strong>.
-    </p>
+        <!-- Entregar -->
+        <button onclick="irStepEntrega()"
+                style="flex:1; background:#f0f8f2; border:2px solid #5B6D3D;
+                       border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
+                       transition:background .2s, transform .15s;"
+                onmouseover="this.style.background='#dff0e3'"
+                onmouseout="this.style.background='#f0f8f2'">
+          <div style="font-size:2rem; margin-bottom:.4rem;">🚗</div>
+          <div style="font-family:'Nunito',sans-serif; font-weight:800;
+                      font-size:.95rem; color:#2B2B2B;">Entregar</div>
+        </button>
+      </div>
 
-    <p style="font-size:.9rem; color:#932E50; font-weight:700;
-              background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
-              margin-bottom:1.4rem;">
-      ⚠️ Não garantimos a integridade do produto durante o transporte!
-    </p>
-
-    <p style="font-size:.88rem; color:#6B6B6B; margin-bottom:1.6rem;">
-      Deseja continuar mesmo assim?
-    </p>
-
-    <div style="display:flex; gap:1rem; justify-content:center;">
       <button onclick="fecharModalEntrega()"
-              style="background:transparent; border:2px solid #5B6D3D;
-                     color:#5B6D3D; border-radius:24px; padding:.65rem 1.6rem;
-                     font-family:'Nunito',sans-serif; font-size:.95rem;
-                     font-weight:700; cursor:pointer;">
+              style="background:none; border:none; color:#6B6B6B; font-size:.88rem;
+                     cursor:pointer; text-decoration:underline; font-family:'Nunito',sans-serif;">
         Cancelar
       </button>
-      <a id="btnConfirmarPedido" href="{{ url_for('finalizar_pedido') }}"
-         style="background:#25D366; color:#fff; border:none; border-radius:24px;
-                padding:.65rem 1.6rem; font-family:'Nunito',sans-serif;
-                font-size:.95rem; font-weight:700; cursor:pointer;
-                text-decoration:none; display:inline-block;">
-        Sim, finalizar 💬
-      </a>
+    </div>
+
+    <!-- ── STEP 2A: Buscar — aviso ── -->
+    <div id="stepBuscar" style="display:none;">
+      <div style="font-size:2.8rem; margin-bottom:.8rem;">🛵⚠️</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
+                 color:#932E50; margin-bottom:.8rem;">Atenção sobre a entrega!</h3>
+      <p style="font-size:.92rem; color:#2B2B2B; line-height:1.7; margin-bottom:.8rem;">
+        Os métodos via Uber / 99 Moto <strong>não são confiáveis</strong> para transporte de doces.
+      </p>
+      <p style="font-size:.88rem; color:#932E50; font-weight:700;
+                background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
+                margin-bottom:1.4rem;">
+        ⚠️ Não garantimos a integridade do produto durante o transporte!
+      </p>
+      <p style="font-size:.85rem; color:#6B6B6B; margin-bottom:1.4rem;">
+        Deseja continuar mesmo assim?
+      </p>
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button onclick="voltarStep1()"
+                style="background:transparent; border:2px solid #5B6D3D; color:#5B6D3D;
+                       border-radius:24px; padding:.65rem 1.4rem;
+                       font-family:'Nunito',sans-serif; font-size:.9rem;
+                       font-weight:700; cursor:pointer;">
+          ← Voltar
+        </button>
+        <a href="{{ url_for('finalizar_pedido') }}?tipo=buscar"
+           style="background:#25D366; color:#fff; border-radius:24px;
+                  padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
+                  font-size:.9rem; font-weight:700; text-decoration:none;
+                  display:inline-flex; align-items:center; gap:.4rem;">
+          Sim, finalizar 💬
+        </a>
+      </div>
+    </div>
+
+    <!-- ── STEP 2B: Entregar — endereço ── -->
+    <div id="stepEntrega" style="display:none;">
+      <div style="font-size:2.6rem; margin-bottom:.6rem;">🚚📍</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
+                 color:#2B2B2B; margin-bottom:.5rem;">Endereço de entrega</h3>
+      <p style="font-size:.85rem; color:#6B6B6B; margin-bottom:1rem;">
+        Informe o endereço completo para a entrega.
+      </p>
+
+      <div style="display:grid; grid-template-columns:1fr 90px; gap:.6rem; margin-bottom:.6rem;">
+        <input id="endRua" placeholder="Rua / Avenida" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endNumero" placeholder="Nº" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:.6rem;">
+        <input id="endBairro" placeholder="Bairro" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endCidade" placeholder="Cidade" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+      </div>
+      <input id="endCep" placeholder="CEP" maxlength="9"
+             oninput="mascaraCep(this)"
+             style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box; margin-bottom:1rem;"
+             onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+
+      <div id="erroEndereco" style="display:none; font-size:.82rem; color:#932E50; margin-bottom:.8rem;">
+        Por favor, preencha pelo menos Rua, Número e Bairro.
+      </div>
+
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button onclick="voltarStep1()"
+                style="background:transparent; border:2px solid #5B6D3D; color:#5B6D3D;
+                       border-radius:24px; padding:.65rem 1.4rem;
+                       font-family:'Nunito',sans-serif; font-size:.9rem;
+                       font-weight:700; cursor:pointer;">
+          ← Voltar
+        </button>
+        <button onclick="confirmarEntrega()"
+                style="background:#25D366; color:#fff; border:none; border-radius:24px;
+                       padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
+                       font-size:.9rem; font-weight:700; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:.4rem;">
+          Confirmar pedido 💬
+        </button>
+      </div>
     </div>
 
   </div>
 </div>
 
 <script>
+  const modalEl = document.getElementById('modalEntrega');
+
   function abrirModalEntrega() {
-    const modal = document.getElementById('modalEntrega');
-    modal.style.display = 'flex';
+    voltarStep1();
+    modalEl.style.display = 'flex';
   }
 
   function fecharModalEntrega() {
-    document.getElementById('modalEntrega').style.display = 'none';
+    modalEl.style.display = 'none';
+  }
+
+  function voltarStep1() {
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('stepBuscar').style.display = 'none';
+    document.getElementById('stepEntrega').style.display = 'none';
+    document.getElementById('erroEndereco').style.display = 'none';
+    ['endRua','endNumero','endBairro','endCidade','endCep'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+  }
+
+  function irStepBuscar() {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('stepBuscar').style.display = 'block';
+  }
+
+  function irStepEntrega() {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('stepEntrega').style.display = 'block';
+  }
+
+  function mascaraCep(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+    el.value = v;
+  }
+
+  function confirmarEntrega() {
+    const rua    = document.getElementById('endRua').value.trim();
+    const numero = document.getElementById('endNumero').value.trim();
+    const bairro = document.getElementById('endBairro').value.trim();
+    const cidade = document.getElementById('endCidade').value.trim();
+    const cep    = document.getElementById('endCep').value.trim();
+
+    if (!rua || !numero || !bairro) {
+      document.getElementById('erroEndereco').style.display = 'block';
+      return;
+    }
+    document.getElementById('erroEndereco').style.display = 'none';
+
+    const partes = [rua + ', ' + numero, bairro];
+    if (cidade) partes.push(cidade);
+    if (cep)    partes.push('CEP: ' + cep);
+    const end = partes.join(' — ');
+
+    window.location.href = "{{ url_for('finalizar_pedido') }}?tipo=entrega&endereco=" + encodeURIComponent(end);
   }
 
   // fecha clicando fora
-  document.getElementById('modalEntrega').addEventListener('click', function(e) {
+  modalEl.addEventListener('click', function(e) {
     if (e.target === this) fecharModalEntrega();
   });
 
