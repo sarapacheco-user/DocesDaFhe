@@ -39,8 +39,18 @@ class Product(db.Model):
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
     category    = db.Column(db.String(100), nullable=True, default='geral')  # ✅ NOVO
-    ativo       = db.Column(db.Boolean, default=True, nullable=False)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    ativo          = db.Column(db.Boolean, default=True, nullable=False)
+    estoque        = db.Column(db.Integer, default=0, nullable=False)
+    estoque_minimo = db.Column(db.Integer, default=5, nullable=False)
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def status_estoque(self):
+        if self.estoque == 0:
+            return 'zerado'
+        if self.estoque <= self.estoque_minimo:
+            return 'baixo'
+        return 'ok'
 
     def __repr__(self):
         return f"<Product {self.name}>"
@@ -59,7 +69,9 @@ class Kit(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    image_url = db.Column(db.String(500), nullable=True)   # <-- add this line
+    image_url      = db.Column(db.String(500), nullable=True)
+    estoque        = db.Column(db.Integer, default=0, nullable=False)
+    estoque_minimo = db.Column(db.Integer, default=5, nullable=False)
     # Relationships
     products = db.relationship(
         'KitProduct', backref='kit', cascade='all, delete-orphan')
@@ -68,6 +80,12 @@ class Kit(db.Model):
     @property
     def total_price(self):
         return sum(kp.product.price * kp.quantity for kp in self.products)
+
+    @property
+    def status_estoque(self):
+        if self.estoque == 0:       return 'zerado'
+        if self.estoque <= self.estoque_minimo: return 'baixo'
+        return 'ok'
 
     def __repr__(self):
         return f'<Kit {self.name}>'
@@ -110,12 +128,40 @@ class ProdutoEspecial(db.Model):
     description  = db.Column(db.String(800), nullable=False)
     price        = db.Column(db.Numeric(10, 2), nullable=False)
     category     = db.Column(db.String(100), nullable=True, default='geral')
-    image_url    = db.Column(db.String(300), nullable=True)
-    mostrar      = db.Column(db.Boolean, default=True)   # mostrar/não mostrar na loja
-    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    image_url      = db.Column(db.String(300), nullable=True)
+    mostrar        = db.Column(db.Boolean, default=True)
+    estoque        = db.Column(db.Integer, default=0, nullable=False)
+    estoque_minimo = db.Column(db.Integer, default=5, nullable=False)
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def status_estoque(self):
+        if self.estoque == 0:       return 'zerado'
+        if self.estoque <= self.estoque_minimo: return 'baixo'
+        return 'ok'
 
     def __repr__(self):
         return f"<ProdutoEspecial {self.name}>"
+
+class MovimentacaoEstoque(db.Model):
+    __tablename__ = "movimentacoes_estoque"
+    id               = db.Column(db.Integer, primary_key=True)
+    produto_id       = db.Column(db.Integer, db.ForeignKey('products.id'),          nullable=True)
+    kit_id           = db.Column(db.Integer, db.ForeignKey('kits.id'),              nullable=True)
+    especial_id      = db.Column(db.Integer, db.ForeignKey('produtos_especiais.id'), nullable=True)
+    tipo             = db.Column(db.String(10), nullable=False)  # 'entrada' | 'saida'
+    quantidade       = db.Column(db.Integer, nullable=False)
+    motivo           = db.Column(db.String(200), nullable=True)
+    estoque_anterior = db.Column(db.Integer, nullable=False)
+    estoque_novo     = db.Column(db.Integer, nullable=False)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    produto  = db.relationship('Product',        backref='movimentacoes')
+    kit      = db.relationship('Kit',            backref='movimentacoes')
+    especial = db.relationship('ProdutoEspecial', backref='movimentacoes')
+
+    def __repr__(self):
+        return f"<Movimentacao {self.tipo} {self.quantidade} - {self.produto_id}>"
+
 
 class CarrinhoItem(db.Model):
     __tablename__ = "carrinho_itens"
@@ -223,15 +269,20 @@ class SiteConfig(db.Model):
     title_weight = db.Column(db.String(10), default='700')
     body_weight  = db.Column(db.String(10), default='400')
     # Layout
-    layout_mode  = db.Column(db.String(20), default='spacious')
-    layout_width = db.Column(db.String(20), default='centered')
+    layout_mode   = db.Column(db.String(20), default='spacious')
+    layout_width  = db.Column(db.String(20), default='centered')
+    card_columns  = db.Column(db.Integer,    default=3)
+    card_gap      = db.Column(db.Integer,    default=20)
+    show_carousel = db.Column(db.Boolean,    default=True)
     # Components
     btn_radius  = db.Column(db.String(10), default='12px')
     card_shadow = db.Column(db.String(10), default='medium')
     navbar_fixed = db.Column(db.Boolean, default=True)
     # Animations
-    anim_enabled   = db.Column(db.Boolean, default=True)
-    anim_intensity = db.Column(db.String(10), default='medium')
+    anim_enabled     = db.Column(db.Boolean, default=True)
+    anim_intensity   = db.Column(db.String(10), default='medium')
+    anim_duration    = db.Column(db.Integer,    default=220)
+    anim_hover_style = db.Column(db.String(20), default='lift')
     # Identity
     site_name   = db.Column(db.String(100), default='Doces da Fhê')
     logo_url    = db.Column(db.String(255), nullable=True)

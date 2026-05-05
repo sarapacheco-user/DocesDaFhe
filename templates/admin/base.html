@@ -10,27 +10,27 @@
   {% endif %}
   <style>
     :root {
-      --color-primary:         #5B6D3D;
-      --color-secondary:       #D67155;
-      --color-accent:          #F3B651;
-      --color-dark:            #932E50;
-      --color-bg:              #FAF9F6;
-      --color-white:           #FFFFFF;
-      --color-text:            #2B2B2B;
-      --color-text-light:      #6B6B6B;
-      --color-border:          #E5E5E5;
-      --color-hover-primary:   #4a5932;
-      --color-hover-accent:    #d9a13f;
-      --color-hover-secondary: #b85a42;
-      --shadow-sm:  0 2px 6px rgba(0,0,0,.05);
+      --color-primary:    #5B6D3D;
+      --color-secondary:  #D67155;
+      --color-accent:     #F3B651;
+      --color-dark:       #932E50;
+      --color-bg:         #F4F6FB;
+      --color-white:      #FFFFFF;
+      --color-text:       #1e293b;
+      --color-muted:      #64748b;
+      --color-border:     #e2e8f0;
+      --sidebar-bg:       #D67155;
+      --sidebar-hover:    rgba(255,255,255,.12);
+      --sidebar-active:   rgba(255,255,255,.2);
+      --shadow-sm:  0 1px 4px rgba(0,0,0,.06);
       --shadow-md:  0 4px 12px rgba(0,0,0,.08);
-      --shadow-lg:  0 8px 20px rgba(0,0,0,.12);
+      --shadow-lg:  0 8px 24px rgba(0,0,0,.12);
       --radius-sm:  6px;
       --radius-md:  10px;
       --radius-lg:  16px;
     }
 
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
 
     body {
       font-family: 'Nunito', sans-serif !important;
@@ -40,173 +40,209 @@
       padding: 0 !important;
     }
 
-    /* ── FLASH ── */
-    .flash { padding: 10px; margin: 10px 1.5rem; border-radius: 8px; font-size: .9rem; }
-    .flash-error   { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .flash-info    { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-
     /* ── TOPBAR ── */
     .topbar {
       background: var(--color-secondary);
-      padding: 0 2rem; height: 56px;
-      display: flex; align-items: center;
-      box-shadow: var(--shadow-md);
+      padding: 0 1.6rem; height: 56px;
+      display: flex; align-items: center; gap: 1rem;
       position: sticky; top: 0; z-index: 200;
+      box-shadow: var(--shadow-md);
     }
 
-    .topbar-btn {
+    .topbar-menu-btn {
       background: none; border: none; cursor: pointer;
-      display: flex; align-items: center; gap: .7rem; padding: 0;
+      width: 38px; height: 38px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.8); transition: background .15s, color .15s;
+      flex-shrink: 0;
     }
+    .topbar-menu-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
 
-    .topbar-title {
+    .topbar-brand {
       font-family: 'Playfair Display', serif;
-      font-size: 1.2rem; color: var(--color-white);
-      font-weight: 700; letter-spacing: .02em;
+      font-size: 1.15rem; font-weight: 700;
+      color: #fff; letter-spacing: .01em;
     }
 
-    .hamburger { font-size: 1.3rem; color: var(--color-accent); }
+    .topbar-badge {
+      margin-left: auto;
+      background: rgba(255,255,255,.18); border-radius: 20px;
+      padding: .3rem .9rem; font-size: .75rem;
+      font-weight: 700; color: rgba(255,255,255,.9);
+    }
 
     /* ── OVERLAY ── */
     .drawer-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(43,43,43,.45); z-index: 300;
-      backdrop-filter: blur(2px);
+      background: rgba(15,23,42,.4); z-index: 300;
+      backdrop-filter: blur(3px);
     }
-
     .drawer-overlay.show { display: block; }
 
-    /* ── DRAWER ── */
+    /* ── SIDEBAR ── */
     .drawer {
       position: fixed; top: 0; left: -280px;
-      width: 260px; height: 100vh;
-      background: var(--color-secondary) !important;
+      width: 262px; height: 100vh;
+      background: var(--sidebar-bg) !important;
       z-index: 400; display: flex; flex-direction: column;
-      transition: left .3s cubic-bezier(.4,0,.2,1);
-      box-shadow: 4px 0 32px rgba(0,0,0,.2);
+      transition: left .28s cubic-bezier(.4,0,.2,1);
+      box-shadow: 6px 0 40px rgba(0,0,0,.22);
       overflow-y: auto;
     }
-
     .drawer.open { left: 0; }
 
     .drawer-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1.4rem 1.4rem 1rem;
+      padding: 1.3rem 1.4rem 1.1rem;
       border-bottom: 1px solid rgba(255,255,255,.12);
-      background: var(--color-secondary) !important;
+      background: var(--sidebar-bg) !important;
     }
 
-    .drawer-logo {
+    .drawer-brand {
+      display: flex; align-items: center; gap: .7rem;
+    }
+    .drawer-brand-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: var(--color-primary);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .drawer-brand-name {
       font-family: 'Playfair Display', serif;
-      font-size: 1.2rem; color: var(--color-white); font-weight: 700;
+      font-size: 1.05rem; color: #fff; font-weight: 700;
+    }
+    .drawer-brand-sub {
+      font-size: .68rem; color: rgba(255,255,255,.4);
+      font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+      display: block; margin-top: .1rem;
     }
 
     .drawer-close {
-      background: none; border: none; color: var(--color-accent);
-      font-size: 1.1rem; cursor: pointer; padding: .2rem .4rem;
-      border-radius: 6px; transition: background .2s;
+      background: rgba(255,255,255,.06); border: none;
+      width: 30px; height: 30px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.5); cursor: pointer; transition: all .15s;
+      flex-shrink: 0;
     }
+    .drawer-close:hover { background: rgba(255,255,255,.12); color: #fff; }
 
-    .drawer-close:hover { background: rgba(255,255,255,.1); }
-
+    /* nav */
     .drawer-nav {
       flex: 1; display: flex; flex-direction: column;
-      padding: 1rem 0; gap: .2rem;
-      background: var(--color-secondary) !important;
+      padding: .8rem 0 1rem; gap: .1rem;
+      background: var(--sidebar-bg) !important;
     }
 
     .drawer-section {
-      font-size: .7rem; font-weight: 800;
-      letter-spacing: .1em; text-transform: uppercase;
-      color: rgba(255,255,255,.4);
-      padding: .8rem 1.6rem .3rem;
+      font-size: .65rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(255,255,255,.28);
+      padding: 1rem 1.4rem .35rem;
     }
 
     .drawer-nav a {
-      color: rgba(255,255,255,.85); text-decoration: none;
-      font-weight: 600; font-size: .95rem;
-      padding: .8rem 1.6rem;
-      transition: background .2s, color .2s;
-      display: flex; align-items: center; gap: .6rem;
+      color: rgba(255,255,255,.65); text-decoration: none;
+      font-weight: 600; font-size: .88rem;
+      padding: .62rem 1.4rem;
+      transition: background .15s, color .15s;
+      display: flex; align-items: center; gap: .75rem;
+      border-radius: 0; margin: 0 .6rem;
+      border-radius: 9px;
     }
-
+    .drawer-nav a .nav-icon {
+      width: 18px; height: 18px; flex-shrink: 0;
+      opacity: .6; transition: opacity .15s;
+    }
     .drawer-nav a:hover {
-      background: rgba(255,255,255,.1);
-      color: var(--color-white);
+      background: var(--sidebar-hover);
+      color: rgba(255,255,255,.95);
     }
+    .drawer-nav a:hover .nav-icon { opacity: 1; }
+    .drawer-nav a.active {
+      background: var(--sidebar-active);
+      color: #fff;
+    }
+    .drawer-nav a.active .nav-icon { opacity: 1; color: #fff; }
 
     .drawer-footer {
-      padding: 1.2rem 1.6rem;
+      padding: 1rem 1.4rem;
       border-top: 1px solid rgba(255,255,255,.12);
-      background: var(--color-secondary) !important;
+      background: var(--sidebar-bg) !important;
     }
-
-    .drawer-logout {
-      color: var(--color-accent) !important;
-      text-decoration: none; font-weight: 700;
-      font-size: .92rem; transition: color .2s;
+    .drawer-user {
+      display: flex; align-items: center; gap: .75rem;
     }
-
-    .drawer-logout:hover { color: var(--color-white) !important; }
+    .drawer-user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--color-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .drawer-user-name {
+      font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.8);
+      display: block;
+    }
+    .drawer-logout-link {
+      font-size: .72rem; color: rgba(255,255,255,.35);
+      text-decoration: none; font-weight: 600;
+      transition: color .15s;
+    }
+    .drawer-logout-link:hover { color: #f87171; }
 
     /* ── FLASH MODAL ── */
     .flash-modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(43,43,43,.45);
-      backdrop-filter: blur(3px);
+      background: rgba(15,23,42,.45);
+      backdrop-filter: blur(4px);
       z-index: 9999;
       display: flex; align-items: center; justify-content: center;
     }
 
     .flash-modal {
       background: var(--color-white);
-      border-radius: 20px;
-      padding: 2rem 2.5rem;
-      max-width: 420px; width: 90%;
+      border-radius: 18px;
+      padding: 2rem 2.4rem;
+      max-width: 400px; width: 90%;
       text-align: center;
       box-shadow: var(--shadow-lg);
-      border: 1.5px solid var(--color-border);
-      animation: popIn .25s cubic-bezier(.4,0,.2,1);
+      border: 1px solid var(--color-border);
+      animation: popIn .22s cubic-bezier(.4,0,.2,1);
     }
 
+    .flash-modal-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .flash-modal-success .flash-modal-icon { background: #dcfce7; color: #16a34a; }
+    .flash-modal-error   .flash-modal-icon { background: #fee2e2; color: #dc2626; }
+    .flash-modal-info    .flash-modal-icon { background: #e0f2fe; color: #0284c7; }
+    .flash-modal-warning .flash-modal-icon { background: #fef9c3; color: #ca8a04; }
+
     @keyframes popIn {
-      from { transform: scale(.85); opacity: 0; }
+      from { transform: scale(.88); opacity: 0; }
       to   { transform: scale(1);   opacity: 1; }
     }
 
     .flash-modal-msg {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.15rem;
-      color: var(--color-primary);
-      margin-bottom: 1.4rem;
-      line-height: 1.4;
+      font-size: 1rem; font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 1.4rem; line-height: 1.5;
     }
 
-    .flash-modal-btns { display: flex; justify-content: center; gap: 1rem; }
+    .flash-modal-btns { display: flex; justify-content: center; }
 
     .flash-btn-ok {
-      background: var(--color-primary);
-      color: var(--color-white);
-      border: none; border-radius: 24px;
-      padding: .65rem 2rem;
+      background: var(--color-primary); color: #fff;
+      border: none; border-radius: 10px;
+      padding: .6rem 2rem;
       font-family: 'Nunito', sans-serif;
-      font-size: .95rem; font-weight: 700;
-      cursor: pointer; transition: background .2s, transform .15s;
+      font-size: .92rem; font-weight: 700;
+      cursor: pointer; transition: background .18s, transform .12s;
     }
-
     .flash-btn-ok:hover {
-      background: var(--color-hover-primary);
-      transform: translateY(-2px);
+      background: #4a5932; transform: translateY(-1px);
     }
-
-    .flash-modal-success .flash-modal-msg { color: #155724; }
-    .flash-modal-success { border-color: #c3e6cb; }
-    .flash-modal-error .flash-modal-msg { color: #721c24; }
-    .flash-modal-error { border-color: #f5c6cb; }
-    .flash-modal-info .flash-modal-msg { color: var(--color-primary); }
-    .flash-modal-warning .flash-modal-msg { color: #856404; }
-    .flash-modal-warning { border-color: #ffc107; }
   </style>
 
   {% block styles %}{% endblock %}
@@ -217,32 +253,131 @@
 {% if current_user.is_authenticated and current_user.is_admin %}
 
 <div class="topbar">
-  <button class="topbar-btn" id="drawerToggle">
-    <span class="topbar-title">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
-    <span class="hamburger" id="hamburgerIcon">☰</span>
+  <button class="topbar-menu-btn" id="drawerToggle" aria-label="Menu">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
   </button>
+  <span class="topbar-brand">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
 </div>
 
 <div class="drawer-overlay" id="drawerOverlay"></div>
 
 <div class="drawer" id="drawer">
   <div class="drawer-header">
-    <span class="drawer-logo">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
-    <button class="drawer-close" id="drawerClose">✕</button>
+    <div class="drawer-brand">
+      <div class="drawer-brand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div>
+        <span class="drawer-brand-name">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
+        <span class="drawer-brand-sub">Painel Admin</span>
+      </div>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="Fechar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
   </div>
 
   <nav class="drawer-nav">
-    <span class="drawer-section">Inicio</span>
-    <a href="{{ url_for('dashboard') }}">Painel</a>
+    <span class="drawer-section">Início</span>
+    <a href="{{ url_for('dashboard') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/>
+        <rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+      </svg>
+      Painel
+    </a>
+
     <span class="drawer-section">Administração</span>
-    <a href="{{ url_for('list_products') }}">Gerenciar Produtos</a>
-    <a href="{{ url_for('list_kits') }}">Gerenciar Kits</a>
-    <a href="{{ url_for('listar_eventos') }}">Eventos Especiais</a>
-    <a href="{{ url_for('carrossel_listar') }}">Carrossel</a>
+    <a href="{{ url_for('list_products') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+      </svg>
+      Gerenciar Produtos
+    </a>
+    <a href="{{ url_for('list_kits') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/>
+        <line x1="10" y1="12" x2="14" y2="12"/>
+      </svg>
+      Gerenciar Kits
+    </a>
+    <a href="{{ url_for('listar_eventos') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      Eventos Especiais
+    </a>
+    <a href="{{ url_for('carrossel_listar') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4l-4 4"/>
+        <path d="M8 3h4l4 4"/>
+      </svg>
+      Carrossel
+    </a>
+
+    <span class="drawer-section">Operações</span>
+    <a href="{{ url_for('estoque') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6"  x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      Controle de Estoque
+    </a>
+    <a href="{{ url_for('relatorio_estoque') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6"  y1="20" x2="6"  y2="14"/>
+      </svg>
+      Relatório de Estoque
+    </a>
+
     <span class="drawer-section">Visual</span>
-    <a href="{{ url_for('admin_design') }}">Personalizar Design</a>
+    <a href="{{ url_for('admin_design') }}">
+      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/>
+        <circle cx="8.5"  cy="7.5" r=".5"/><circle cx="6.5"  cy="12.5" r=".5"/>
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+      </svg>
+      Personalizar Design
+    </a>
   </nav>
 
+  <div class="drawer-footer">
+    <div class="drawer-user">
+      <div class="drawer-user-avatar">
+        {{ current_user.name[0].upper() if current_user.name else 'A' }}
+      </div>
+      <div>
+        <span class="drawer-user-name">{{ current_user.name or current_user.email }}</span>
+        <a href="{{ url_for('logout') }}" class="drawer-logout-link">Sair</a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -250,26 +385,20 @@
   const drawer  = document.getElementById('drawer');
   const overlay = document.getElementById('drawerOverlay');
   const close   = document.getElementById('drawerClose');
-  const icon    = document.getElementById('hamburgerIcon');
 
-  function openDrawer() {
-    drawer.classList.add('open');
-    overlay.classList.add('show');
-    icon.textContent = '✕';
-  }
+  function openDrawer()  { drawer.classList.add('open');    overlay.classList.add('show'); }
+  function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('show'); }
 
-  function closeDrawer() {
-    drawer.classList.remove('open');
-    overlay.classList.remove('show');
-    icon.textContent = '☰';
-  }
-
-  toggle.addEventListener('click', () => {
-    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
-  });
-
+  toggle.addEventListener('click', () =>
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer());
   close.addEventListener('click', closeDrawer);
   overlay.addEventListener('click', closeDrawer);
+
+  // marca link ativo
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.drawer-nav a').forEach(a => {
+    if (a.getAttribute('href') === currentPath) a.classList.add('active');
+  });
 </script>
 
 {% endif %}
@@ -281,6 +410,31 @@
          onclick="fecharFlash('{{ loop.index }}')">
       <div class="flash-modal flash-modal-{{ category if category else 'info' }}"
            onclick="event.stopPropagation()">
+        <div class="flash-modal-icon">
+          {% if category == 'success' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          {% elif category == 'error' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          {% elif category == 'warning' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          {% else %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {% endif %}
+        </div>
         <p class="flash-modal-msg">{{ msg }}</p>
         <div class="flash-modal-btns">
           <button class="flash-btn-ok" onclick="fecharFlash('{{ loop.index }}')">OK</button>
@@ -292,15 +446,13 @@
     <script>
       function fecharFlash(id) {
         const el = document.getElementById('flashOverlay-' + id);
-        if (el) {
-          el.style.animation = 'fadeOut .2s ease forwards';
-          setTimeout(() => el.remove(), 200);
-        }
+        if (el) { el.style.opacity = '0'; el.style.transition = 'opacity .2s';
+                  setTimeout(() => el.remove(), 200); }
       }
       document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.flash-modal-overlay').forEach(el => {
           const id = el.id.replace('flashOverlay-', '');
-          setTimeout(() => fecharFlash(id), 3000);
+          setTimeout(() => fecharFlash(id), 3500);
         });
       });
     </script>

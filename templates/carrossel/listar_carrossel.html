@@ -104,7 +104,7 @@
       <h4>{{ item.titulo or 'Sem título' }}</h4>
       <p>{{ item.subtitulo or '' }}</p>
 
-      <div class="carrossel-card-actions">
+      <div class="carrossel-card-actions" style="flex-direction: column; align-items: flex-start;">
 
         <form method="POST" action="{{ url_for('carrossel_ordem', id=item.id) }}" class="ordem-form">
           <label style="font-size:.75rem; font-weight:700; color:#6B6B6B;">Ordem:</label>
@@ -113,16 +113,16 @@
                   style="padding:.3rem .7rem; font-size:.75rem; margin:0; border-radius:12px;">✓</button>
         </form>
 
-        <a href="{{ url_for('carrossel_toggle', id=item.id) }}" class="btn-acao btn-toggle">
-          {{ 'Visível' if item.ativo else 'Oculto' }}
-        </a>
-
-        <a href="{{ url_for('carrossel_editar', id=item.id) }}" class="btn-acao btn-editar">Editar</a>
-
-        <form method="POST" action="{{ url_for('carrossel_deletar', id=item.id) }}"
-              onsubmit="return confirm('Remover esta imagem?')">
-          <button type="submit" class="btn-acao btn-deletar">Remover</button>
-        </form>
+        <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:nowrap;">
+          <a href="{{ url_for('carrossel_toggle', id=item.id) }}" class="btn-acao btn-toggle">
+            {{ 'Visível' if item.ativo else 'Oculto' }}
+          </a>
+          <a href="{{ url_for('carrossel_editar', id=item.id) }}" class="btn-acao btn-editar">Editar</a>
+          <form method="POST" action="{{ url_for('carrossel_deletar', id=item.id) }}"
+                onsubmit="return confirm('Remover esta imagem?')" style="margin:0;">
+            <button type="submit" class="btn-acao btn-deletar">Remover</button>
+          </form>
+        </div>
 
       </div>
     </div>

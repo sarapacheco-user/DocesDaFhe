@@ -39,10 +39,22 @@ html body .card { border-radius: {{ config.card_radius or '16px' }} !important; 
 .flash-modal-info    { background: {{ config.flash_info   or '#ffffff' }} !important; }
 {% if not config.anim_enabled %}
 *, *::before, *::after { transition: none !important; animation-duration: 0.001s !important; }
-{% elif config.anim_intensity == 'soft' %}
-*, *::before, *::after { transition-duration: .12s !important; }
-{% elif config.anim_intensity == 'strong' %}
-*, *::before, *::after { transition-duration: .45s !important; }
+.card:hover { transform: none !important; box-shadow: var(--shadow-sm) !important; }
+{% else %}
+{% set dur = config.anim_duration or 220 %}
+*, *::before, *::after { transition-duration: {{ dur }}ms !important; }
+{% set hs = config.anim_hover_style or 'lift' %}
+{% if hs == 'lift' %}
+.card:hover { transform: translateY(-5px) !important; box-shadow: 0 12px 28px rgba(0,0,0,.14) !important; }
+{% elif hs == 'zoom' %}
+.card:hover { transform: scale(1.04) !important; box-shadow: 0 8px 20px rgba(0,0,0,.12) !important; }
+{% elif hs == 'glow' %}
+.card:hover { transform: none !important; box-shadow: 0 0 0 3px var(--color-primary), 0 8px 20px rgba(0,0,0,.1) !important; }
+{% elif hs == 'border' %}
+.card:hover { transform: none !important; border-color: var(--color-primary) !important; box-shadow: 0 4px 12px rgba(0,0,0,.08) !important; }
+{% elif hs == 'none' %}
+.card:hover { transform: none !important; box-shadow: var(--shadow-sm) !important; }
+{% endif %}
 {% endif %}
 {% if config.layout_mode == 'compact' %}
 .container, .section-title, .cards-carrossel-wrap, .dashboard-wrap { padding-top: .5rem !important; }
@@ -50,5 +62,13 @@ section { margin-bottom: .8rem !important; }
 {% endif %}
 {% if config.layout_width == 'fullwidth' %}
 .section-title, .cards-carrossel-wrap, .dashboard-wrap { max-width: 100% !important; }
+{% endif %}
+{% set cols = config.card_columns or 3 %}
+{% set gap  = config.card_gap or 20 %}
+.products { grid-template-columns: repeat({{ cols }}, 1fr) !important; gap: {{ gap }}px !important; }
+@media (max-width: 768px) { .products { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (max-width: 480px) { .products { grid-template-columns: 1fr !important; } }
+{% if not config.show_carousel %}
+.carrossel-wrap { display: none !important; }
 {% endif %}
 {% endif %}

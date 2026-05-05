@@ -52,10 +52,10 @@
             <div class="dp-color-row">
               <input type="color" class="dp-color-input" id="cp_{{ field }}"
                      value="{{ config[field] if config[field] else '#000000' }}"
-                     oninput="syncColor('{{ field }}', this.value)">
+                     oninput="syncColor(this.id.slice(3), this.value)">
               <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
                      value="{{ config[field] }}" maxlength="7"
-                     oninput="syncColorFromHex('{{ field }}', this.value)"
+                     oninput="syncColorFromHex(this.id.slice(4), this.value)"
                      data-varname="--{{ field | replace('_', '-') }}">
             </div>
           </div>
@@ -76,10 +76,10 @@
             <div class="dp-color-row">
               <input type="color" class="dp-color-input" id="cp_{{ field }}"
                      value="{{ config[field] }}"
-                     oninput="syncColor('{{ field }}', this.value)">
+                     oninput="syncColor(this.id.slice(3), this.value)">
               <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
                      value="{{ config[field] }}" maxlength="7"
-                     oninput="syncColorFromHex('{{ field }}', this.value)"
+                     oninput="syncColorFromHex(this.id.slice(4), this.value)"
                      data-varname="--{{ field | replace('_', '-') }}">
             </div>
           </div>
@@ -101,10 +101,10 @@
             <div class="dp-color-row">
               <input type="color" class="dp-color-input" id="cp_{{ field }}"
                      value="{{ config[field] or default }}"
-                     oninput="document.getElementById('hex_{{ field }}').value=this.value;">
+                     oninput="document.getElementById('hex_'+this.id.slice(3)).value=this.value; applyColor(this.id.slice(3), this.value);">
               <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
                      value="{{ config[field] or default }}" maxlength="7"
-                     oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) document.getElementById('cp_{{ field }}').value=this.value;">
+                     oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_'+this.id.slice(4)).value=this.value; applyColor(this.id.slice(4), this.value);}">
             </div>
           </div>
           {% endfor %}
@@ -126,8 +126,11 @@
               <option value="{{ f }}" {% if config.font_title == f %}selected{% endif %}>{{ f }}</option>
               {% endfor %}
             </select>
-            <div style="margin-top:.6rem; font-size:1.3rem; font-weight:700;" id="title_preview">
-              Doces Artesanais
+            <div style="margin-top:.7rem; background:#f8fafc; border-radius:10px; padding:.9rem 1rem; border:1px solid #e8ecf0;">
+              <div style="font-size:.65rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-bottom:.4rem;">Prévia</div>
+              <div id="title_preview" style="font-size:1.4rem; color:#1e293b; line-height:1.3;">
+                Doces Artesanais
+              </div>
             </div>
           </div>
 
@@ -140,8 +143,11 @@
               <option value="{{ f }}" {% if config.font_body == f %}selected{% endif %}>{{ f }}</option>
               {% endfor %}
             </select>
-            <div style="margin-top:.6rem; font-size:.9rem;" id="body_preview">
-              Brigadeiros gostosos feitos com amor e carinho para você.
+            <div style="margin-top:.7rem; background:#f8fafc; border-radius:10px; padding:.9rem 1rem; border:1px solid #e8ecf0;">
+              <div style="font-size:.65rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-bottom:.4rem;">Prévia</div>
+              <div id="body_preview" style="font-size:.9rem; color:#475569; line-height:1.6;">
+                Brigadeiros gostosos feitos com amor e carinho para você.
+              </div>
             </div>
           </div>
         </div>
@@ -165,7 +171,7 @@
             <div class="dp-chips" id="chips_title_weight">
               {% for w, lbl in [('400','Regular'),('600','Semi-bold'),('700','Bold'),('800','Extra-bold')] %}
               <button type="button" class="dp-chip {% if config.title_weight == w %}selected{% endif %}"
-                      onclick="selectChip(this, 'title_weight', '{{ w }}')">{{ lbl }}</button>
+                      data-w="{{ w }}" onclick="selectChip(this, 'title_weight', this.dataset.w)">{{ lbl }}</button>
               {% endfor %}
             </div>
             <input type="hidden" name="title_weight" id="hid_title_weight" value="{{ config.title_weight }}">
@@ -176,7 +182,7 @@
             <div class="dp-chips" id="chips_body_weight">
               {% for w, lbl in [('300','Light'),('400','Regular'),('600','Semi-bold'),('700','Bold')] %}
               <button type="button" class="dp-chip {% if config.body_weight == w %}selected{% endif %}"
-                      onclick="selectChip(this, 'body_weight', '{{ w }}')">{{ lbl }}</button>
+                      data-w="{{ w }}" onclick="selectChip(this, 'body_weight', this.dataset.w)">{{ lbl }}</button>
               {% endfor %}
             </div>
             <input type="hidden" name="body_weight" id="hid_body_weight" value="{{ config.body_weight }}">
@@ -214,12 +220,49 @@
         </div>
 
         <div class="dp-group">
+          <div class="dp-group-title">Colunas de produtos</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for n, lbl in [('2','2 colunas'),('3','3 colunas'),('4','4 colunas')] %}
+              <button type="button" class="dp-chip {% if (config.card_columns or 3)|string == n %}selected{% endif %}"
+                      data-cols="{{ n }}"
+                      onclick="selectChip(this, 'card_columns', this.dataset.cols); updateColPreview(+this.dataset.cols)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_columns" id="hid_card_columns" value="{{ config.card_columns or 3 }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Espaçamento entre cards</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="8" max="40" step="4"
+                     value="{{ config.card_gap or 20 }}" id="rng_card_gap"
+                     oninput="updateGapPreview(this.value)">
+              <span class="dp-range-val" id="val_card_gap">{{ config.card_gap or 20 }}px</span>
+              <input type="hidden" name="card_gap" id="hid_card_gap" value="{{ config.card_gap or 20 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
           <div class="dp-group-title">Navbar</div>
           <div class="dp-toggle-row">
             <span class="dp-toggle-label">Barra fixa no topo</span>
             <button type="button" class="dp-toggle {% if config.navbar_fixed %}on{% endif %}"
                     id="tog_navbar_fixed" onclick="toggleSwitch(this, 'navbar_fixed')"></button>
             <input type="hidden" name="navbar_fixed" id="hid_navbar_fixed" value="{{ 'on' if config.navbar_fixed else '' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Seções da loja</div>
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Mostrar carrossel</span>
+            <button type="button" class="dp-toggle {% if config.show_carousel %}on{% endif %}"
+                    id="tog_show_carousel" onclick="toggleSwitch(this, 'show_carousel')"></button>
+            <input type="hidden" name="show_carousel" id="hid_show_carousel" value="{{ 'on' if config.show_carousel else '' }}">
           </div>
         </div>
       </div>
@@ -233,7 +276,7 @@
             <div class="dp-chips">
               {% for val, lbl in [('4px','Quadrado'),('12px','Arredondado'),('24px','Oval'),('999px','Pílula')] %}
               <button type="button" class="dp-chip {% if config.btn_radius == val %}selected{% endif %}"
-                      onclick="selectChip(this, 'btn_radius', '{{ val }}'); updateBtnRadius('{{ val }}')">
+                      data-val="{{ val }}" onclick="selectChip(this, 'btn_radius', this.dataset.val); updateBtnRadius(this.dataset.val)">
                 {{ lbl }}
               </button>
               {% endfor %}
@@ -252,7 +295,7 @@
             <div class="dp-chips">
               {% for val, lbl in [('none','Nenhuma'),('soft','Suave'),('medium','Média'),('strong','Forte')] %}
               <button type="button" class="dp-chip {% if config.card_shadow == val %}selected{% endif %}"
-                      onclick="selectChip(this, 'card_shadow', '{{ val }}')">{{ lbl }}</button>
+                      data-val="{{ val }}" onclick="selectChip(this, 'card_shadow', this.dataset.val)">{{ lbl }}</button>
               {% endfor %}
             </div>
             <input type="hidden" name="card_shadow" id="hid_card_shadow" value="{{ config.card_shadow }}">
@@ -265,7 +308,7 @@
             <div class="dp-chips">
               {% for val, lbl in [('6px','Quadrado'),('12px','Suave'),('16px','Padrão'),('24px','Arredondado')] %}
               <button type="button" class="dp-chip {% if (config.card_radius or '16px') == val %}selected{% endif %}"
-                      onclick="selectChip(this, 'card_radius', '{{ val }}')">{{ lbl }}</button>
+                      data-val="{{ val }}" onclick="selectChip(this, 'card_radius', this.dataset.val)">{{ lbl }}</button>
               {% endfor %}
             </div>
             <input type="hidden" name="card_radius" id="hid_card_radius" value="{{ config.card_radius or '16px' }}">
@@ -317,7 +360,6 @@
 
         <div class="dp-group">
           <div class="dp-group-title">Animações e transições</div>
-
           <div class="dp-toggle-row">
             <span class="dp-toggle-label">Ativar animações</span>
             <button type="button" class="dp-toggle {% if config.anim_enabled %}on{% endif %}"
@@ -326,27 +368,67 @@
           </div>
         </div>
 
-        <div class="dp-group" id="group_anim_intensity" {% if not config.anim_enabled %}hidden{% endif %}>
-          <div class="dp-group-title">Intensidade</div>
-          <div class="dp-field">
-            <div class="dp-chips">
-              {% for val, lbl in [('soft','Suave'),('medium','Média'),('strong','Forte')] %}
-              <button type="button" class="dp-chip {% if config.anim_intensity == val %}selected{% endif %}"
-                      onclick="selectChip(this, 'anim_intensity', '{{ val }}')">{{ lbl }}</button>
-              {% endfor %}
+        <div id="group_anim_settings" {% if not config.anim_enabled %}hidden{% endif %}>
+
+          <div class="dp-group">
+            <div class="dp-group-title">Duração das transições</div>
+            <div class="dp-field">
+              <div class="dp-range-row">
+                <input type="range" class="dp-range" min="80" max="600" step="20"
+                       value="{{ config.anim_duration or 220 }}" id="rng_anim_dur"
+                       oninput="updateAnimDur(this.value)">
+                <span class="dp-range-val" id="val_anim_dur">{{ config.anim_duration or 220 }}ms</span>
+                <input type="hidden" name="anim_duration" id="hid_anim_duration" value="{{ config.anim_duration or 220 }}">
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:.72rem; color:#94a3b8; margin-top:.2rem;">
+                <span>Rápida</span><span>Lenta</span>
+              </div>
             </div>
-            <input type="hidden" name="anim_intensity" id="hid_anim_intensity" value="{{ config.anim_intensity }}">
           </div>
 
-          <div class="dp-field" style="margin-top:.8rem;">
-            <div class="dp-group-title">Tipos disponíveis</div>
-            <p style="font-size:.85rem; color:#6b6b6b; margin:0;">
-              ✅ Hover nos cards<br>
-              ✅ Fade-in de flash<br>
-              ✅ Transições de botões<br>
-              ✅ Abertura do drawer
-            </p>
+          <div class="dp-group">
+            <div class="dp-group-title">Efeito hover dos cards</div>
+            <div class="dp-field">
+              <div class="dp-chips" style="flex-wrap:wrap;">
+                {% for val, lbl in [('lift','Levantar'),('zoom','Zoom'),('glow','Brilho'),('border','Borda'),('none','Nenhum')] %}
+                <button type="button" class="dp-chip {% if (config.anim_hover_style or 'lift') == val %}selected{% endif %}"
+                        data-hov="{{ val }}"
+                        onclick="selectChip(this, 'anim_hover_style', this.dataset.hov); previewHover(this.dataset.hov)">{{ lbl }}</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="anim_hover_style" id="hid_anim_hover_style" value="{{ config.anim_hover_style or 'lift' }}">
+            </div>
+            <!-- hover demo card -->
+            <div style="margin-top:.8rem; display:flex; justify-content:center;">
+              <div id="anim_demo_card" style="
+                width:110px; background:#fff; border-radius:12px; overflow:hidden;
+                border:1.5px solid #e5e5e5; box-shadow:0 2px 8px rgba(0,0,0,.08);
+                transition:transform .22s, box-shadow .22s, border-color .22s;
+                cursor:default; text-align:center;">
+                <div style="height:64px; background:var(--color-bg,#faf9f6); display:flex; align-items:center; justify-content:center; font-size:1.8rem;">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="var(--color-primary,#5B6D3D)" opacity=".15"/><path d="M10 20 C12 14 20 14 22 20" stroke="var(--color-primary,#5B6D3D)" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="13" r="2" fill="var(--color-primary,#5B6D3D)"/><circle cx="19" cy="13" r="2" fill="var(--color-primary,#5B6D3D)"/></svg>
+                </div>
+                <div style="padding:.5rem; font-size:.75rem; font-weight:700; color:#1e293b;">Prévia</div>
+              </div>
+            </div>
+            <p style="font-size:.72rem; color:#94a3b8; text-align:center; margin-top:.4rem;">Passe o mouse no card acima</p>
           </div>
+
+          <div class="dp-group">
+            <div class="dp-group-title">O que é animado</div>
+            <div style="display:flex; flex-direction:column; gap:.55rem;">
+              {% for item in ['Hover nos cards de produto','Transições de botões','Abertura do menu lateral','Fade-in das mensagens'] %}
+              <div style="display:flex; align-items:center; gap:.55rem;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" fill="#dcfce7"/>
+                  <path d="M5 8l2.2 2.2L11 5.5" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span style="font-size:.83rem; color:#475569;">{{ item }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -399,7 +481,7 @@
             <div class="dp-chips">
               {% for val, lbl in [('contain','Original'),('cover','Preencher'),('fill','Esticar')] %}
               <button type="button" class="dp-chip {% if (config.logo_fit or 'contain') == val %}selected{% endif %}"
-                      onclick="selectChip(this, 'logo_fit', '{{ val }}'); updateLogoFit('{{ val }}')">{{ lbl }}</button>
+                      data-val="{{ val }}" onclick="selectChip(this, 'logo_fit', this.dataset.val); updateLogoFit(this.dataset.val)">{{ lbl }}</button>
               {% endfor %}
             </div>
             <input type="hidden" name="logo_fit" id="hid_logo_fit" value="{{ config.logo_fit or 'contain' }}">
@@ -441,13 +523,38 @@
     <div class="dp-preview-stage">
       <div class="dp-preview-frame" id="previewFrame">
 
-        <!-- Mini topbar -->
-        <div class="pvw-topbar" id="pvw_topbar">
-          <strong id="pvw_sitename">{{ config.site_name }}</strong>
+        <!-- ── Topbar ── -->
+        <div class="pvw-topbar" id="pvw_topbar" style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem .8rem;">
+          <div style="display:flex; align-items:center; gap:.5rem;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" opacity=".8">
+              <rect y="4" width="24" height="2.5" rx="1.2"/><rect y="10.75" width="24" height="2.5" rx="1.2"/><rect y="17.5" width="24" height="2.5" rx="1.2"/>
+            </svg>
+            <strong id="pvw_sitename">{{ config.site_name }}</strong>
+          </div>
+          <span id="pvw_navbar_badge" style="font-size:.58rem; background:rgba(255,255,255,.25); padding:.1rem .45rem; border-radius:4px; white-space:nowrap;">
+            {{ 'Navbar Fixa' if config.navbar_fixed else 'Navbar Normal' }}
+          </span>
         </div>
 
-        <!-- Body mockup -->
-        <div class="pvw-body">
+        <!-- ── Carousel strip ── -->
+        <div id="pvw_carousel"
+             data-show="{{ 'true' if config.show_carousel else 'false' }}"
+             style="height:72px; background:linear-gradient(135deg,var(--color-secondary) 0%,var(--color-primary) 100%); display:flex; align-items:center; justify-content:center; gap:.5rem; color:#fff; font-size:.62rem; font-weight:800; letter-spacing:.1em; transition:height .25s ease;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          CARROSSEL
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <!-- ── Body ── -->
+        <div class="pvw-body" id="pvw_body">
+
+          <!-- Layout width indicator -->
+          <div id="pvw_width_bar" style="display:flex; align-items:center; gap:.35rem; margin-bottom:.5rem;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M21 3H3M21 21H3M15 12H9M3 7v10M21 7v10"/></svg>
+            <span id="pvw_width_badge" style="font-size:.62rem; color:#94a3b8; font-weight:700;">
+              {{ 'Full Width' if config.layout_width == 'fullwidth' else 'Centralizado' }}
+            </span>
+          </div>
 
           <div class="pvw-heading" id="pvw_heading">Doces Artesanais da Fhê</div>
           <div class="pvw-text" id="pvw_text">Brigadeiros, trufas e kits feitos com amor para o seu momento especial.</div>
@@ -455,24 +562,31 @@
           <!-- Cards -->
           <div class="pvw-cards">
             <div class="pvw-card">
-              <div class="pvw-card-img">🍫</div>
+              <div class="pvw-card-img" style="position:relative; display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" fill="var(--color-primary)" opacity=".18"/><circle cx="20" cy="20" r="8" fill="var(--color-primary)" opacity=".65"/><circle cx="14" cy="14" r="3.5" fill="var(--color-accent)" opacity=".8"/></svg>
+                <div style="position:absolute; top:4px; left:4px; background:var(--color-dark); color:#fff; font-size:.48rem; font-weight:900; padding:.2rem .4rem; border-radius:3px;">NOVO</div>
+              </div>
               <div class="pvw-card-body">
-                <div class="pvw-card-name" id="pvw_card_name">Brigadeiro</div>
-                <div class="pvw-card-price">R$ 5,00</div>
+                <div class="pvw-card-name">Brigadeiro</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 5,00</div>
               </div>
             </div>
             <div class="pvw-card">
-              <div class="pvw-card-img">🍰</div>
+              <div class="pvw-card-img" style="display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><rect x="8" y="18" width="24" height="14" rx="3" fill="var(--color-accent)" opacity=".7"/><rect x="12" y="8" width="16" height="12" rx="3" fill="var(--color-primary)" opacity=".5"/><rect x="18" y="6" width="4" height="14" rx="1.5" fill="var(--color-dark)" opacity=".5"/></svg>
+              </div>
               <div class="pvw-card-body">
-                <div class="pvw-card-name" id="pvw_card_name2">Trufa</div>
-                <div class="pvw-card-price">R$ 8,00</div>
+                <div class="pvw-card-name">Trufa</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 8,00</div>
               </div>
             </div>
             <div class="pvw-card">
-              <div class="pvw-card-img">🎁</div>
+              <div class="pvw-card-img" style="display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><rect x="8" y="16" width="24" height="16" rx="3" fill="var(--color-secondary)" opacity=".6"/><rect x="6" y="12" width="28" height="6" rx="2" fill="var(--color-primary)" opacity=".5"/><rect x="18" y="6" width="4" height="14" rx="1.5" fill="var(--color-accent)" opacity=".7"/><circle cx="10" cy="12" r="3" fill="var(--color-accent)" opacity=".6"/><circle cx="30" cy="12" r="3" fill="var(--color-accent)" opacity=".6"/></svg>
+              </div>
               <div class="pvw-card-body">
-                <div class="pvw-card-name" id="pvw_card_name3">Kit Festa</div>
-                <div class="pvw-card-price">R$ 45,00</div>
+                <div class="pvw-card-name">Kit Festa</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 45,00</div>
               </div>
             </div>
           </div>
@@ -483,8 +597,24 @@
             <div class="pvw-btn-secondary" id="pvw_btn_secondary">Ver Detalhes</div>
           </div>
 
+          <!-- Flash messages -->
+          <div style="display:flex; flex-direction:column; gap:.3rem; margin-top:.7rem;">
+            <div id="pvw_flash_success" data-bg="{{ config.flash_success or '#d4edda' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; color:#155724; transition:background .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#16a34a" opacity=".2"/><path d="M5 8l2 2L11 5" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Produto adicionado ao carrinho!
+            </div>
+            <div id="pvw_flash_error" data-bg="{{ config.flash_error or '#f8d7da' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; color:#721c24; transition:background .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#dc2626" opacity=".2"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Produto fora de estoque.
+            </div>
+            <div id="pvw_flash_info" data-bg="{{ config.flash_info or '#d1ecf1' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; color:#0c5460; transition:background .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#3b82f6" opacity=".2"/><path d="M8 7v4M8 5.5v.5" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Pedido enviado com sucesso.
+            </div>
+          </div>
+
           <!-- Color swatches -->
-          <div class="pvw-swatches">
+          <div class="pvw-swatches" style="margin-top:.7rem;">
             <div class="pvw-swatch" id="pvw_sw_primary"   style="background:var(--color-primary);"></div>
             <div class="pvw-swatch" id="pvw_sw_secondary" style="background:var(--color-secondary);"></div>
             <div class="pvw-swatch" id="pvw_sw_accent"    style="background:var(--color-accent);"></div>
@@ -494,7 +624,7 @@
           </div>
 
           <!-- Contrast info -->
-          <div class="pvw-contrast" id="pvw_contrast" style="display:none;"></div>
+          <div class="pvw-contrast" id="pvw_contrast" style="display:none; margin-top:.5rem;"></div>
 
         </div>
       </div>
@@ -548,6 +678,13 @@ function applyColor(field, value) {
   // update topbar bg
   if (field === 'color_secondary') {
     document.querySelectorAll('.pvw-topbar').forEach(el => el.style.background = value);
+  }
+
+  // flash message backgrounds
+  const flashTarget = { flash_success: 'pvw_flash_success', flash_error: 'pvw_flash_error', flash_info: 'pvw_flash_info' };
+  if (flashTarget[field]) {
+    const fe = document.getElementById(flashTarget[field]);
+    if (fe) fe.style.background = value;
   }
 
   checkContrast();
@@ -607,13 +744,26 @@ function loadGoogleFont(family) {
 function updateFont(type, value) {
   loadGoogleFont(value);
   if (type === 'title') {
-    document.getElementById('title_preview').style.fontFamily = `'${value}', serif`;
+    const w = document.getElementById('hid_title_weight').value || '700';
+    const prev = document.getElementById('title_preview');
+    prev.style.fontFamily = `'${value}', serif`;
+    prev.style.fontWeight = w;
     document.getElementById('pvw_heading').style.fontFamily = `'${value}', serif`;
-    document.querySelectorAll('.pvw-card-name').forEach(el => el.style.fontFamily = `'${value}', serif`);
+    document.getElementById('pvw_heading').style.fontWeight = w;
+    document.querySelectorAll('.pvw-card-name').forEach(el => {
+      el.style.fontFamily = `'${value}', serif`;
+      el.style.fontWeight = w;
+    });
   } else {
-    document.getElementById('body_preview').style.fontFamily = `'${value}', sans-serif`;
+    const w = document.getElementById('hid_body_weight').value || '400';
+    const prev = document.getElementById('body_preview');
+    prev.style.fontFamily = `'${value}', sans-serif`;
+    prev.style.fontWeight = w;
     document.getElementById('pvw_text').style.fontFamily = `'${value}', sans-serif`;
-    document.querySelectorAll('.pvw-btn-primary, .pvw-btn-secondary').forEach(el => el.style.fontFamily = `'${value}', sans-serif`);
+    document.getElementById('pvw_text').style.fontWeight = w;
+    document.querySelectorAll('.pvw-btn-primary, .pvw-btn-secondary').forEach(el => {
+      el.style.fontFamily = `'${value}', sans-serif`;
+    });
   }
 }
 
@@ -622,6 +772,7 @@ function updateFontSize(val) {
   document.getElementById('val_font_size').textContent = val + 'px';
   document.getElementById('hid_font_size').value = val;
   document.getElementById('pvw_text').style.fontSize = val + 'px';
+  document.getElementById('body_preview').style.fontSize = val + 'px';
 }
 
 // ── Chip selector ──
@@ -629,6 +780,19 @@ function selectChip(el, field, value) {
   el.closest('.dp-chips').querySelectorAll('.dp-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('hid_' + field).value = value;
+
+  if (field === 'title_weight') {
+    document.getElementById('title_preview').style.fontWeight = value;
+    document.getElementById('pvw_heading').style.fontWeight = value;
+    document.querySelectorAll('.pvw-card-name').forEach(e => e.style.fontWeight = value);
+  } else if (field === 'body_weight') {
+    document.getElementById('body_preview').style.fontWeight = value;
+    document.getElementById('pvw_text').style.fontWeight = value;
+  } else if (field === 'card_shadow')  { updatePreviewCardShadow(value); }
+    else if (field === 'card_radius')  { updatePreviewCardRadius(value); }
+    else if (field === 'layout_mode')  { updatePreviewLayoutMode(value); }
+    else if (field === 'layout_width') { updatePreviewLayoutWidth(value); }
+    else if (field === 'anim_hover_style') { previewHover(value); }
 }
 
 // ── Toggle switch ──
@@ -638,8 +802,81 @@ function toggleSwitch(btn, field) {
   document.getElementById('hid_' + field).value = isOn ? 'on' : '';
 
   if (field === 'anim_enabled') {
-    document.getElementById('group_anim_intensity').style.display = isOn ? '' : 'none';
+    document.getElementById('group_anim_settings').style.display = isOn ? '' : 'none';
+  } else if (field === 'show_carousel') {
+    const c = document.getElementById('pvw_carousel');
+    if (c) c.style.display = isOn ? 'flex' : 'none';
+  } else if (field === 'navbar_fixed') {
+    const b = document.getElementById('pvw_navbar_badge');
+    if (b) b.textContent = isOn ? 'Navbar Fixa' : 'Navbar Normal';
   }
+}
+
+// ── Animation duration ──
+function updateAnimDur(val) {
+  document.getElementById('val_anim_dur').textContent = val + 'ms';
+  document.getElementById('hid_anim_duration').value = val;
+  const card = document.getElementById('anim_demo_card');
+  if (card) card.style.transitionDuration = val + 'ms';
+}
+
+// ── Hover style preview ──
+function previewHover(style) {
+  const card = document.getElementById('anim_demo_card');
+  if (!card) return;
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#5B6D3D';
+  card.style.transform    = '';
+  card.style.boxShadow    = '0 2px 8px rgba(0,0,0,.08)';
+  card.style.borderColor  = '#e5e5e5';
+  card.style.outline      = '';
+  void card.offsetWidth; // trigger reflow so transition plays
+  if (style === 'lift')   { card.style.transform = 'translateY(-6px)'; card.style.boxShadow = '0 12px 28px rgba(0,0,0,.16)'; }
+  if (style === 'zoom')   { card.style.transform = 'scale(1.06)';      card.style.boxShadow = '0 8px 20px rgba(0,0,0,.12)'; }
+  if (style === 'glow')   { card.style.boxShadow = '0 0 0 3px ' + primary + ', 0 8px 20px rgba(0,0,0,.1)'; }
+  if (style === 'border') { card.style.borderColor = primary; }
+  setTimeout(() => {
+    card.style.transform = '';
+    card.style.boxShadow = '0 2px 8px rgba(0,0,0,.08)';
+    card.style.borderColor = '#e5e5e5';
+  }, 900);
+}
+
+// ── Preview: card shadow ──
+function updatePreviewCardShadow(val) {
+  const s = { none:'none', soft:'0 2px 6px rgba(0,0,0,.07)', medium:'0 4px 14px rgba(0,0,0,.12)', strong:'0 8px 24px rgba(0,0,0,.20)' };
+  document.querySelectorAll('.pvw-card').forEach(c => c.style.boxShadow = s[val] || s.medium);
+}
+
+// ── Preview: card radius ──
+function updatePreviewCardRadius(val) {
+  document.querySelectorAll('.pvw-card').forEach(c => c.style.borderRadius = val);
+}
+
+// ── Preview: card image height ──
+function updatePreviewCardImg(val) {
+  const h = Math.min(Math.max(Math.round(+val * 0.38), 22), 88);
+  document.querySelectorAll('.pvw-card-img').forEach(c => c.style.height = h + 'px');
+}
+
+// ── Preview: carousel height ──
+function updatePreviewCarousel(val) {
+  const h = Math.min(Math.max(Math.round(+val * 0.22), 36), 110);
+  const el = document.getElementById('pvw_carousel');
+  if (el) el.style.height = h + 'px';
+}
+
+// ── Preview: layout mode (compact / spacious) ──
+function updatePreviewLayoutMode(val) {
+  const body = document.getElementById('pvw_body');
+  if (body) body.style.padding = val === 'compact' ? '.35rem .6rem' : '.9rem .8rem';
+  const cards = document.querySelector('.pvw-cards');
+  if (cards) cards.style.marginTop = val === 'compact' ? '.3rem' : '.7rem';
+}
+
+// ── Preview: layout width ──
+function updatePreviewLayoutWidth(val) {
+  const badge = document.getElementById('pvw_width_badge');
+  if (badge) badge.textContent = val === 'fullwidth' ? 'Full Width' : 'Centralizado';
 }
 
 // ── Button radius preview ──
@@ -647,6 +884,17 @@ function updateBtnRadius(val) {
   document.querySelectorAll('.pvw-btn-primary,.pvw-btn-secondary').forEach(el => {
     el.style.borderRadius = val;
   });
+}
+
+// ── Layout: columns + gap preview ──
+function updateColPreview(n) {
+  document.querySelector('.pvw-cards').style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+}
+
+function updateGapPreview(val) {
+  document.getElementById('val_card_gap').textContent = val + 'px';
+  document.getElementById('hid_card_gap').value = val;
+  document.querySelector('.pvw-cards').style.gap = val + 'px';
 }
 
 // ── Site name ──
@@ -702,11 +950,47 @@ function setDevice(device, btn) {
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-  updateFont('title', document.getElementById('sel_font_title').value);
-  updateFont('body', document.getElementById('sel_font_body').value);
-  updateBtnRadius(document.getElementById('hid_btn_radius').value);
+  const g = id => document.getElementById(id);
+
+  updateFont('title', g('sel_font_title').value);
+  updateFont('body',  g('sel_font_body').value);
+  updateFontSize(g('hid_font_size').value);
+  updateBtnRadius(g('hid_btn_radius').value);
+  updateColPreview(+g('hid_card_columns').value || 3);
+  updateGapPreview(g('hid_card_gap').value || 20);
+  updateAnimDur(g('hid_anim_duration').value || 220);
+
+  // initialise all new preview states
+  updatePreviewCardShadow(g('hid_card_shadow')?.value || 'medium');
+  updatePreviewCardRadius(g('hid_card_radius')?.value || '16px');
+  updatePreviewCardImg(+(g('hid_card_img_height')?.value || 200));
+  updatePreviewCarousel(+(g('hid_carousel_height')?.value || 340));
+  updatePreviewLayoutMode(g('hid_layout_mode')?.value || 'spacious');
+  updatePreviewLayoutWidth(g('hid_layout_width')?.value || 'centered');
+
+  // range sliders → live preview
+  g('rng_card_img')?.addEventListener('input', e => updatePreviewCardImg(+e.target.value));
+  g('rng_carousel')?.addEventListener('input', e => updatePreviewCarousel(+e.target.value));
+
+  // initialise carousel visibility from data attribute (avoids Jinja in style)
+  const pvwC = g('pvw_carousel');
+  if (pvwC && pvwC.dataset.show === 'false') pvwC.style.display = 'none';
+
+  // initialise flash backgrounds from data attributes (avoids Jinja in style)
+  ['pvw_flash_success','pvw_flash_error','pvw_flash_info'].forEach(id => {
+    const el = g(id);
+    if (el && el.dataset.bg) el.style.background = el.dataset.bg;
+  });
+
+  // hover demo card
+  const demoCard = g('anim_demo_card');
+  if (demoCard) {
+    const hs = g('hid_anim_hover_style');
+    demoCard.addEventListener('mouseenter', () => previewHover(hs ? hs.value : 'lift'));
+  }
+
   checkContrast();
-  const li = document.getElementById('logoImg');
+  const li = g('logoImg');
   if (li) {
     li.style.maxHeight = (li.dataset.height || 100) + 'px';
     li.style.objectFit = li.dataset.fit || 'contain';

@@ -1,0 +1,564 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='estoque.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="es-page">
+
+  <!-- HEADER -->
+  <div class="es-header">
+    <h1 class="es-title">Controle de <span>Estoque</span></h1>
+    <div class="es-header-actions">
+      <a href="{{ url_for('relatorio_estoque') }}" class="btn-es btn-es-primary">Relatório</a>
+      <a href="{{ url_for('list_products') }}" class="btn-es btn-es-outline">Gerenciar Produtos</a>
+      <a href="{{ url_for('list_kits') }}" class="btn-es btn-es-outline">Gerenciar Kits</a>
+      <a href="{{ url_for('listar_eventos') }}" class="btn-es btn-es-outline">Gerenciar Eventos Especiais</a>
+    </div>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="es-cards">
+    <div class="es-card">
+      <div class="es-card-icon ic-total">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="es-card-info">
+        <label>Total de Itens</label>
+        <strong>{{ itens|length }}</strong>
+      </div>
+    </div>
+    <div class="es-card">
+      <div class="es-card-icon ic-low">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="es-card-info low">
+        <label>Estoque Baixo</label>
+        <strong>{{ estoque_baixo }}</strong>
+      </div>
+    </div>
+    <div class="es-card">
+      <div class="es-card-icon ic-zero">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="es-card-info zero">
+        <label>Sem Estoque</label>
+        <strong>{{ sem_estoque }}</strong>
+      </div>
+    </div>
+    <div class="es-card">
+      <div class="es-card-icon ic-valor">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div class="es-card-info valor">
+        <label>Valor Total</label>
+        <strong>R$ {{ "%.2f"|format(total_valor) }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="es-toolbar">
+    <div class="es-search">
+      <span class="es-search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <input type="text" id="searchInput" placeholder="Buscar por nome ou categoria…" oninput="filtrar()">
+    </div>
+    <select class="es-select" id="filtroCat" onchange="filtrar()">
+      <option value="">Todas categorias</option>
+      {% for cat in categorias %}
+      <option value="{{ cat }}">{{ cat | capitalize }}</option>
+      {% endfor %}
+    </select>
+    <select class="es-select" id="filtroStatus" onchange="filtrar()">
+      <option value="">Todos os status</option>
+      <option value="ok">OK</option>
+      <option value="baixo">Estoque baixo</option>
+      <option value="zerado">Sem estoque</option>
+    </select>
+    <span class="es-count" id="contagem">{{ itens|length }} item(ns)</span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="es-table-wrap">
+    <table class="es-table" id="tabelaProdutos">
+      <thead>
+        <tr>
+          <th onclick="ordenar(0)">Produto <span class="sort-icon">↕</span></th>
+          <th onclick="ordenar(1)">Categoria <span class="sort-icon">↕</span></th>
+          <th onclick="ordenar(2)">Estoque <span class="sort-icon">↕</span></th>
+          <th onclick="ordenar(3)">Mínimo <span class="sort-icon">↕</span></th>
+          <th onclick="ordenar(4)">Preço <span class="sort-icon">↕</span></th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyProdutos">
+        {% for item in itens %}
+        {% set uid = item.tipo ~ '-' ~ item.id %}
+        <tr class="prod-row row-{{ item.status }}"
+            data-nome="{{ item.nome | lower }}"
+            data-cat="{{ item.categoria | lower }}"
+            data-status="{{ item.status }}"
+            data-uid="{{ uid }}">
+          <td>
+            <div class="prod-name">{{ item.nome }}</div>
+            <div style="margin-top:.25rem;">
+              {% if item.tipo == 'kit' %}<span class="tipo-tag tipo-kit">Kit</span>
+              {% elif item.tipo == 'especial' %}<span class="tipo-tag tipo-especial">Especial</span>
+              {% else %}<span class="tipo-tag tipo-produto">Produto</span>{% endif %}
+            </div>
+          </td>
+          <td><span class="prod-cat">{{ item.categoria | capitalize }}</span></td>
+          <td>
+            <div class="stock-qty">
+              <span class="qty-num" id="qty-{{ uid }}">{{ item.estoque }}</span>
+              <span class="qty-min">un</span>
+            </div>
+          </td>
+          <td>
+            <span style="font-size:.85rem; color:#475569;">
+              <span id="min-{{ uid }}">{{ item.estoque_minimo }}</span> un
+            </span>
+          </td>
+          <td>R$ {{ "%.2f"|format(item.preco) }}</td>
+          <td>
+            <span class="badge-status badge-{{ item.status }}" id="badge-{{ uid }}">
+              {% if item.status == 'ok' %}OK
+              {% elif item.status == 'baixo' %}Baixo
+              {% else %}Zerado{% endif %}
+            </span>
+          </td>
+          <td>
+            <div class="td-actions">
+              <button class="btn-es btn-es-sm btn-mov btn-es-icon"
+                      title="Movimentar estoque"
+                      onclick="abrirMovimentar('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}', {{ item.estoque }}, {{ item.estoque_minimo }})">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/>
+                </svg>
+              </button>
+              <button class="btn-es btn-es-sm btn-hist btn-es-icon"
+                      title="Histórico"
+                      onclick="abrirHistorico('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+                </svg>
+              </button>
+              <button class="btn-es btn-es-sm btn-del btn-es-icon"
+                      title="Editar mínimo"
+                      onclick="abrirEditarMinimo('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}', {{ item.estoque_minimo }})">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="es-empty" id="emptyState" style="display:none;">
+      <div class="es-empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <p>Nenhum item encontrado com esses filtros.</p>
+    </div>
+
+    <!-- PAGINAÇÃO -->
+    <div class="es-pagination" id="paginacao"></div>
+  </div>
+
+</div>
+
+<!-- ══ MODAL: MOVIMENTAR ══ -->
+<div class="es-overlay" id="overlayMov">
+  <div class="es-modal">
+    <div class="es-modal-header">
+      <span class="es-modal-title" id="movTitulo">Movimentar Estoque</span>
+      <button class="es-modal-close" onclick="fecharMov()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="es-info-bar" id="movInfoBar">
+      Estoque atual: <b id="movEstoqueAtual">—</b> &nbsp;|&nbsp; Mínimo: <b id="movMinimo">—</b>
+    </div>
+
+    <div class="es-form-group">
+      <label>Tipo</label>
+      <div class="es-tipo-btns">
+        <button class="es-tipo-btn entrada sel" id="btnEntrada" onclick="setTipo('entrada')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 19 19 12"/></svg>
+          Entrada
+        </button>
+        <button class="es-tipo-btn saida" id="btnSaida" onclick="setTipo('saida')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 5 5 12"/></svg>
+          Saída
+        </button>
+      </div>
+    </div>
+
+    <div class="es-form-group">
+      <label>Quantidade</label>
+      <input type="number" id="movQtd" min="1" value="1" placeholder="Ex: 10">
+      <div class="es-erro" id="movErro"></div>
+    </div>
+
+    <div class="es-form-group">
+      <label>Motivo</label>
+      <select id="movMotivo">
+        <option value="">Selecione…</option>
+        <option value="Reposição">Reposição</option>
+        <option value="Devolução">Devolução</option>
+        <option value="Perda / Avaria">Perda / Avaria</option>
+        <option value="Inventário">Inventário</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+
+    <div class="es-modal-footer">
+      <button class="btn-es btn-es-cancel" onclick="fecharMov()">Cancelar</button>
+      <button class="btn-es btn-es-primary" id="btnConfirmarMov" onclick="confirmarMovimentar()">
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: HISTÓRICO ══ -->
+<div class="es-overlay" id="overlayHist">
+  <div class="es-modal" style="max-width:560px;">
+    <div class="es-modal-header">
+      <span class="es-modal-title" id="histTitulo">Histórico</span>
+      <button class="es-modal-close" onclick="fecharHist()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="histConteudo">
+      <div class="hist-empty">Carregando…</div>
+    </div>
+    <div class="es-modal-footer">
+      <button class="btn-es btn-es-cancel" onclick="fecharHist()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EDITAR MÍNIMO ══ -->
+<div class="es-overlay" id="overlayMin">
+  <div class="es-modal" style="max-width:380px;">
+    <div class="es-modal-header">
+      <span class="es-modal-title">Editar Estoque Mínimo</span>
+      <button class="es-modal-close" onclick="fecharMin()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="font-size:.88rem; color:#64748b; margin-bottom:1rem;" id="minNome"></p>
+    <div class="es-form-group">
+      <label>Quantidade Mínima</label>
+      <input type="number" id="minInput" min="0" value="5">
+    </div>
+    <div class="es-modal-footer">
+      <button class="btn-es btn-es-cancel" onclick="fecharMin()">Cancelar</button>
+      <button class="btn-es btn-es-primary" onclick="confirmarMinimo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ STATE ══ */
+let movTipoItem = null; let movItemId = null;
+let movTipoAtual = 'entrada';
+let minTipoItem = null; let minItemId = null;
+const POR_PAGINA = 10;
+let paginaAtual = 1;
+let linhasFiltradas = [];
+
+/* ══ FILTROS & BUSCA ══ */
+function filtrar() {
+  const busca   = document.getElementById('searchInput').value.toLowerCase();
+  const cat     = document.getElementById('filtroCat').value.toLowerCase();
+  const status  = document.getElementById('filtroStatus').value;
+  const linhas  = Array.from(document.querySelectorAll('.prod-row'));
+
+  linhasFiltradas = linhas.filter(tr => {
+    const nome   = tr.dataset.nome;
+    const trCat  = tr.dataset.cat;
+    const trSt   = tr.dataset.status;
+    return (!busca  || nome.includes(busca) || trCat.includes(busca))
+        && (!cat    || trCat === cat)
+        && (!status || trSt  === status);
+  });
+
+  paginaAtual = 1;
+  renderPagina();
+}
+
+function renderPagina() {
+  const todas = Array.from(document.querySelectorAll('.prod-row'));
+  todas.forEach(tr => { tr.style.display = 'none'; });
+
+  const inicio = (paginaAtual - 1) * POR_PAGINA;
+  const pagina = linhasFiltradas.slice(inicio, inicio + POR_PAGINA);
+  pagina.forEach(tr => { tr.style.display = ''; });
+
+  document.getElementById('emptyState').style.display =
+    linhasFiltradas.length === 0 ? 'block' : 'none';
+  document.getElementById('contagem').textContent =
+    linhasFiltradas.length + ' produto(s)';
+
+  renderPaginacao();
+}
+
+function renderPaginacao() {
+  const total = Math.ceil(linhasFiltradas.length / POR_PAGINA);
+  const div   = document.getElementById('paginacao');
+  if (total <= 1) { div.innerHTML = ''; return; }
+
+  let html = `<button class="pg-btn" onclick="irPagina(${paginaAtual-1})"
+               ${paginaAtual===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= total; i++) {
+    html += `<button class="pg-btn ${i===paginaAtual?'active':''}"
+              onclick="irPagina(${i})">${i}</button>`;
+  }
+  html += `<button class="pg-btn" onclick="irPagina(${paginaAtual+1})"
+            ${paginaAtual===total?'disabled':''}>›</button>`;
+  div.innerHTML = html;
+}
+
+function irPagina(n) {
+  paginaAtual = n;
+  renderPagina();
+}
+
+/* ══ ORDENAÇÃO ══ */
+let sortCol = -1, sortAsc = true;
+function ordenar(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+
+  document.querySelectorAll('.es-table thead th').forEach((th, i) => {
+    th.classList.toggle('sorted', i === col);
+    if (i === col) th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
+    else th.querySelector('.sort-icon').textContent = '↕';
+  });
+
+  linhasFiltradas.sort((a, b) => {
+    const va = getCellVal(a, col);
+    const vb = getCellVal(b, col);
+    if (!isNaN(va) && !isNaN(vb)) return sortAsc ? va-vb : vb-va;
+    return sortAsc ? String(va).localeCompare(String(vb))
+                   : String(vb).localeCompare(String(va));
+  });
+  renderPagina();
+}
+
+function getCellVal(tr, col) {
+  const cells = tr.querySelectorAll('td');
+  if (col === 2) return parseInt(tr.querySelector('[id^="qty-"]')?.textContent || '0');
+  if (col === 3) return parseInt(tr.querySelector('[id^="min-"]')?.textContent || '0');
+  return cells[col]?.textContent.trim() || '';
+}
+
+/* ══ MODAL MOVIMENTAR ══ */
+function abrirMovimentar(tipoItem, id, nome, estoque, minimo) {
+  movTipoItem = tipoItem;
+  movItemId   = id;
+  document.getElementById('movTitulo').textContent       = '🔄 ' + nome;
+  document.getElementById('movEstoqueAtual').textContent = estoque + ' un';
+  document.getElementById('movMinimo').textContent       = minimo + ' un';
+  document.getElementById('movQtd').value    = 1;
+  document.getElementById('movMotivo').value = '';
+  document.getElementById('movErro').style.display = 'none';
+  setTipo('entrada');
+  document.getElementById('overlayMov').classList.add('open');
+}
+
+function fecharMov() {
+  document.getElementById('overlayMov').classList.remove('open');
+}
+
+function setTipo(tipo) {
+  movTipoAtual = tipo;
+  document.getElementById('btnEntrada').classList.toggle('sel', tipo === 'entrada');
+  document.getElementById('btnSaida').classList.toggle('sel',   tipo === 'saida');
+}
+
+async function confirmarMovimentar() {
+  const qtd    = parseInt(document.getElementById('movQtd').value);
+  const motivo = document.getElementById('movMotivo').value;
+  const erroEl = document.getElementById('movErro');
+
+  if (!qtd || qtd < 1) {
+    erroEl.textContent = 'Informe uma quantidade válida.';
+    erroEl.style.display = 'block'; return;
+  }
+  erroEl.style.display = 'none';
+
+  const btn = document.getElementById('btnConfirmarMov');
+  btn.textContent = 'Aguarde…'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/admin/estoque/movimentar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo_item: movTipoItem, item_id: movItemId,
+                            tipo: movTipoAtual, quantidade: qtd, motivo: motivo})
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      erroEl.textContent = data.erro || 'Erro ao movimentar.';
+      erroEl.style.display = 'block';
+    } else {
+      const uid = movTipoItem + '-' + movItemId;
+      atualizarLinha(uid, data.estoque_novo, data.status);
+      fecharMov();
+      mostrarToast(movTipoAtual === 'entrada' ? '✅ Entrada registrada!' : '✅ Saída registrada!');
+    }
+  } catch {
+    erroEl.textContent = 'Erro de conexão.';
+    erroEl.style.display = 'block';
+  }
+
+  btn.textContent = 'Confirmar'; btn.disabled = false;
+}
+
+function atualizarLinha(uid, novoEstoque, status) {
+  const row = document.querySelector(`tr[data-uid="${uid}"]`);
+  if (!row) return;
+
+  document.getElementById('qty-' + uid).textContent = novoEstoque;
+  row.dataset.status = status;
+
+  const badge = document.getElementById('badge-' + uid);
+  badge.className = 'badge-status badge-' + status;
+  badge.textContent = status === 'ok' ? 'OK' : status === 'baixo' ? 'Baixo' : 'Zerado';
+
+  row.className = `prod-row row-${status}`;
+  row.dataset.status = status;
+
+  document.getElementById('movEstoqueAtual').textContent = novoEstoque + ' un';
+}
+
+/* ══ MODAL HISTÓRICO ══ */
+async function abrirHistorico(tipoItem, id, nome) {
+  document.getElementById('histTitulo').textContent = '📋 ' + nome;
+  document.getElementById('histConteudo').innerHTML =
+    '<div class="hist-empty">Carregando…</div>';
+  document.getElementById('overlayHist').classList.add('open');
+
+  try {
+    const res = await fetch(`/admin/estoque/historico/${tipoItem}/${id}`);
+    const data = await res.json();
+    renderHistorico(data.historico);
+  } catch {
+    document.getElementById('histConteudo').innerHTML =
+      '<div class="hist-empty">Erro ao carregar histórico.</div>';
+  }
+}
+
+function renderHistorico(movs) {
+  if (!movs.length) {
+    document.getElementById('histConteudo').innerHTML =
+      '<div class="hist-empty">Nenhuma movimentação registrada ainda.</div>';
+    return;
+  }
+  let html = `<table class="hist-table"><thead><tr>
+    <th>Data</th><th>Tipo</th><th>Qtd</th><th>Motivo</th><th>De → Para</th>
+  </tr></thead><tbody>`;
+  for (const m of movs) {
+    const cls = m.tipo === 'entrada' ? 'tipo-entrada' : 'tipo-saida';
+    const sinal = m.tipo === 'entrada' ? '+' : '−';
+    html += `<tr>
+      <td>${m.data}</td>
+      <td class="${cls}">${sinal} ${m.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}</td>
+      <td><b>${sinal}${m.quantidade}</b></td>
+      <td>${m.motivo}</td>
+      <td>${m.anterior} → ${m.novo}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('histConteudo').innerHTML = html;
+}
+
+function fecharHist() {
+  document.getElementById('overlayHist').classList.remove('open');
+}
+
+/* ══ MODAL EDITAR MÍNIMO ══ */
+function abrirEditarMinimo(tipoItem, id, nome, minimo) {
+  minTipoItem = tipoItem;
+  minItemId   = id;
+  document.getElementById('minNome').textContent = nome;
+  document.getElementById('minInput').value = minimo;
+  document.getElementById('overlayMin').classList.add('open');
+}
+
+function fecharMin() {
+  document.getElementById('overlayMin').classList.remove('open');
+}
+
+async function confirmarMinimo() {
+  const val = parseInt(document.getElementById('minInput').value);
+  if (isNaN(val) || val < 0) return;
+
+  const res = await fetch(`/admin/estoque/editar-minimo/${minTipoItem}/${minItemId}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({minimo: val})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const uid = minTipoItem + '-' + minItemId;
+    document.getElementById('min-' + uid).textContent = data.minimo;
+    fecharMin();
+    mostrarToast('✅ Mínimo atualizado!');
+  }
+}
+
+/* ══ TOAST ══ */
+function mostrarToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position: 'fixed', bottom: '1.5rem', right: '1.5rem',
+    background: '#1e293b', color: '#fff', padding: '.7rem 1.2rem',
+    borderRadius: '10px', fontSize: '.88rem', fontWeight: '700',
+    zIndex: '9999', boxShadow: '0 4px 16px rgba(0,0,0,.2)',
+    animation: 'esPopIn .2s ease'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+/* ══ FECHAR AO CLICAR FORA ══ */
+['overlayMov','overlayHist','overlayMin'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+/* ══ INIT ══ */
+filtrar();
+</script>
+{% endblock %}

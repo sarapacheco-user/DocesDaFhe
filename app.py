@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque
 import bcrypt
 import re
 import requests
@@ -1024,6 +1024,29 @@ def finalizar_pedido():
 
     linhas.append(f'\n💰 *Total: R$ {total:.2f}*')
 
+    # ── BAIXA AUTOMÁTICA DE ESTOQUE ──
+    for item in itens:
+        qtd = item.quantidade
+        obj = None
+        kwargs = {'tipo': 'saida', 'quantidade': qtd,
+                  'motivo': 'Pedido via loja'}
+
+        if item.produto_id and item.produto:
+            obj = item.produto
+            kwargs['produto_id'] = item.produto_id
+        elif item.kit_id and item.kit:
+            obj = item.kit
+            kwargs['kit_id'] = item.kit_id
+        elif item.especial_id and item.especial:
+            obj = item.especial
+            kwargs['especial_id'] = item.especial_id
+
+        if obj is not None:
+            kwargs['estoque_anterior'] = obj.estoque
+            obj.estoque = max(0, obj.estoque - qtd)
+            kwargs['estoque_novo'] = obj.estoque
+            db.session.add(MovimentacaoEstoque(**kwargs))
+
     import urllib.parse
     msg_encoded  = urllib.parse.quote('\n'.join(linhas))
     whatsapp_url = f'https://wa.me/{WHATSAPP_NUMBER}?text={msg_encoded}'
@@ -1031,6 +1054,226 @@ def finalizar_pedido():
     CarrinhoItem.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
     return redirect(whatsapp_url)
+
+
+# ══════════════════════════════════════════════
+#  ESTOQUE
+# ══════════════════════════════════════════════
+
+@app.route('/admin/estoque')
+@login_required
+@admin_required
+def estoque():
+    produtos  = Product.query.filter_by(ativo=True).order_by(Product.name).all()
+    kits      = Kit.query.filter_by(ativo=True, is_admin_kit=True).order_by(Kit.name).all()
+    especiais = ProdutoEspecial.query.filter_by(mostrar=True).order_by(ProdutoEspecial.name).all()
+
+    def _item(obj, tipo, nome, cat, preco):
+        return {'id': obj.id, 'tipo': tipo, 'nome': nome,
+                'categoria': cat or '—', 'preco': float(preco),
+                'estoque': obj.estoque, 'estoque_minimo': obj.estoque_minimo,
+                'status': obj.status_estoque}
+
+    itens = (
+        [_item(p, 'produto',  p.name, p.category,        p.price)       for p in produtos] +
+        [_item(k, 'kit',      k.name, 'Kit',              k.total_price) for k in kits] +
+        [_item(e, 'especial', e.name, e.category,         e.price)       for e in especiais]
+    )
+    itens.sort(key=lambda x: x['nome'].lower())
+
+    categorias = sorted({i['categoria'] for i in itens if i['categoria'] != '—'})
+    total_valor   = sum(i['preco'] * i['estoque'] for i in itens)
+    sem_estoque   = sum(1 for i in itens if i['status'] == 'zerado')
+    estoque_baixo = sum(1 for i in itens if i['status'] == 'baixo')
+
+    return render_template('admin/estoque.html',
+        itens=itens, categorias=categorias,
+        total_valor=total_valor, sem_estoque=sem_estoque,
+        estoque_baixo=estoque_baixo)
+
+
+def _get_item_estoque(tipo, item_id):
+    if tipo == 'produto':  return Product.query.get(item_id)
+    if tipo == 'kit':      return Kit.query.get(item_id)
+    if tipo == 'especial': return ProdutoEspecial.query.get(item_id)
+    return None
+
+
+@app.route('/admin/estoque/movimentar', methods=['POST'])
+@login_required
+@admin_required
+def movimentar_estoque():
+    from flask import jsonify
+    data      = request.get_json()
+    tipo_item = data.get('tipo_item', 'produto')
+    item_id   = int(data.get('item_id', 0))
+    tipo      = data.get('tipo', 'entrada')
+    quantidade= int(data.get('quantidade', 0))
+    motivo    = data.get('motivo', '').strip()
+
+    if quantidade <= 0:
+        return jsonify(ok=False, erro='Quantidade inválida'), 400
+
+    item = _get_item_estoque(tipo_item, item_id)
+    if not item:
+        return jsonify(ok=False, erro='Item não encontrado'), 404
+
+    anterior = item.estoque
+    if tipo == 'saida':
+        if quantidade > item.estoque:
+            return jsonify(ok=False, erro='Estoque insuficiente para saída'), 400
+        item.estoque -= quantidade
+    else:
+        item.estoque += quantidade
+
+    kwargs = {'tipo': tipo, 'quantidade': quantidade, 'motivo': motivo,
+              'estoque_anterior': anterior, 'estoque_novo': item.estoque}
+    if tipo_item == 'produto':  kwargs['produto_id']  = item_id
+    elif tipo_item == 'kit':    kwargs['kit_id']      = item_id
+    elif tipo_item == 'especial': kwargs['especial_id'] = item_id
+
+    db.session.add(MovimentacaoEstoque(**kwargs))
+    db.session.commit()
+    return jsonify(ok=True, estoque_novo=item.estoque, status=item.status_estoque)
+
+
+@app.route('/admin/estoque/historico/<tipo_item>/<int:item_id>')
+@login_required
+@admin_required
+def historico_estoque(tipo_item, item_id):
+    from flask import jsonify
+    filtro = {f'{tipo_item}_id': item_id}
+    movs = (MovimentacaoEstoque.query
+            .filter_by(**filtro)
+            .order_by(MovimentacaoEstoque.created_at.desc())
+            .limit(50).all())
+    return jsonify(historico=[{
+        'data': m.created_at.strftime('%d/%m/%Y %H:%M'),
+        'tipo': m.tipo, 'quantidade': m.quantidade,
+        'motivo': m.motivo or '—',
+        'anterior': m.estoque_anterior, 'novo': m.estoque_novo,
+    } for m in movs])
+
+
+@app.route('/admin/estoque/relatorio')
+@login_required
+@admin_required
+def relatorio_estoque():
+    from datetime import datetime as _dt2, timedelta
+    from sqlalchemy import or_
+
+    # parâmetros de filtro
+    data_ini_str = request.args.get('data_ini', '')
+    data_fim_str = request.args.get('data_fim', '')
+    tipo_filtro  = request.args.get('tipo', '')   # produto / kit / especial / ''
+
+    hoje = _dt2.utcnow().date()
+    # defaults: mês atual
+    try:
+        data_ini = _dt2.strptime(data_ini_str, '%Y-%m-%d').date() if data_ini_str else hoje.replace(day=1)
+        data_fim = _dt2.strptime(data_fim_str, '%Y-%m-%d').date() if data_fim_str else hoje
+    except ValueError:
+        data_ini = hoje.replace(day=1)
+        data_fim = hoje
+
+    dt_ini = _dt2(data_ini.year, data_ini.month, data_ini.day, 0, 0, 0)
+    dt_fim = _dt2(data_fim.year, data_fim.month, data_fim.day, 23, 59, 59)
+
+    q = MovimentacaoEstoque.query.filter(
+        MovimentacaoEstoque.created_at >= dt_ini,
+        MovimentacaoEstoque.created_at <= dt_fim,
+    )
+    if tipo_filtro == 'produto':
+        q = q.filter(MovimentacaoEstoque.produto_id.isnot(None))
+    elif tipo_filtro == 'kit':
+        q = q.filter(MovimentacaoEstoque.kit_id.isnot(None))
+    elif tipo_filtro == 'especial':
+        q = q.filter(MovimentacaoEstoque.especial_id.isnot(None))
+
+    movs = q.order_by(MovimentacaoEstoque.created_at.desc()).all()
+
+    # agrupar por item
+    from collections import defaultdict
+    grupos = defaultdict(lambda: {'nome': '', 'tipo': '', 'entradas': 0, 'saidas': 0, 'movs': []})
+
+    for m in movs:
+        if m.produto_id:
+            key = ('produto', m.produto_id)
+            grupos[key]['nome'] = m.produto.name if m.produto else f'Produto #{m.produto_id}'
+            grupos[key]['tipo'] = 'produto'
+        elif m.kit_id:
+            key = ('kit', m.kit_id)
+            grupos[key]['nome'] = m.kit.name if m.kit else f'Kit #{m.kit_id}'
+            grupos[key]['tipo'] = 'kit'
+        elif m.especial_id:
+            key = ('especial', m.especial_id)
+            grupos[key]['nome'] = m.especial.name if m.especial else f'Especial #{m.especial_id}'
+            grupos[key]['tipo'] = 'especial'
+        else:
+            continue
+
+        if m.tipo == 'entrada':
+            grupos[key]['entradas'] += m.quantidade
+        else:
+            grupos[key]['saidas'] += m.quantidade
+        grupos[key]['movs'].append(m)
+
+    itens_rel = sorted([
+        {'nome': v['nome'], 'tipo': v['tipo'],
+         'entradas': v['entradas'], 'saidas': v['saidas'],
+         'saldo': v['entradas'] - v['saidas'], 'total_movs': len(v['movs'])}
+        for v in grupos.values()
+    ], key=lambda x: x['nome'])
+
+    total_entradas = sum(i['entradas'] for i in itens_rel)
+    total_saidas   = sum(i['saidas']   for i in itens_rel)
+
+    # gráfico de pizza — saídas por motivo
+    from collections import Counter
+    motivo_counter = Counter()
+    for m in movs:
+        if m.tipo == 'saida':
+            motivo_counter[m.motivo or 'Sem motivo'] += m.quantidade
+    grafico_motivos   = list(motivo_counter.keys())
+    grafico_quantidades = [motivo_counter[k] for k in grafico_motivos]
+
+    # exportar CSV
+    if request.args.get('export') == 'csv':
+        import csv, io
+        output = io.StringIO()
+        w = csv.writer(output, delimiter=';')
+        w.writerow(['Item', 'Tipo', 'Entradas', 'Saídas', 'Saldo', 'Movimentações'])
+        for i in itens_rel:
+            w.writerow([i['nome'], i['tipo'], i['entradas'], i['saidas'], i['saldo'], i['total_movs']])
+        from flask import Response
+        return Response(
+            '﻿' + output.getvalue(),
+            mimetype='text/csv; charset=utf-8',
+            headers={'Content-Disposition': f'attachment; filename=relatorio_{data_ini_str or "periodo"}.csv'}
+        )
+
+    return render_template('admin/relatorio_estoque.html',
+        itens=itens_rel, movs=movs,
+        total_entradas=total_entradas, total_saidas=total_saidas,
+        grafico_motivos=grafico_motivos,
+        grafico_quantidades=grafico_quantidades,
+        data_ini=data_ini_str or data_ini.strftime('%Y-%m-%d'),
+        data_fim=data_fim_str or data_fim.strftime('%Y-%m-%d'),
+        tipo_filtro=tipo_filtro)
+
+
+@app.route('/admin/estoque/editar-minimo/<tipo_item>/<int:item_id>', methods=['POST'])
+@login_required
+@admin_required
+def editar_minimo_estoque(tipo_item, item_id):
+    from flask import jsonify
+    data = request.get_json()
+    item = _get_item_estoque(tipo_item, item_id)
+    if not item:
+        return jsonify(ok=False, erro='Item não encontrado'), 404
+    item.estoque_minimo = max(0, int(data.get('minimo', 5)))
+    db.session.commit()
+    return jsonify(ok=True, minimo=item.estoque_minimo)
 
 
 # ─────────────────────────────────────
@@ -1186,11 +1429,16 @@ def admin_design():
         config.body_weight      = request.form.get('body_weight',      '400')
         config.layout_mode      = request.form.get('layout_mode',      'spacious')
         config.layout_width     = request.form.get('layout_width',     'centered')
+        config.card_columns     = int(request.form.get('card_columns',  3) or 3)
+        config.card_gap         = int(request.form.get('card_gap',     20) or 20)
+        config.show_carousel    = request.form.get('show_carousel') == 'on'
         config.btn_radius       = request.form.get('btn_radius',       '12px')
         config.card_shadow      = request.form.get('card_shadow',      'medium')
         config.navbar_fixed     = request.form.get('navbar_fixed') == 'on'
         config.anim_enabled     = request.form.get('anim_enabled') == 'on'
         config.anim_intensity   = request.form.get('anim_intensity',   'medium')
+        config.anim_duration    = int(request.form.get('anim_duration', 220) or 220)
+        config.anim_hover_style = request.form.get('anim_hover_style', 'lift')
         config.site_name        = request.form.get('site_name',        'Doces da Fhê')
         config.logo_height      = int(request.form.get('logo_height', 100) or 100)
         config.logo_fit         = request.form.get('logo_fit', 'contain')
