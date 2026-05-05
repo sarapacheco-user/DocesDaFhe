@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
@@ -7,19 +7,17 @@
 {% block content %}
 
 <div class="evento-header">
-  <div>
+  <div class="evento-titulo">
     <h2>{{ evento.nome }}</h2>
     {% if evento.descricao %}
-      <p style="color:var(--text-mid); font-size:.9rem; margin-top:.3rem;">{{ evento.descricao }}</p>
+      <p class="evento-desc">{{ evento.descricao }}</p>
     {% endif %}
-  </div>
-  <div style="display:flex; gap:.8rem; align-items:center; flex-wrap:wrap;">
     <span class="{{ 'badge-ativo' if evento.ativo else 'badge-inativo' }}">
-      {{ '✅ Evento ativo' if evento.ativo else '⛔ Evento inativo' }}
+      {{ 'Evento ativo' if evento.ativo else 'Evento inativo' }}
     </span>
-    <a href="{{ url_for('criar_produto_especial', evento_id=evento.id) }}" class="btn-primary">
-      + Adicionar Produto
-    </a>
+  </div>
+  <div class="evento-acoes">
+    <a href="{{ url_for('criar_produto_especial', evento_id=evento.id) }}" class="btn-primary">+ Adicionar Produto</a>
     <a href="{{ url_for('listar_eventos') }}" class="btn-secondary">← Voltar</a>
   </div>
 </div>
@@ -42,7 +40,7 @@
     <tr>
       <td>
         {% if p.image_url %}
-          <img src="{{ p.image_url }}" alt="{{ p.name }}">
+          <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
         {% else %}
           🍰
         {% endif %}
@@ -53,17 +51,18 @@
       <td>{{ p.category | capitalize }}</td>
 
       <td>
-        <a href="{{ url_for('toggle_mostrar', id=p.id) }}"
-           class="toggle-btn {{ 'toggle-on' if p.mostrar else 'toggle-off' }}">
-          {{ '👁 Mostrar' if p.mostrar else '🚫 Oculto' }}
+        <a href="{{ url_for('toggle_mostrar', id=p.id) }}" class="btn-acao btn-toggle">
+          {{ 'Visível' if p.mostrar else 'Oculto' }}
         </a>
       </td>
 
       <td>
-        <a href="{{ url_for('editar_produto_especial', id=p.id) }}">Editar</a> |
-        <form method="POST" action="{{ url_for('deletar_produto_especial', id=p.id) }}" style="display:inline;" onsubmit="return confirm('Deletar {{ p.name }}?')">
-          <button type="submit" style="background:none;border:none;cursor:pointer;color:inherit;padding:0;">Deletar</button>
-        </form>
+        <div class="acoes-wrap">
+          <a href="{{ url_for('editar_produto_especial', id=p.id) }}" class="btn-acao btn-editar">Editar</a>
+          <form method="POST" action="{{ url_for('deletar_produto_especial', id=p.id) }}" style="display:inline;" onsubmit="return confirm('Deletar {{ p.name }}?')">
+            <button type="submit" class="btn-acao btn-deletar">Deletar</button>
+          </form>
+        </div>
       </td>
     </tr>
     {% endfor %}

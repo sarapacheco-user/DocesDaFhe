@@ -1,0 +1,703 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+{% endblock %}
+
+{% block content %}
+<form method="POST" enctype="multipart/form-data" id="designForm">
+
+<div class="dp-wrap">
+
+  <!-- ═══════════════════════════════════
+       SIDEBAR: Controls
+  ════════════════════════════════════ -->
+  <aside class="dp-sidebar">
+
+    <div class="dp-header">
+      <h2>Personalizar Design</h2>
+      <div class="dp-header-btns">
+        <button type="submit" name="action" value="save" class="dp-btn-save">Salvar</button>
+        <button type="submit" name="action" value="reset" class="dp-btn-reset"
+                onclick="return confirm('Resetar design para o padrão?')">Resetar</button>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="dp-tabs">
+      <button type="button" class="dp-tab active" onclick="switchTab(this,'cores')">Cores</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'tipografia')">Tipografia</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'layout')">Layout</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'componentes')">Componentes</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'animacoes')">Animações</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'identidade')">Identidade</button>
+    </div>
+
+    <div class="dp-panels">
+
+      <!-- ── CORES ── -->
+      <div class="dp-panel active" id="panel-cores">
+        <div class="dp-group">
+          <div class="dp-group-title">Cores principais</div>
+
+          {% set colors = [
+            ('color_primary',    'Cor Principal', 'Navbar, títulos, botões'),
+            ('color_secondary',  'Cor Secundária', 'Topbar, drawer'),
+            ('color_accent',     'Cor de Destaque', 'Botões CTA, badges'),
+            ('color_dark',       'Cor Escura', 'Badge deletar, elementos de ênfase'),
+          ] %}
+          {% for field, label, hint in colors %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] if config[field] else '#000000' }}"
+                     oninput="syncColor('{{ field }}', this.value)">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] }}" maxlength="7"
+                     oninput="syncColorFromHex('{{ field }}', this.value)"
+                     data-varname="--{{ field | replace('_', '-') }}">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cores de fundo e texto</div>
+
+          {% set colors2 = [
+            ('color_bg',         'Fundo do Site', 'Background principal'),
+            ('color_text',       'Texto Principal', 'Corpo do texto'),
+            ('color_text_light', 'Texto Secundário', 'Subtítulos, hints'),
+          ] %}
+          {% for field, label, hint in colors2 %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] }}"
+                     oninput="syncColor('{{ field }}', this.value)">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] }}" maxlength="7"
+                     oninput="syncColorFromHex('{{ field }}', this.value)"
+                     data-varname="--{{ field | replace('_', '-') }}">
+            </div>
+          </div>
+          {% endfor %}
+
+          <div id="contrastResult" class="pvw-contrast" style="margin-top:.8rem; display:none;"></div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cores das mensagens</div>
+          {% set flash_colors = [
+            ('flash_success', 'Sucesso', '#d4edda'),
+            ('flash_error',   'Erro',    '#f8d7da'),
+            ('flash_info',    'Info',    '#d1ecf1'),
+          ] %}
+          {% for field, label, default in flash_colors %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }}</label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] or default }}"
+                     oninput="document.getElementById('hex_{{ field }}').value=this.value;">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] or default }}" maxlength="7"
+                     oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) document.getElementById('cp_{{ field }}').value=this.value;">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ── TIPOGRAFIA ── -->
+      <div class="dp-panel" id="panel-tipografia">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Fontes</div>
+
+          <div class="dp-field">
+            <label class="dp-label">Fonte dos Títulos</label>
+            <select class="dp-select" name="font_title" id="sel_font_title"
+                    onchange="updateFont('title', this.value)">
+              {% set title_fonts = ['Playfair Display','Lora','Merriweather','Cormorant Garamond','Libre Baskerville','Cinzel','DM Serif Display'] %}
+              {% for f in title_fonts %}
+              <option value="{{ f }}" {% if config.font_title == f %}selected{% endif %}>{{ f }}</option>
+              {% endfor %}
+            </select>
+            <div style="margin-top:.6rem; font-size:1.3rem; font-weight:700;" id="title_preview">
+              Doces Artesanais
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Fonte do Texto</label>
+            <select class="dp-select" name="font_body" id="sel_font_body"
+                    onchange="updateFont('body', this.value)">
+              {% set body_fonts = ['Nunito','Inter','Poppins','Lato','Open Sans','Raleway','DM Sans','Josefin Sans'] %}
+              {% for f in body_fonts %}
+              <option value="{{ f }}" {% if config.font_body == f %}selected{% endif %}>{{ f }}</option>
+              {% endfor %}
+            </select>
+            <div style="margin-top:.6rem; font-size:.9rem;" id="body_preview">
+              Brigadeiros gostosos feitos com amor e carinho para você.
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Tamanho e Peso</div>
+
+          <div class="dp-field">
+            <label class="dp-label">Tamanho base do texto</label>
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="13" max="20"
+                     value="{{ config.font_size }}" id="rng_font_size"
+                     oninput="updateFontSize(this.value)">
+              <span class="dp-range-val" id="val_font_size">{{ config.font_size }}px</span>
+              <input type="hidden" name="font_size" id="hid_font_size" value="{{ config.font_size }}">
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Peso dos títulos</label>
+            <div class="dp-chips" id="chips_title_weight">
+              {% for w, lbl in [('400','Regular'),('600','Semi-bold'),('700','Bold'),('800','Extra-bold')] %}
+              <button type="button" class="dp-chip {% if config.title_weight == w %}selected{% endif %}"
+                      onclick="selectChip(this, 'title_weight', '{{ w }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="title_weight" id="hid_title_weight" value="{{ config.title_weight }}">
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Peso do texto</label>
+            <div class="dp-chips" id="chips_body_weight">
+              {% for w, lbl in [('300','Light'),('400','Regular'),('600','Semi-bold'),('700','Bold')] %}
+              <button type="button" class="dp-chip {% if config.body_weight == w %}selected{% endif %}"
+                      onclick="selectChip(this, 'body_weight', '{{ w }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="body_weight" id="hid_body_weight" value="{{ config.body_weight }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LAYOUT ── -->
+      <div class="dp-panel" id="panel-layout">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Estilo de espaçamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              <button type="button" class="dp-chip {% if config.layout_mode == 'compact' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_mode', 'compact')">Compacto</button>
+              <button type="button" class="dp-chip {% if config.layout_mode == 'spacious' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_mode', 'spacious')">Espaçado</button>
+            </div>
+            <input type="hidden" name="layout_mode" id="hid_layout_mode" value="{{ config.layout_mode }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Largura do conteúdo</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              <button type="button" class="dp-chip {% if config.layout_width == 'centered' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_width', 'centered')">Centralizado</button>
+              <button type="button" class="dp-chip {% if config.layout_width == 'fullwidth' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_width', 'fullwidth')">Full Width</button>
+            </div>
+            <input type="hidden" name="layout_width" id="hid_layout_width" value="{{ config.layout_width }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Navbar</div>
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Barra fixa no topo</span>
+            <button type="button" class="dp-toggle {% if config.navbar_fixed %}on{% endif %}"
+                    id="tog_navbar_fixed" onclick="toggleSwitch(this, 'navbar_fixed')"></button>
+            <input type="hidden" name="navbar_fixed" id="hid_navbar_fixed" value="{{ 'on' if config.navbar_fixed else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COMPONENTES ── -->
+      <div class="dp-panel" id="panel-componentes">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Botões — arredondamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('4px','Quadrado'),('12px','Arredondado'),('24px','Oval'),('999px','Pílula')] %}
+              <button type="button" class="dp-chip {% if config.btn_radius == val %}selected{% endif %}"
+                      onclick="selectChip(this, 'btn_radius', '{{ val }}'); updateBtnRadius('{{ val }}')">
+                {{ lbl }}
+              </button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="btn_radius" id="hid_btn_radius" value="{{ config.btn_radius }}">
+          </div>
+          <div style="display:flex; gap:.6rem; margin-top:.8rem;">
+            <div class="pvw-btn-primary">Adicionar</div>
+            <div class="pvw-btn-secondary">Cancelar</div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — sombra</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('none','Nenhuma'),('soft','Suave'),('medium','Média'),('strong','Forte')] %}
+              <button type="button" class="dp-chip {% if config.card_shadow == val %}selected{% endif %}"
+                      onclick="selectChip(this, 'card_shadow', '{{ val }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_shadow" id="hid_card_shadow" value="{{ config.card_shadow }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — arredondamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('6px','Quadrado'),('12px','Suave'),('16px','Padrão'),('24px','Arredondado')] %}
+              <button type="button" class="dp-chip {% if (config.card_radius or '16px') == val %}selected{% endif %}"
+                      onclick="selectChip(this, 'card_radius', '{{ val }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_radius" id="hid_card_radius" value="{{ config.card_radius or '16px' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — altura da imagem</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="100" max="400" step="10"
+                     value="{{ config.card_img_height or 200 }}" id="rng_card_img"
+                     oninput="document.getElementById('val_card_img').textContent=this.value+'px'; document.getElementById('hid_card_img_height').value=this.value;">
+              <span class="dp-range-val" id="val_card_img">{{ config.card_img_height or 200 }}px</span>
+              <input type="hidden" name="card_img_height" id="hid_card_img_height" value="{{ config.card_img_height or 200 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Carrossel — altura</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="160" max="600" step="20"
+                     value="{{ config.carousel_height or 340 }}" id="rng_carousel"
+                     oninput="document.getElementById('val_carousel').textContent=this.value+'px'; document.getElementById('hid_carousel_height').value=this.value;">
+              <span class="dp-range-val" id="val_carousel">{{ config.carousel_height or 340 }}px</span>
+              <input type="hidden" name="carousel_height" id="hid_carousel_height" value="{{ config.carousel_height or 340 }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANIMAÇÕES ── -->
+      <div class="dp-panel" id="panel-animacoes">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Animações e transições</div>
+
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Ativar animações</span>
+            <button type="button" class="dp-toggle {% if config.anim_enabled %}on{% endif %}"
+                    id="tog_anim" onclick="toggleSwitch(this, 'anim_enabled')"></button>
+            <input type="hidden" name="anim_enabled" id="hid_anim_enabled" value="{{ 'on' if config.anim_enabled else '' }}">
+          </div>
+        </div>
+
+        <div class="dp-group" id="group_anim_intensity" {% if not config.anim_enabled %}hidden{% endif %}>
+          <div class="dp-group-title">Intensidade</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('soft','Suave'),('medium','Média'),('strong','Forte')] %}
+              <button type="button" class="dp-chip {% if config.anim_intensity == val %}selected{% endif %}"
+                      onclick="selectChip(this, 'anim_intensity', '{{ val }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="anim_intensity" id="hid_anim_intensity" value="{{ config.anim_intensity }}">
+          </div>
+
+          <div class="dp-field" style="margin-top:.8rem;">
+            <div class="dp-group-title">Tipos disponíveis</div>
+            <p style="font-size:.85rem; color:#6b6b6b; margin:0;">
+              ✅ Hover nos cards<br>
+              ✅ Fade-in de flash<br>
+              ✅ Transições de botões<br>
+              ✅ Abertura do drawer
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IDENTIDADE ── -->
+      <div class="dp-panel" id="panel-identidade">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Nome do site</div>
+          <div class="dp-field">
+            <label class="dp-label">Nome exibido na navbar</label>
+            <input type="text" class="dp-input" name="site_name" value="{{ config.site_name }}"
+                   oninput="updateSiteName(this.value)">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Logo</div>
+          <div class="dp-field">
+            <div class="dp-upload-wrap">
+              <div class="dp-upload-preview" id="logoPreview" style="width:100%; height:100px;">
+                {% if config.logo_url %}
+                <img src="{{ url_for('static', filename=config.logo_url) }}" id="logoImg"
+                     data-height="{{ config.logo_height or 100 }}"
+                     data-fit="{{ config.logo_fit or 'contain' }}"
+                     style="max-width:100%;">
+                {% else %}
+                <span id="logoPlaceholder" style="color:#aaa; font-size:.85rem;">Sem logo</span>
+                {% endif %}
+              </div>
+              <input type="file" name="logo_file" accept="image/*"
+                     onchange="previewLogo(this)"
+                     style="font-size:.85rem; margin-top:.4rem;">
+              <small style="color:#6b6b6b; font-size:.78rem;">PNG ou WebP com fundo transparente recomendado.</small>
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Altura da logo</label>
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="24" max="120" step="4"
+                     value="{{ config.logo_height or 100 }}" id="rng_logo_height"
+                     oninput="updateLogoHeight(this.value)">
+              <span class="dp-range-val" id="val_logo_height">{{ config.logo_height or 100 }}px</span>
+              <input type="hidden" name="logo_height" id="hid_logo_height" value="{{ config.logo_height or 100 }}">
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Ajuste da imagem</label>
+            <div class="dp-chips">
+              {% for val, lbl in [('contain','Original'),('cover','Preencher'),('fill','Esticar')] %}
+              <button type="button" class="dp-chip {% if (config.logo_fit or 'contain') == val %}selected{% endif %}"
+                      onclick="selectChip(this, 'logo_fit', '{{ val }}'); updateLogoFit('{{ val }}')">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="logo_fit" id="hid_logo_fit" value="{{ config.logo_fit or 'contain' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Estilo visual</div>
+          <p style="font-size:.85rem; color:#6b6b6b;">
+            As cores e fontes definem o estilo. Use a paleta de cores para criar identidade visual consistente.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:.4rem;" id="swatchesRow">
+            <div class="pvw-swatch" id="sw_color_primary"   style="background:var(--color-primary);"></div>
+            <div class="pvw-swatch" id="sw_color_secondary" style="background:var(--color-secondary);"></div>
+            <div class="pvw-swatch" id="sw_color_accent"    style="background:var(--color-accent);"></div>
+            <div class="pvw-swatch" id="sw_color_dark"      style="background:var(--color-dark);"></div>
+            <div class="pvw-swatch" id="sw_color_bg"        style="background:var(--color-bg);"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dp-panels -->
+  </aside>
+
+  <!-- ═══════════════════════════════════
+       PREVIEW PANEL
+  ════════════════════════════════════ -->
+  <div class="dp-preview-col">
+
+    <div class="dp-preview-header">
+      <span>Pré-visualização ao vivo</span>
+      <div class="dp-device-btns">
+        <button type="button" class="dp-device-btn active" onclick="setDevice('desktop', this)">Desktop</button>
+        <button type="button" class="dp-device-btn" onclick="setDevice('tablet', this)">Tablet</button>
+        <button type="button" class="dp-device-btn" onclick="setDevice('mobile', this)"> Celular</button>
+      </div>
+    </div>
+
+    <div class="dp-preview-stage">
+      <div class="dp-preview-frame" id="previewFrame">
+
+        <!-- Mini topbar -->
+        <div class="pvw-topbar" id="pvw_topbar">
+          <strong id="pvw_sitename">{{ config.site_name }}</strong>
+        </div>
+
+        <!-- Body mockup -->
+        <div class="pvw-body">
+
+          <div class="pvw-heading" id="pvw_heading">Doces Artesanais da Fhê</div>
+          <div class="pvw-text" id="pvw_text">Brigadeiros, trufas e kits feitos com amor para o seu momento especial.</div>
+
+          <!-- Cards -->
+          <div class="pvw-cards">
+            <div class="pvw-card">
+              <div class="pvw-card-img">🍫</div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name" id="pvw_card_name">Brigadeiro</div>
+                <div class="pvw-card-price">R$ 5,00</div>
+              </div>
+            </div>
+            <div class="pvw-card">
+              <div class="pvw-card-img">🍰</div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name" id="pvw_card_name2">Trufa</div>
+                <div class="pvw-card-price">R$ 8,00</div>
+              </div>
+            </div>
+            <div class="pvw-card">
+              <div class="pvw-card-img">🎁</div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name" id="pvw_card_name3">Kit Festa</div>
+                <div class="pvw-card-price">R$ 45,00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="pvw-btns" id="pvw_btns">
+            <div class="pvw-btn-primary" id="pvw_btn_primary">+ Adicionar ao Carrinho</div>
+            <div class="pvw-btn-secondary" id="pvw_btn_secondary">Ver Detalhes</div>
+          </div>
+
+          <!-- Color swatches -->
+          <div class="pvw-swatches">
+            <div class="pvw-swatch" id="pvw_sw_primary"   style="background:var(--color-primary);"></div>
+            <div class="pvw-swatch" id="pvw_sw_secondary" style="background:var(--color-secondary);"></div>
+            <div class="pvw-swatch" id="pvw_sw_accent"    style="background:var(--color-accent);"></div>
+            <div class="pvw-swatch" id="pvw_sw_dark"      style="background:var(--color-dark);"></div>
+            <div class="pvw-swatch" id="pvw_sw_bg"        style="background:var(--color-bg); border:1.5px solid #ccc;"></div>
+            <div class="pvw-swatch" id="pvw_sw_text"      style="background:var(--color-text);"></div>
+          </div>
+
+          <!-- Contrast info -->
+          <div class="pvw-contrast" id="pvw_contrast" style="display:none;"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<script>
+// ── Tab switching ──
+function switchTab(el, name) {
+  document.querySelectorAll('.dp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dp-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── Color sync ──
+function syncColor(field, value) {
+  document.getElementById('hex_' + field).value = value;
+  applyColor(field, value);
+}
+
+function syncColorFromHex(field, value) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+    document.getElementById('cp_' + field).value = value;
+    applyColor(field, value);
+  }
+}
+
+function applyColor(field, value) {
+  const varMap = {
+    color_primary:    '--color-primary',
+    color_secondary:  '--color-secondary',
+    color_accent:     '--color-accent',
+    color_dark:       '--color-dark',
+    color_bg:         '--color-bg',
+    color_text:       '--color-text',
+    color_text_light: '--color-text-light',
+  };
+  if (varMap[field]) {
+    document.documentElement.style.setProperty(varMap[field], value);
+  }
+  // update swatch
+  const sw = document.getElementById('pvw_sw_' + field.replace('color_', ''));
+  if (sw) sw.style.background = value;
+  const sw2 = document.getElementById('sw_' + field);
+  if (sw2) sw2.style.background = value;
+
+  // update topbar bg
+  if (field === 'color_secondary') {
+    document.querySelectorAll('.pvw-topbar').forEach(el => el.style.background = value);
+  }
+
+  checkContrast();
+}
+
+// ── Contrast check ──
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  return { r: parseInt(hex.substr(0,2),16), g: parseInt(hex.substr(2,2),16), b: parseInt(hex.substr(4,2),16) };
+}
+function luminance({r,g,b}) {
+  return [r,g,b].reduce((acc,c,i) => {
+    c /= 255;
+    c = c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4);
+    return acc + c * [0.2126,0.7152,0.0722][i];
+  }, 0);
+}
+function contrast(hex1, hex2) {
+  const L1 = luminance(hexToRgb(hex1));
+  const L2 = luminance(hexToRgb(hex2));
+  const lighter = Math.max(L1,L2), darker = Math.min(L1,L2);
+  return (lighter+0.05)/(darker+0.05);
+}
+
+function checkContrast() {
+  const bg  = document.getElementById('hex_color_bg').value;
+  const txt = document.getElementById('hex_color_text').value;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(bg) || !/^#[0-9A-Fa-f]{6}$/.test(txt)) return;
+  const ratio = contrast(bg, txt);
+  const el = document.getElementById('pvw_contrast');
+  el.style.display = 'block';
+  if (ratio >= 7) {
+    el.className = 'pvw-contrast ok';
+    el.textContent = `✅ Contraste excelente (${ratio.toFixed(1)}:1) — WCAG AAA`;
+  } else if (ratio >= 4.5) {
+    el.className = 'pvw-contrast ok';
+    el.textContent = `✅ Contraste bom (${ratio.toFixed(1)}:1) — WCAG AA`;
+  } else if (ratio >= 3) {
+    el.className = 'pvw-contrast warn';
+    el.textContent = `⚠️ Contraste baixo (${ratio.toFixed(1)}:1) — pode ser difícil de ler`;
+  } else {
+    el.className = 'pvw-contrast fail';
+    el.textContent = `❌ Contraste insuficiente (${ratio.toFixed(1)}:1) — acessibilidade ruim`;
+  }
+}
+
+// ── Font update ──
+function loadGoogleFont(family) {
+  const id = 'gf_' + family.replace(/\s/g,'_');
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id; link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g,'+')}:wght@400;600;700;800&display=swap`;
+  document.head.appendChild(link);
+}
+
+function updateFont(type, value) {
+  loadGoogleFont(value);
+  if (type === 'title') {
+    document.getElementById('title_preview').style.fontFamily = `'${value}', serif`;
+    document.getElementById('pvw_heading').style.fontFamily = `'${value}', serif`;
+    document.querySelectorAll('.pvw-card-name').forEach(el => el.style.fontFamily = `'${value}', serif`);
+  } else {
+    document.getElementById('body_preview').style.fontFamily = `'${value}', sans-serif`;
+    document.getElementById('pvw_text').style.fontFamily = `'${value}', sans-serif`;
+    document.querySelectorAll('.pvw-btn-primary, .pvw-btn-secondary').forEach(el => el.style.fontFamily = `'${value}', sans-serif`);
+  }
+}
+
+// ── Font size ──
+function updateFontSize(val) {
+  document.getElementById('val_font_size').textContent = val + 'px';
+  document.getElementById('hid_font_size').value = val;
+  document.getElementById('pvw_text').style.fontSize = val + 'px';
+}
+
+// ── Chip selector ──
+function selectChip(el, field, value) {
+  el.closest('.dp-chips').querySelectorAll('.dp-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('hid_' + field).value = value;
+}
+
+// ── Toggle switch ──
+function toggleSwitch(btn, field) {
+  btn.classList.toggle('on');
+  const isOn = btn.classList.contains('on');
+  document.getElementById('hid_' + field).value = isOn ? 'on' : '';
+
+  if (field === 'anim_enabled') {
+    document.getElementById('group_anim_intensity').style.display = isOn ? '' : 'none';
+  }
+}
+
+// ── Button radius preview ──
+function updateBtnRadius(val) {
+  document.querySelectorAll('.pvw-btn-primary,.pvw-btn-secondary').forEach(el => {
+    el.style.borderRadius = val;
+  });
+}
+
+// ── Site name ──
+function updateSiteName(val) {
+  document.getElementById('pvw_sitename').textContent = val || 'Doces da Fhê';
+}
+
+// ── Logo preview ──
+function previewLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const h   = document.getElementById('hid_logo_height').value;
+    const fit = document.getElementById('hid_logo_fit').value;
+    const wrap = document.getElementById('logoPreview');
+    const ph = document.getElementById('logoPlaceholder');
+    if (ph) ph.remove();
+    let img = document.getElementById('logoImg');
+    if (!img) {
+      img = document.createElement('img');
+      img.id = 'logoImg';
+      wrap.appendChild(img);
+    }
+    img.src = e.target.result;
+    img.style.maxHeight = h + 'px';
+    img.style.objectFit = fit;
+    img.style.maxWidth  = '100%';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// ── Logo height / fit ──
+function updateLogoHeight(val) {
+  document.getElementById('val_logo_height').textContent = val + 'px';
+  document.getElementById('hid_logo_height').value = val;
+  const img = document.getElementById('logoImg');
+  if (img) img.style.maxHeight = val + 'px';
+}
+
+function updateLogoFit(val) {
+  const img = document.getElementById('logoImg');
+  if (img) img.style.objectFit = val;
+}
+
+// ── Device preview ──
+function setDevice(device, btn) {
+  document.querySelectorAll('.dp-device-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const frame = document.getElementById('previewFrame');
+  frame.className = 'dp-preview-frame';
+  if (device !== 'desktop') frame.classList.add(device);
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  updateFont('title', document.getElementById('sel_font_title').value);
+  updateFont('body', document.getElementById('sel_font_body').value);
+  updateBtnRadius(document.getElementById('hid_btn_radius').value);
+  checkContrast();
+  const li = document.getElementById('logoImg');
+  if (li) {
+    li.style.maxHeight = (li.dataset.height || 100) + 'px';
+    li.style.objectFit = li.dataset.fit || 'contain';
+  }
+});
+</script>
+{% endblock %}

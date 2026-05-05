@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
@@ -66,9 +66,9 @@
             </div>
 
             <div class="d-flex justify-content-between gap-2">
-              <button type="submit" class="btn btn-primary">Adicionar Produto</button>
+              <button type="submit" class="btn-primary">Adicionar Produto</button>
               <a href="{{ url_for('listar_produtos_especiais', evento_id=evento.id) }}"
-                 class="btn btn-secondary">Cancelar</a>
+                 class="btn-secondary">Cancelar</a>
             </div>
 
           </form>

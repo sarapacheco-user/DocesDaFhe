@@ -1,0 +1,142 @@
+{% extends "admin/base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+  .upload-area {
+    max-width: 560px;
+    margin: 0 auto 2rem;
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 1.5px solid #E5E5E5;
+    padding: 1.6rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  }
+
+  .upload-area h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #5B6D3D;
+    margin-bottom: 1rem;
+  }
+
+  .upload-field {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    margin-bottom: .9rem;
+  }
+
+  .upload-field label {
+    font-weight: 700;
+    font-size: .88rem;
+    color: #2B2B2B;
+  }
+
+  .upload-field input[type="text"],
+  .upload-field input[type="number"] {
+    border: 1.5px solid #E5E5E5;
+    border-radius: 10px;
+    padding: .6rem .9rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: .92rem;
+    background: #FAF9F6;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .upload-field input[type="text"]:focus,
+  .upload-field input[type="number"]:focus { border-color: #D67155; }
+
+  .upload-field input[type="file"] {
+    font-family: 'Nunito', sans-serif;
+    font-size: .88rem;
+  }
+
+  .preview-box {
+    width: 100%; height: 180px;
+    border-radius: 10px;
+    border: 2px dashed #E5E5E5;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; margin-bottom: .9rem;
+    background: #FAF9F6;
+    color: #6B6B6B; font-size: .88rem;
+    font-family: 'Nunito', sans-serif;
+    position: relative;
+  }
+
+  .preview-box img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  .preview-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,.45);
+    color: #fff; font-size: .75rem;
+    text-align: center; padding: .3rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h2>Editar Imagem</h2>
+  <div class="page-header-actions">
+    <a href="{{ url_for('carrossel_listar') }}" class="btn-secondary">← Voltar</a>
+  </div>
+</div>
+
+<div class="upload-area">
+  <h3>Editar item do carrossel</h3>
+
+  <form method="POST" enctype="multipart/form-data">
+
+    <div class="preview-box" id="previewBox">
+      <img id="previewImg"
+           src="{{ url_for('static', filename='uploads/carrossel/' + item.imagem) }}"
+           alt="{{ item.titulo or 'imagem' }}">
+      <div class="preview-label">Imagem atual — escolha um arquivo abaixo para substituir</div>
+    </div>
+
+    <div class="upload-field">
+      <label>Nova imagem (opcional — deixe vazio para manter a atual)</label>
+      <input type="file" name="imagem" accept="image/*" onchange="trocarPreview(this)">
+    </div>
+
+    <div class="upload-field">
+      <label>Título</label>
+      <input type="text" name="titulo" value="{{ item.titulo or '' }}" placeholder="Ex: Promoção de Páscoa">
+    </div>
+
+    <div class="upload-field">
+      <label>Subtítulo</label>
+      <input type="text" name="subtitulo" value="{{ item.subtitulo or '' }}" placeholder="Ex: Até 30% de desconto">
+    </div>
+
+    <div class="upload-field">
+      <label>Ordem de exibição</label>
+      <input type="number" name="ordem" value="{{ item.ordem }}" min="0">
+    </div>
+
+    <button type="submit" class="btn-primary" style="width:100%; margin:0;">
+      Salvar alterações
+    </button>
+
+  </form>
+</div>
+
+<script>
+  function trocarPreview(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('previewImg').src = e.target.result;
+        document.querySelector('.preview-label').textContent = 'Nova imagem selecionada';
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+
+{% endblock %}

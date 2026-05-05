@@ -188,3 +188,47 @@ class CarrosselItem(db.Model):
 
     def __repr__(self):
         return f"<CarrosselItem {self.titulo}>"
+
+
+class SiteConfig(db.Model):
+    __tablename__ = "site_config"
+    id               = db.Column(db.Integer, primary_key=True)
+    # Colors
+    color_primary    = db.Column(db.String(20), default='#5B6D3D')
+    color_secondary  = db.Column(db.String(20), default='#D67155')
+    color_accent     = db.Column(db.String(20), default='#F3B651')
+    color_dark       = db.Column(db.String(20), default='#932E50')
+    color_bg         = db.Column(db.String(20), default='#FAF9F6')
+    color_text       = db.Column(db.String(20), default='#2B2B2B')
+    color_text_light = db.Column(db.String(20), default='#6B6B6B')
+    # Typography
+    font_title   = db.Column(db.String(100), default='Playfair Display')
+    font_body    = db.Column(db.String(100), default='Nunito')
+    font_size    = db.Column(db.String(10), default='16')
+    title_weight = db.Column(db.String(10), default='700')
+    body_weight  = db.Column(db.String(10), default='400')
+    # Layout
+    layout_mode  = db.Column(db.String(20), default='spacious')
+    layout_width = db.Column(db.String(20), default='centered')
+    # Components
+    btn_radius  = db.Column(db.String(10), default='12px')
+    card_shadow = db.Column(db.String(10), default='medium')
+    navbar_fixed = db.Column(db.Boolean, default=True)
+    # Animations
+    anim_enabled   = db.Column(db.Boolean, default=True)
+    anim_intensity = db.Column(db.String(10), default='medium')
+    # Identity
+    site_name   = db.Column(db.String(100), default='Doces da Fhê')
+    logo_url    = db.Column(db.String(255), nullable=True)
+    logo_height     = db.Column(db.Integer, default=100)
+    logo_fit        = db.Column(db.String(20), default='contain')
+    carousel_height = db.Column(db.Integer, default=340)
+    card_img_height = db.Column(db.Integer, default=200)
+    card_radius     = db.Column(db.String(10), default='16px')
+    flash_success   = db.Column(db.String(20), default='#d4edda')
+    flash_error     = db.Column(db.String(20), default='#f8d7da')
+    flash_info      = db.Column(db.String(20), default='#d1ecf1')
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<SiteConfig {self.site_name}>"

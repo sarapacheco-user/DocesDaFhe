@@ -1,0 +1,54 @@
+{% if config %}:root {
+  --color-primary:         {{ config.color_primary }};
+  --color-hover-primary:   {{ config.color_primary | darken(0.82) }};
+  --color-secondary:       {{ config.color_secondary }};
+  --color-hover-secondary: {{ config.color_secondary | darken(0.82) }};
+  --color-accent:          {{ config.color_accent }};
+  --color-hover-accent:    {{ config.color_accent | darken(0.82) }};
+  --color-dark:            {{ config.color_dark }};
+  --color-bg:              {{ config.color_bg }};
+  --color-text:            {{ config.color_text }};
+  --color-text-light:      {{ config.color_text_light }};
+{% if config.card_shadow == 'none' %}
+  --shadow-sm: none; --shadow-md: none; --shadow-lg: none;
+{% elif config.card_shadow == 'soft' %}
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.04); --shadow-md: 0 3px 8px rgba(0,0,0,.06); --shadow-lg: 0 6px 16px rgba(0,0,0,.09);
+{% elif config.card_shadow == 'strong' %}
+  --shadow-sm: 0 4px 10px rgba(0,0,0,.10); --shadow-md: 0 8px 20px rgba(0,0,0,.15); --shadow-lg: 0 16px 40px rgba(0,0,0,.22);
+{% endif %}
+}
+body {
+  font-family: '{{ config.font_body }}', sans-serif !important;
+  font-weight: {{ config.body_weight }};
+  font-size: {{ config.font_size }}px;
+  background: {{ config.color_bg }};
+  color: {{ config.color_text }};
+}
+h1, h2, h3, h4, h5, h6, .topbar-title, .drawer-logo, .flash-modal-msg {
+  font-family: '{{ config.font_title }}', serif !important;
+  font-weight: {{ config.title_weight }} !important;
+}
+.btn-primary, .btn-secondary, .btn-acao { border-radius: {{ config.btn_radius }} !important; }
+.topbar { position: {{ 'sticky' if config.navbar_fixed else 'relative' }}; }
+.logo-img { max-height: {{ config.logo_height or 100 }}px !important; object-fit: {{ config.logo_fit or 'contain' }} !important; width: auto !important; }
+.carrossel-slide img, .carrossel-slide { height: {{ config.carousel_height or 340 }}px !important; }
+html body .card img { height: {{ config.card_img_height or 200 }}px !important; max-height: {{ config.card_img_height or 200 }}px !important; }
+html body .card { border-radius: {{ config.card_radius or '16px' }} !important; }
+.flash-modal-success { background: {{ config.flash_success or '#d4edda' }} !important; }
+.flash-modal-error   { background: {{ config.flash_error  or '#f8d7da' }} !important; }
+.flash-modal-info    { background: {{ config.flash_info   or '#d1ecf1' }} !important; }
+{% if not config.anim_enabled %}
+*, *::before, *::after { transition: none !important; animation-duration: 0.001s !important; }
+{% elif config.anim_intensity == 'soft' %}
+*, *::before, *::after { transition-duration: .12s !important; }
+{% elif config.anim_intensity == 'strong' %}
+*, *::before, *::after { transition-duration: .45s !important; }
+{% endif %}
+{% if config.layout_mode == 'compact' %}
+.container, .section-title, .cards-carrossel-wrap, .dashboard-wrap { padding-top: .5rem !important; }
+section { margin-bottom: .8rem !important; }
+{% endif %}
+{% if config.layout_width == 'fullwidth' %}
+.section-title, .cards-carrossel-wrap, .dashboard-wrap { max-width: 100% !important; }
+{% endif %}
+{% endif %}

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 <style>
@@ -83,10 +83,12 @@
 
 {% block content %}
 
-<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin: 2rem 2rem 1.5rem;">
+<div class="page-header">
   <h2>Carrossel</h2>
   {% if current_user.is_admin %}
-    <a href="{{ url_for('carrossel_admin') }}" class="btn-primary">+ Adicionar Imagem</a>
+    <div class="page-header-actions">
+      <a href="{{ url_for('carrossel_admin') }}" class="btn-primary">+ Adicionar Imagem</a>
+    </div>
   {% endif %}
 </div>
 
@@ -111,15 +113,15 @@
                   style="padding:.3rem .7rem; font-size:.75rem; margin:0; border-radius:12px;">✓</button>
         </form>
 
-        <a href="{{ url_for('carrossel_toggle', id=item.id) }}"
-           class="toggle-btn {{ 'toggle-on' if item.ativo else 'toggle-off' }}"
-           style="font-size:.75rem; padding:.25rem .7rem;">
-          {{ '👁 Visível' if item.ativo else '🚫 Oculto' }}
+        <a href="{{ url_for('carrossel_toggle', id=item.id) }}" class="btn-acao btn-toggle">
+          {{ 'Visível' if item.ativo else 'Oculto' }}
         </a>
+
+        <a href="{{ url_for('carrossel_editar', id=item.id) }}" class="btn-acao btn-editar">Editar</a>
 
         <form method="POST" action="{{ url_for('carrossel_deletar', id=item.id) }}"
               onsubmit="return confirm('Remover esta imagem?')">
-          <button type="submit" class="btn-delete-inline">Remover</button>
+          <button type="submit" class="btn-acao btn-deletar">Remover</button>
         </form>
 
       </div>

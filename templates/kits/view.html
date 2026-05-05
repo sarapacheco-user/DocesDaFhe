@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
@@ -16,8 +16,8 @@
     <h2>{{ kit.name }}</h2>
     <div class="kit-view-actions">
       {% if current_user.is_admin or (not kit.is_admin_kit and kit.created_by == current_user.id) %}
-        <a href="{{ url_for('edit_kit_products', kit_id=kit.id) }}" class="btn btn-primary">Gerenciar Produtos</a>
-        <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-secondary">Editar Info</a>
+        <a href="{{ url_for('edit_kit_products', kit_id=kit.id) }}" class="btn-primary">Gerenciar Produtos</a>
+        <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn-secondary">Editar Info</a>
       {% endif %}
     </div>
   </div>
@@ -50,7 +50,7 @@
   </table>
 
   <div class="manage-actions">
-    <a href="{{ url_for('list_kits') }}" class="btn btn-secondary">← Voltar para Kits</a>
+    <a href="{{ url_for('list_kits') }}" class="btn-secondary">← Voltar para Kits</a>
   </div>
 
 </div>

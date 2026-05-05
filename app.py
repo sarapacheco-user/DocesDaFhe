@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig
 import bcrypt
 import re
 import requests
@@ -33,11 +33,22 @@ UPLOAD_FOLDER_CARROSSEL = os.path.join('static', 'uploads', 'carrossel')
 UPLOAD_FOLDER_PRODUTOS  = os.path.join('static', 'uploads', 'produtos')
 UPLOAD_FOLDER_KITS      = os.path.join('static', 'uploads', 'kits')
 UPLOAD_FOLDER_ESPECIAIS = os.path.join('static', 'uploads', 'especiais')
+UPLOAD_FOLDER_LOGO      = os.path.join('static', 'uploads', 'logo')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 
 for folder in [UPLOAD_FOLDER_CARROSSEL, UPLOAD_FOLDER_PRODUTOS,
-               UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS]:
+               UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO]:
     os.makedirs(folder, exist_ok=True)
+
+
+def darken_hex(hex_color, factor=0.82):
+    try:
+        hex_color = hex_color.lstrip('#')
+        r, g, b = (int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        r, g, b = max(0, int(r*factor)), max(0, int(g*factor)), max(0, int(b*factor))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:
+        return f"#{hex_color}"
 
 
 def allowed_file(filename):
@@ -58,8 +69,11 @@ def salvar_imagem_produto(arquivo):
 # ── LOGIN MANAGER ──
 login_manager = LoginManager()
 login_manager.login_view = 'login'
+login_manager.login_message = 'Faça login para acessar essa página.'
+login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 db.init_app(app)
+app.jinja_env.filters['darken'] = darken_hex
 
 
 def admin_required(f):
@@ -88,14 +102,15 @@ def user_can_edit_kit(kit):
 
 # ── CONTEXT PROCESSOR ──
 @app.context_processor
-def carrinho_contador():
+def inject_globals():
     if current_user.is_authenticated:
         total_itens = db.session.query(
             db.func.sum(CarrinhoItem.quantidade)
         ).filter_by(user_id=current_user.id).scalar() or 0
     else:
         total_itens = 0
-    return dict(carrinho_total=total_itens)
+    site_config = SiteConfig.query.first()
+    return dict(carrinho_total=total_itens, site_config=site_config)
 
 
 # ─────────────────────────────────────
@@ -104,7 +119,7 @@ def carrinho_contador():
 
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -160,7 +175,7 @@ def signup():
         flash("Conta criada! Por favor, faça login.")
         return redirect(url_for('login'))
 
-    return render_template('signup.html')
+    return render_template('auth/signup.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -174,7 +189,7 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             flash("Credenciais inválidas.")
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -193,7 +208,7 @@ def forgot_password():
         else:
             flash('Se esse e-mail existir, um link de redefinição foi enviado.', 'info')
         return redirect(url_for('login'))
-    return render_template('forgot_password.html')
+    return render_template('auth/forgot_password.html')
 
 
 def send_reset_email(user_email, reset_url):
@@ -201,7 +216,7 @@ def send_reset_email(user_email, reset_url):
         msg = Message(
             subject="Solicitação de Redefinição de Senha",
             recipients=[user_email],
-            html=render_template('email_reset_password.html', reset_url=reset_url),
+            html=render_template('auth/email_reset_password.html', reset_url=reset_url),
             body=f"Para redefinir sua senha, acesse: {reset_url}\n\nEste link expira em 24 horas."
         )
         mail.send(msg)
@@ -233,7 +248,7 @@ def reset_password(token):
         db.session.commit()
         flash('Senha redefinida com sucesso!', 'success')
         return redirect(url_for('login'))
-    return render_template('reset_password.html', token=token)
+    return render_template('auth/reset_password.html', token=token)
 
 
 @app.route('/change-password', methods=['GET', 'POST'])
@@ -257,7 +272,7 @@ def change_password():
         db.session.commit()
         flash('Senha alterada com sucesso!', 'success')
         return redirect(url_for('dashboard'))
-    return render_template('change_password.html')
+    return render_template('auth/change_password.html')
 
 
 @app.route('/logout')
@@ -272,7 +287,6 @@ def logout():
 # ─────────────────────────────────────
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
     produtos  = Product.query.filter_by(ativo=True).all()
     eventos   = EventoEspecial.query.filter_by(ativo=True).all()
@@ -293,7 +307,7 @@ def dashboard():
 @app.route('/products')
 def list_products():
     products = Product.query.all()
-    return render_template('products.html', products=products)
+    return render_template('product/produtos.html', products=products)
 
 
 @app.route('/products/create', methods=['GET', 'POST'])
@@ -321,7 +335,7 @@ def create_product():
         db.session.commit()
         flash("Produto criado com sucesso!", 'success')
         return redirect(url_for('list_products'))
-    return render_template('product_form.html')
+    return render_template('product/produto_form.html')
 
 
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
@@ -348,7 +362,7 @@ def edit_product(id):
         db.session.commit()
         flash("Produto atualizado com sucesso!", 'success')
         return redirect(url_for('list_products'))
-    return render_template('product_form.html', product=product)
+    return render_template('product/produto_form.html', product=product)
 
 
 @app.route('/products/delete/<int:id>')
@@ -503,7 +517,7 @@ def edit_kit_products(kit_id):
         db.session.commit()
         flash("Produtos do kit atualizados!", "success")
         return redirect(url_for('view_kit', kit_id=kit.id))
-    return render_template('kits/manage_products.html',
+    return render_template('kits/manage_produtos.html',
                            kit=kit, all_products=all_products,
                            kit_products=kit_products)
 
@@ -515,21 +529,21 @@ def edit_kit_products(kit_id):
 @app.route('/categoria/<nome>')
 def categoria(nome):
     produtos = Product.query.filter_by(category=nome, ativo=True).all()
-    return render_template('categoria.html', produtos=produtos, categoria=nome)
+    return render_template('product/categoria.html', produtos=produtos, categoria=nome)
 
 
 @app.route('/kits_loja')
 def kits_loja():
     kits = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
-    return render_template('kits_loja.html', kits=kits, produtos=produtos)
+    return render_template('kits/kits_loja.html', kits=kits, produtos=produtos)
 
 
 @app.route('/montar-kit')
 @login_required
 def montar_kit():
     produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
-    return render_template('montar_kit.html', produtos=produtos)
+    return render_template('kits/montar_kit.html', produtos=produtos)
 
 
 @app.route('/montar-kit/adicionar', methods=['POST'])
@@ -566,7 +580,7 @@ def produto_detalhe(id):
         Product.id != produto.id,
         Product.ativo == True
     ).limit(4).all()
-    return render_template('produto_detalhe.html',
+    return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False)
@@ -602,7 +616,7 @@ def kit_detalhe(kit_id):
 
     relacionados = [KitRelAdapter(k) for k in outros_kits]
 
-    return render_template('produto_detalhe.html',
+    return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=True,
@@ -620,7 +634,7 @@ def produto_especial_detalhe(id):
         ProdutoEspecial.id != produto.id,
         ProdutoEspecial.mostrar == True
     ).limit(4).all()
-    return render_template('produto_detalhe.html',
+    return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False)
@@ -947,7 +961,7 @@ def finalizar_pedido():
 @login_required
 @admin_required
 def carrossel_admin():
-    return render_template('carrossel_form.html')
+    return render_template('carrossel/carrossel_form.html')
 
 
 @app.route('/carrossel/listar')
@@ -955,7 +969,7 @@ def carrossel_admin():
 @admin_required
 def carrossel_listar():
     itens = CarrosselItem.query.order_by(CarrosselItem.ordem).all()
-    return render_template('listar_carrossel.html', itens=itens)
+    return render_template('carrossel/listar_carrossel.html', itens=itens)
 
 
 @app.route('/carrossel/adicionar', methods=['POST'])
@@ -1017,6 +1031,119 @@ def carrossel_ordem(id):
     item.ordem = request.form.get('ordem', 0, type=int)
     db.session.commit()
     return redirect(url_for('carrossel_listar'))
+
+
+@app.route('/carrossel/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def carrossel_editar(id):
+    item = CarrosselItem.query.get_or_404(id)
+    if request.method == 'POST':
+        item.titulo    = request.form.get('titulo', '').strip() or None
+        item.subtitulo = request.form.get('subtitulo', '').strip() or None
+        item.ordem     = request.form.get('ordem', 0, type=int)
+
+        arquivo = request.files.get('imagem')
+        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
+            caminho_antigo = os.path.join(UPLOAD_FOLDER_CARROSSEL, item.imagem)
+            if os.path.exists(caminho_antigo):
+                os.remove(caminho_antigo)
+            ext      = arquivo.filename.rsplit('.', 1)[1].lower()
+            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
+            arquivo.save(os.path.join(UPLOAD_FOLDER_CARROSSEL, filename))
+            item.imagem = filename
+
+        db.session.commit()
+        flash('Carrossel atualizado!', 'success')
+        return redirect(url_for('carrossel_listar'))
+
+    return render_template('carrossel/editar_carrossel.html', item=item)
+
+
+# ─────────────────────────────────────
+# DESIGN / PERSONALIZAÇÃO
+# ─────────────────────────────────────
+
+@app.route('/dynamic-styles.css')
+def dynamic_styles():
+    config = SiteConfig.query.first()
+    css = render_template('dynamic_styles.jinja2', config=config)
+    return css, 200, {'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'no-cache'}
+
+@app.route('/admin/design', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_design():
+    config = SiteConfig.query.first()
+    if not config:
+        config = SiteConfig()
+        db.session.add(config)
+        db.session.commit()
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'save')
+
+        if action == 'reset':
+            db.session.delete(config)
+            db.session.commit()
+            config = SiteConfig()
+            db.session.add(config)
+            db.session.commit()
+            flash('Design resetado para o padrão!', 'success')
+            return redirect(url_for('admin_design'))
+
+        config.color_primary    = request.form.get('color_primary',    '#5B6D3D')
+        config.color_secondary  = request.form.get('color_secondary',  '#D67155')
+        config.color_accent     = request.form.get('color_accent',     '#F3B651')
+        config.color_dark       = request.form.get('color_dark',       '#932E50')
+        config.color_bg         = request.form.get('color_bg',         '#FAF9F6')
+        config.color_text       = request.form.get('color_text',       '#2B2B2B')
+        config.color_text_light = request.form.get('color_text_light', '#6B6B6B')
+        config.font_title       = request.form.get('font_title',       'Playfair Display')
+        config.font_body        = request.form.get('font_body',        'Nunito')
+        config.font_size        = request.form.get('font_size',        '16')
+        config.title_weight     = request.form.get('title_weight',     '700')
+        config.body_weight      = request.form.get('body_weight',      '400')
+        config.layout_mode      = request.form.get('layout_mode',      'spacious')
+        config.layout_width     = request.form.get('layout_width',     'centered')
+        config.btn_radius       = request.form.get('btn_radius',       '12px')
+        config.card_shadow      = request.form.get('card_shadow',      'medium')
+        config.navbar_fixed     = request.form.get('navbar_fixed') == 'on'
+        config.anim_enabled     = request.form.get('anim_enabled') == 'on'
+        config.anim_intensity   = request.form.get('anim_intensity',   'medium')
+        config.site_name        = request.form.get('site_name',        'Doces da Fhê')
+        config.logo_height      = int(request.form.get('logo_height', 100) or 100)
+        config.logo_fit         = request.form.get('logo_fit', 'contain')
+        config.carousel_height  = int(request.form.get('carousel_height', 340) or 340)
+        config.card_img_height  = int(request.form.get('card_img_height', 200) or 200)
+        config.card_radius      = request.form.get('card_radius', '16px')
+        config.flash_success    = request.form.get('flash_success', '#d4edda')
+        config.flash_error      = request.form.get('flash_error',  '#f8d7da')
+        config.flash_info       = request.form.get('flash_info',   '#d1ecf1')
+
+        logo_file = request.files.get('logo_file')
+        if logo_file and logo_file.filename != '':
+            if not allowed_file(logo_file.filename):
+                flash('Formato de imagem não suportado. Use PNG, JPG, JPEG ou WebP.', 'error')
+                return redirect(url_for('admin_design'))
+            ext = logo_file.filename.rsplit('.', 1)[-1].lower()
+            logo_name = f"logo_{int(time.time())}.{ext}"
+            logo_dir  = os.path.join(app.root_path, 'static', 'uploads', 'logo')
+            os.makedirs(logo_dir, exist_ok=True)
+            logo_path = os.path.join(logo_dir, logo_name)
+            logo_file.save(logo_path)
+            # apaga logo anterior se não for o padrão
+            if config.logo_url and config.logo_url != f'uploads/logo/{logo_name}':
+                old_path = os.path.join(app.root_path, 'static', config.logo_url)
+                if os.path.exists(old_path) and 'logo.png' not in old_path:
+                    os.remove(old_path)
+            config.logo_url = f'uploads/logo/{logo_name}'
+
+        db.session.commit()
+        flash('Design salvo com sucesso!', 'success')
+        return redirect(url_for('admin_design'))
+
+    return render_template('admin/design.html', config=config)
 
 
 # ─────────────────────────────────────

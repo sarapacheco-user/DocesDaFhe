@@ -1,14 +1,18 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
 
 {% block content %}
-<h2>Kits</h2>
-{% if current_user.is_admin %}
-  <a href="{{ url_for('create_kit') }}" class="btn btn-primary">+ Criar Kit</a>
-{% endif %}
+<div class="page-header">
+  <h2>Kits</h2>
+  {% if current_user.is_admin %}
+    <div class="page-header-actions">
+      <a href="{{ url_for('create_kit') }}" class="btn-primary">+ Criar Kit</a>
+    </div>
+  {% endif %}
+</div>
 
 {% if kits %}
   <div class="container mt-3">
@@ -38,19 +42,19 @@
             <p class="mt-1" style="font-size:.82rem; color:var(--color-text-light);">
               by {{ kit.creator.email }}
             </p>
-            <div class="d-flex gap-2 mt-2 flex-wrap">
-              <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn btn-outline-primary">Ver</a>
+            <div class="acoes-wrap mt-2">
+              <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn-acao btn-editar">Ver</a>
               {% if current_user.is_admin %}
                 <form method="POST" action="{{ url_for('toggle_kit_ativo', kit_id=kit.id) }}" style="display:inline;">
-                  <button type="submit" class="btn {% if kit.ativo %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+                  <button type="submit" class="btn-acao btn-toggle">
                     {% if kit.ativo %}Ocultar{% else %}Mostrar{% endif %}
                   </button>
                 </form>
               {% endif %}
               {% if current_user.is_admin or kit.creator_id == current_user.id %}
-                <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn btn-outline-primary">Editar</a>
+                <a href="{{ url_for('edit_kit', kit_id=kit.id) }}" class="btn-acao btn-editar">Editar</a>
                 <form method="POST" action="{{ url_for('delete_kit', kit_id=kit.id) }}" style="display:inline;" onsubmit="return confirm('Deletar {{ kit.name }}?')">
-                  <button type="submit" class="btn btn-danger">Deletar</button>
+                  <button type="submit" class="btn-acao btn-deletar">Deletar</button>
                 </form>
               {% endif %}
             </div>

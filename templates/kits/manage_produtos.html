@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 <<<<<<< HEAD
 
 {% block styles %}
@@ -37,8 +37,8 @@
     </tbody>
   </table>
   <div class="manage-actions">
-    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-    <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" class="btn-primary">Salvar Alterações</button>
+    <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn-secondary">Cancelar</a>
   </div>
 </form>
 {% endblock %}

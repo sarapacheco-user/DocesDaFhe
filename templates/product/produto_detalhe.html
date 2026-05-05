@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block styles %}
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
@@ -11,7 +11,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}">
-      <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="search-bar-wrap">
@@ -24,11 +24,12 @@
   <div class="header-right">
     <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
     {% if current_user.is_authenticated %}
-      {% if current_user.is_admin %}
-        <span class="btn-entrar">Bem-vindo, Admin</span>
-      {% else %}
-        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
-      {% endif %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')">Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
     {% else %}
       <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
     {% endif %}

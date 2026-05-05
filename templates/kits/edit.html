@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
@@ -37,7 +37,7 @@
               <div style="margin-bottom:.6rem;">
                 <img src="{{ url_for('static', filename=kit.image_url) }}"
                      alt="Imagem atual"
-                     style="height:80px; border-radius:8px; border:1.5px solid var(--card-border);">
+                     class="img-preview" style="border:1.5px solid var(--card-border);">
                 <p style="font-size:.78rem; color:var(--text-mid); margin-top:.3rem;">Imagem atual</p>
               </div>
               {% endif %}
@@ -46,14 +46,14 @@
                      accept="image/*" onchange="previewImagem(this)">
               <div id="previewWrap" style="margin-top:.6rem; display:none;">
                 <img id="previewImg" src="" alt="preview"
-                     style="height:80px; border-radius:8px; border:1.5px solid var(--card-border);">
+                     class="img-preview" style="border:1.5px solid var(--card-border);">
                 <p style="font-size:.78rem; color:var(--text-mid); margin-top:.3rem;">Nova imagem</p>
               </div>
             </div>
 
             <div class="d-flex justify-content-between gap-2">
-              <button type="submit" class="btn btn-primary">Atualizar Kit</button>
-              <a href="{{ url_for('list_kits') }}" class="btn btn-secondary">Cancelar</a>
+              <button type="submit" class="btn-primary">Atualizar Kit</button>
+              <a href="{{ url_for('list_kits') }}" class="btn-secondary">Cancelar</a>
             </div>
 
           </form>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
@@ -23,8 +23,8 @@
                         placeholder="Descreva o evento..."></textarea>
             </div>
             <div class="d-flex justify-content-between gap-2">
-              <button type="submit" class="btn btn-primary">Criar Evento</button>
-              <a href="{{ url_for('listar_eventos') }}" class="btn btn-secondary">Cancelar</a>
+              <button type="submit" class="btn-primary">Criar Evento</button>
+              <a href="{{ url_for('listar_eventos') }}" class="btn-secondary">Cancelar</a>
             </div>
           </form>
         </div>

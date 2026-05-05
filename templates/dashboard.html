@@ -1,147 +1,7 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
-<style>
-  .cart-icon-wrap {
-    position: relative;
-    display: flex; align-items: center;
-    cursor: pointer; text-decoration: none;
-  }
-
-  .cart-badge {
-    position: absolute;
-    top: -8px; right: -8px;
-    background: #932E50;
-    color: #fff;
-    font-size: .68rem; font-weight: 800;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .card-link-inner { text-decoration: none; color: inherit; display: block; }
-
-  /* ── CARROSSEL DE CARDS ── */
-  .cards-carrossel-wrap {
-    position: relative;
-    max-width: 960px;
-    margin: 0 auto 2rem;
-    padding: 0 3rem;
-    overflow: hidden;
-  }
-
-  .cards-track {
-    display: flex;
-    gap: 1rem;
-    transition: transform .35s ease;
-    will-change: transform;
-  }
-
-  .cards-track .card {
-    flex: 0 0 calc(33.333% - 0.67rem);
-    min-width: calc(33.333% - 0.67rem);
-  }
-
-  .cards-btn {
-    position: absolute;
-    top: 40%;
-    transform: translateY(-50%);
-    background: var(--color-white);
-    border: 1.5px solid var(--color-border);
-    color: var(--color-primary);
-    border-radius: 50%;
-    width: 40px; height: 40px;
-    font-size: 1.4rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: var(--shadow-sm);
-    transition: background .2s, color .2s;
-    z-index: 5;
-  }
-
-  .cards-btn:hover {
-    background: var(--color-primary);
-    color: var(--color-white);
-  }
-
-  .cards-btn.prev { left: 0; }
-  .cards-btn.next { right: 0; }
-
-  @media (max-width: 700px) {
-    .cards-track .card { flex: 0 0 100%; min-width: 100%; }
-    .cards-carrossel-wrap { padding: 0 2.5rem; }
-  }
-
-  /* ── CARROSSEL ── */
-  .carrossel-wrap {
-    position: relative;
-    max-width: 900px;
-    width: calc(100% - 2rem);
-    margin: 1.8rem auto;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 6px 20px rgba(0,0,0,.12);
-    background: #FAF9F6;
-  }
-
-  .carrossel-track { display: block; width: 100%; }
-
-  .carrossel-slide { width: 100%; position: relative; display: none; }
-  .carrossel-slide.active { display: block; width: 100%; }
-
-  .carrossel-slide img {
-    width: 100%;
-    height: 340px;
-    object-fit: cover;
-    object-position: center;
-    display: block;
-  }
-
-  .carrossel-caption {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(43,43,43,.7));
-    padding: 1.5rem 2rem 1.2rem;
-  }
-
-  .carrossel-caption h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem; color: #fff; margin-bottom: .3rem;
-  }
-
-  .carrossel-caption p { color: rgba(255,255,255,.85); font-size: .95rem; }
-
-  .carrossel-fallback {
-    background: linear-gradient(135deg, #5B6D3D 0%, #8fa05a 50%, #F3B651 100%);
-    min-height: 320px; display: flex !important; align-items: stretch;
-  }
-
-  .carrossel-dots {
-    position: absolute; bottom: 12px; left: 50%;
-    transform: translateX(-50%);
-    display: flex; gap: 6px; z-index: 10;
-  }
-
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(255,255,255,.5); cursor: pointer;
-    transition: background .2s, transform .2s;
-  }
-
-  .dot.active { background: #fff; transform: scale(1.3); }
-
-  .carousel-btn {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(43,43,43,.5);
-    color: #fff; border: none; border-radius: 50%;
-    width: 38px; height: 38px; font-size: 1.2rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 10; transition: background .2s;
-  }
-
-  .carousel-btn:hover { background: #5B6D3D; }
-  .carousel-btn.prev { left: .8rem; }
-  .carousel-btn.next { right: .8rem; }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -149,7 +9,7 @@
 <!-- HEADER -->
 <header>
   <div class="logo">
-    <img class="logo-img" src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Doces da Fhê" />
+    <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
   </div>
   <div class="search-bar-wrap">
     <div class="search-bar">
@@ -161,11 +21,12 @@
   <div class="header-right">
     <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
     {% if current_user.is_authenticated %}
-      {% if current_user.is_admin %}
-        <span class="btn-entrar">Bem-vindo, Admin</span>
-      {% else %}
-        <span class="btn-entrar">Bem-vindo, {{ current_user.email }}</span>
-      {% endif %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')">Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
     {% else %}
       <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
     {% endif %}
@@ -263,7 +124,6 @@
             </div>
             <div class="card-body">
               <h3>{{ p.name }}</h3>
-              <p class="weight">{{ p.description[:50] }}{% if p.description|length > 50 %}...{% endif %}</p>
             </div>
           </a>
           <div class="card-footer">
@@ -296,16 +156,11 @@
   <div class="cards-track" id="kitsGridAll">
 
     <!-- Card especial: Monte seu Kit -->
-    <div class="card" style="background: linear-gradient(145deg,#5B6D3D,#8fa05a); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:260px; border:none;">
-      <div style="font-size:3rem; margin-bottom:.6rem;">🎁</div>
-      <h3 style="font-family:'Playfair Display',serif; font-size:1.1rem; color:#fff; margin-bottom:.4rem;">Monte seu Kit</h3>
-      <p style="font-size:.8rem; color:rgba(255,255,255,.85); margin-bottom:1rem; padding:0 .8rem;">
-        Escolha os produtos que você quer e crie seu kit personalizado!
-      </p>
-      <a href="{{ url_for('montar_kit') }}"
-         style="background:#F3B651; color:#2B2B2B; border-radius:10px; padding:.55rem 1.2rem; font-weight:700; text-decoration:none; font-size:.9rem;">
-        Montar agora ✨
-      </a>
+    <div class="card card-kit-especial">
+      <div class="kit-icon">🎁</div>
+      <h3>Monte seu Kit</h3>
+      <p>Escolha os produtos que você quer e crie seu kit personalizado!</p>
+      <a href="{{ url_for('montar_kit') }}" class="kit-cta">Montar agora ✨</a>
     </div>
 
     {% for kit in kits %}
@@ -318,7 +173,6 @@
         </div>
         <div class="card-body">
           <h3>{{ kit.name }}</h3>
-          <p class="weight">{{ kit.description[:50] if kit.description else '' }}{% if kit.description and kit.description|length > 50 %}...{% endif %}</p>
         </div>
       </a>
       <div class="card-footer">
@@ -358,7 +212,6 @@
         </div>
         <div class="card-body">
           <h3>{{ produto.name }}</h3>
-          <p class="weight">{{ produto.description[:50] }}{% if produto.description|length > 50 %}...{% endif %}</p>
         </div>
       </a>
       <div class="card-footer">

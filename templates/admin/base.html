@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Loja</title>
+  <title>{{ site_config.site_name if site_config else 'Doces da Fhê' }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  {% if site_config and (site_config.font_title != 'Playfair Display' or site_config.font_body != 'Nunito') %}
+  <link href="https://fonts.googleapis.com/css2?family={{ site_config.font_title | replace(' ', '+') }}:wght@400;700&family={{ site_config.font_body | replace(' ', '+') }}:wght@400;600;700;800&display=swap" rel="stylesheet">
+  {% endif %}
   <style>
     :root {
       --color-primary:         #5B6D3D;
@@ -207,6 +210,7 @@
   </style>
 
   {% block styles %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}">
 </head>
 <body>
 
@@ -214,7 +218,7 @@
 
 <div class="topbar">
   <button class="topbar-btn" id="drawerToggle">
-    <span class="topbar-title">Doces da Fhê</span>
+    <span class="topbar-title">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
     <span class="hamburger" id="hamburgerIcon">☰</span>
   </button>
 </div>
@@ -223,22 +227,22 @@
 
 <div class="drawer" id="drawer">
   <div class="drawer-header">
-    <span class="drawer-logo">Doces da Fhê</span>
+    <span class="drawer-logo">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
     <button class="drawer-close" id="drawerClose">✕</button>
   </div>
 
   <nav class="drawer-nav">
-    <span class="drawer-section">Administração</span>
+    <span class="drawer-section">Inicio</span>
     <a href="{{ url_for('dashboard') }}">Painel</a>
+    <span class="drawer-section">Administração</span>
     <a href="{{ url_for('list_products') }}">Gerenciar Produtos</a>
     <a href="{{ url_for('list_kits') }}">Gerenciar Kits</a>
-    <a href="{{ url_for('listar_eventos') }}" >Eventos Especiais</a>
-    <a href="{{ url_for('carrossel_listar') }}" >Carrossel</a>
+    <a href="{{ url_for('listar_eventos') }}">Eventos Especiais</a>
+    <a href="{{ url_for('carrossel_listar') }}">Carrossel</a>
+    <span class="drawer-section">Visual</span>
+    <a href="{{ url_for('admin_design') }}">Personalizar Design</a>
   </nav>
 
-  <div class="drawer-footer">
-    <a href="{{ url_for('logout') }}" class="drawer-logout">Sair →</a>
-  </div>
 </div>
 
 <script>
@@ -305,3 +309,6 @@
 
 {% block content %}
 {% endblock %}
+
+</body>
+</html>
