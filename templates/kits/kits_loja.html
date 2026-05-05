@@ -189,10 +189,11 @@
   {% if kits %}
     {% for kit in kits %}
     <div class="kit-item" data-nome="{{ kit.name | lower }}">
-      <div class="kit-card" style="position:relative;">
+      <div class="kit-card" style="position:relative; overflow:hidden;">
         <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}"
                 data-tipo="kit" data-id="{{ kit.id }}"
                 onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        {% if kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
         <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" style="text-decoration:none; color:inherit; display:block;">
           <div class="kit-card-img">
             {% if kit.image_url %}

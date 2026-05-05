@@ -74,6 +74,8 @@ login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 db.init_app(app)
 app.jinja_env.filters['darken'] = darken_hex
+from datetime import datetime as _dt
+app.jinja_env.globals['now'] = _dt.utcnow
 
 
 def admin_required(f):
@@ -1183,9 +1185,10 @@ def admin_design():
         config.carousel_height  = int(request.form.get('carousel_height', 340) or 340)
         config.card_img_height  = int(request.form.get('card_img_height', 200) or 200)
         config.card_radius      = request.form.get('card_radius', '16px')
-        config.flash_success    = request.form.get('flash_success', '#d4edda')
+        config.flash_success    = request.form.get('flash_success', '#ffffff')
         config.flash_error      = request.form.get('flash_error',  '#f8d7da')
         config.flash_info       = request.form.get('flash_info',   '#ffffff')
+        config.new_badge_days   = int(request.form.get('new_badge_days', 7) or 7)
 
         logo_file = request.files.get('logo_file')
         if logo_file and logo_file.filename != '':

@@ -286,6 +286,19 @@
         </div>
 
         <div class="dp-group">
+          <div class="dp-group-title">Badge "Novo" — duração (dias)</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="1" max="60" step="1"
+                     value="{{ config.new_badge_days or 7 }}" id="rng_badge_days"
+                     oninput="document.getElementById('val_badge_days').textContent=this.value+' dias'; document.getElementById('hid_badge_days').value=this.value;">
+              <span class="dp-range-val" id="val_badge_days">{{ config.new_badge_days or 7 }} dias</span>
+              <input type="hidden" name="new_badge_days" id="hid_badge_days" value="{{ config.new_badge_days or 7 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
           <div class="dp-group-title">Carrossel — altura</div>
           <div class="dp-field">
             <div class="dp-range-row">

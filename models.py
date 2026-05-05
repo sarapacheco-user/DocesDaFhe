@@ -67,7 +67,6 @@ class Kit(db.Model):
 
     @property
     def total_price(self):
-        """Calculate total price of all products in the kit."""
         return sum(kp.product.price * kp.quantity for kp in self.products)
 
     def __repr__(self):
@@ -117,8 +116,6 @@ class ProdutoEspecial(db.Model):
 
     def __repr__(self):
         return f"<ProdutoEspecial {self.name}>"
-    
-    # Adicione esses modelos no seu models.py
 
 class CarrinhoItem(db.Model):
     __tablename__ = "carrinho_itens"
@@ -243,9 +240,10 @@ class SiteConfig(db.Model):
     carousel_height = db.Column(db.Integer, default=340)
     card_img_height = db.Column(db.Integer, default=200)
     card_radius     = db.Column(db.String(10), default='16px')
-    flash_success   = db.Column(db.String(20), default='#d4edda')
+    flash_success   = db.Column(db.String(20), default='#ffffff')
     flash_error     = db.Column(db.String(20), default='#f8d7da')
     flash_info      = db.Column(db.String(20), default='#ffffff')
+    new_badge_days  = db.Column(db.Integer, default=7)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
