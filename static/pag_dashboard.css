@@ -347,6 +347,32 @@ nav a.nav-active {
   box-shadow: var(--shadow-sm);
   display: flex; flex-direction: column;
   transition: transform .2s, box-shadow .2s;
+  position: relative;
+}
+
+.btn-fav {
+  position: absolute; top: 10px; right: 10px; z-index: 5;
+  background: rgba(255,255,255,.88); border: none; border-radius: 50%;
+  width: 34px; height: 34px;
+  cursor: pointer; color: #4a90d9;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  transition: color .2s, transform .15s, background .2s;
+}
+.btn-fav svg {
+  fill: none; stroke: currentColor;
+  stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+  transition: fill .2s;
+}
+.btn-fav:hover            { color: #e74c3c; transform: scale(1.12); background: #fff; }
+.btn-fav:hover svg        { fill: rgba(231,76,60,.15); }
+.btn-fav.ativo            { color: #e74c3c; }
+.btn-fav.ativo svg        { fill: #e74c3c; }
+.btn-fav.pulsando         { animation: favPulse .3s ease; }
+@keyframes favPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
 }
 
 .card:hover {

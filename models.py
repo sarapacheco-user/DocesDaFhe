@@ -176,6 +176,24 @@ class CarrinhoItem(db.Model):
 
 
 
+class Favorito(db.Model):
+    __tablename__ = "favoritos"
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    produto_id  = db.Column(db.Integer, db.ForeignKey('products.id'),          nullable=True)
+    kit_id      = db.Column(db.Integer, db.ForeignKey('kits.id'),              nullable=True)
+    especial_id = db.Column(db.Integer, db.ForeignKey('produtos_especiais.id'), nullable=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user    = db.relationship('User',            backref='favoritos')
+    produto = db.relationship('Product',         backref='favoritos')
+    kit     = db.relationship('Kit',             backref='favoritos')
+    especial= db.relationship('ProdutoEspecial', backref='favoritos')
+
+    def __repr__(self):
+        return f"<Favorito user={self.user_id}>"
+
+
 class CarrosselItem(db.Model):
     __tablename__ = "carrossel_itens"
     id         = db.Column(db.Integer, primary_key=True)
@@ -227,7 +245,7 @@ class SiteConfig(db.Model):
     card_radius     = db.Column(db.String(10), default='16px')
     flash_success   = db.Column(db.String(20), default='#d4edda')
     flash_error     = db.Column(db.String(20), default='#f8d7da')
-    flash_info      = db.Column(db.String(20), default='#d1ecf1')
+    flash_info      = db.Column(db.String(20), default='#ffffff')
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):

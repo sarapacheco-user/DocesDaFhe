@@ -3,6 +3,28 @@
 {% block styles %}
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='produto_detalhe.css') }}">
+<style>
+  .btn-fav-detalhe {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: #fff; border: 1.5px solid #e5e5e5; border-radius: 24px;
+    padding: .45rem 1rem; cursor: pointer; font-family: inherit;
+    font-size: .88rem; font-weight: 700; color: #4a90d9;
+    transition: all .2s; white-space: nowrap;
+  }
+  .btn-fav-detalhe svg {
+    fill: none; stroke: currentColor; stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round; transition: fill .2s;
+    flex-shrink: 0;
+  }
+  .btn-fav-detalhe:hover            { border-color: #e74c3c; color: #e74c3c; }
+  .btn-fav-detalhe.ativo            { border-color: #e74c3c; color: #e74c3c; background: #fff0ee; }
+  .btn-fav-detalhe.ativo svg        { fill: #e74c3c; }
+  .btn-fav-detalhe.pulsando         { animation: favPulse .3s ease; }
+  @keyframes favPulse {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.1); }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -33,6 +55,11 @@
     {% else %}
       <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
     {% endif %}
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
     <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
       <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
@@ -86,7 +113,17 @@
   <div class="produto-info">
 
     <span class="produto-categoria">{{ produto.category | capitalize }}</span>
-    <h1 class="produto-nome">{{ produto.name }}</h1>
+    <div style="display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;">
+      <h1 class="produto-nome" style="margin:0; flex:1;">{{ produto.name }}</h1>
+      <button class="btn-fav-detalhe {% if is_favorito %}ativo{% endif %}"
+              data-tipo="{{ fav_tipo }}" data-id="{{ fav_id }}"
+              onclick="toggleFavDetalhe(this)" title="Favoritar">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span class="btn-fav-txt">{% if is_favorito %}Favoritado{% else %}Favoritar{% endif %}</span>
+      </button>
+    </div>
     <p class="produto-descricao">{{ produto.description }}</p>
 
     {% if is_kit and kit.products %}
@@ -235,6 +272,23 @@
     if (termo) {
       window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
     }
+  }
+
+  function toggleFavDetalhe(btn) {
+    fetch('/favoritar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id})
+    })
+    .then(r => r.status === 401
+      ? r.json().then(d => { window.location.href = d.redirect; })
+      : r.json().then(data => {
+          btn.classList.toggle('ativo', data.favorito);
+          btn.classList.add('pulsando');
+          setTimeout(() => btn.classList.remove('pulsando'), 300);
+          btn.querySelector('.btn-fav-txt').textContent = data.favorito ? 'Favoritado' : 'Favoritar';
+        })
+    );
   }
 </script>
 

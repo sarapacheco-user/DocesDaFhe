@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito
 import bcrypt
 import re
 import requests
@@ -283,6 +283,56 @@ def logout():
 
 
 # ─────────────────────────────────────
+# FAVORITOS
+# ─────────────────────────────────────
+
+def _fav_sets(user_id):
+    favs = Favorito.query.filter_by(user_id=user_id).all()
+    return (
+        {f.produto_id  for f in favs if f.produto_id},
+        {f.kit_id      for f in favs if f.kit_id},
+        {f.especial_id for f in favs if f.especial_id},
+    )
+
+
+@app.route('/favoritar', methods=['POST'])
+def favoritar():
+    from flask import jsonify
+    if not current_user.is_authenticated:
+        return jsonify(redirect=url_for('login')), 401
+    data = request.get_json()
+    tipo = data.get('tipo')
+    item_id = int(data.get('id', 0))
+    fav = None
+    if tipo == 'produto':
+        fav = Favorito.query.filter_by(user_id=current_user.id, produto_id=item_id).first()
+    elif tipo == 'kit':
+        fav = Favorito.query.filter_by(user_id=current_user.id, kit_id=item_id).first()
+    elif tipo == 'especial':
+        fav = Favorito.query.filter_by(user_id=current_user.id, especial_id=item_id).first()
+    if fav:
+        db.session.delete(fav)
+        db.session.commit()
+        return jsonify(favorito=False)
+    kwargs = {'user_id': current_user.id, f'{tipo}_id': item_id}
+    db.session.add(Favorito(**kwargs))
+    db.session.commit()
+    return jsonify(favorito=True)
+
+
+@app.route('/favoritos')
+@login_required
+def favoritos():
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id)
+    produtos  = Product.query.filter(Product.id.in_(fav_p)).all()  if fav_p else []
+    kits      = Kit.query.filter(Kit.id.in_(fav_k)).all()          if fav_k else []
+    especiais = ProdutoEspecial.query.filter(ProdutoEspecial.id.in_(fav_e)).all() if fav_e else []
+    return render_template('favoritos.html',
+                           produtos=produtos, kits=kits, especiais=especiais,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
+
+
+# ─────────────────────────────────────
 # DASHBOARD
 # ─────────────────────────────────────
 
@@ -292,12 +342,14 @@ def dashboard():
     eventos   = EventoEspecial.query.filter_by(ativo=True).all()
     carrossel = CarrosselItem.query.filter_by(ativo=True).order_by(CarrosselItem.ordem).all()
     kits      = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
                            eventos=eventos,
                            carrossel=carrossel,
-                           kits=kits)
+                           kits=kits,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
 
 # ─────────────────────────────────────
@@ -529,14 +581,18 @@ def edit_kit_products(kit_id):
 @app.route('/categoria/<nome>')
 def categoria(nome):
     produtos = Product.query.filter_by(category=nome, ativo=True).all()
-    return render_template('product/categoria.html', produtos=produtos, categoria=nome)
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    return render_template('product/categoria.html', produtos=produtos, categoria=nome,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
 
 @app.route('/kits_loja')
 def kits_loja():
     kits = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
-    return render_template('kits/kits_loja.html', kits=kits, produtos=produtos)
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    return render_template('kits/kits_loja.html', kits=kits, produtos=produtos,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
 
 @app.route('/montar-kit')
@@ -580,10 +636,13 @@ def produto_detalhe(id):
         Product.id != produto.id,
         Product.ativo == True
     ).limit(4).all()
+    fav_p, _, _ = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
-                           is_kit=False)
+                           is_kit=False,
+                           fav_tipo='produto', fav_id=produto.id,
+                           is_favorito=(produto.id in fav_p))
 
 
 @app.route('/kit-detalhe/<int:kit_id>')
@@ -616,11 +675,13 @@ def kit_detalhe(kit_id):
 
     relacionados = [KitRelAdapter(k) for k in outros_kits]
 
+    _, fav_k, _ = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
-                           is_kit=True,
-                           kit=kit)
+                           is_kit=True, kit=kit,
+                           fav_tipo='kit', fav_id=kit.id,
+                           is_favorito=(kit.id in fav_k))
 
 
 @app.route('/produto-especial/<int:id>')
@@ -634,10 +695,13 @@ def produto_especial_detalhe(id):
         ProdutoEspecial.id != produto.id,
         ProdutoEspecial.mostrar == True
     ).limit(4).all()
+    _, _, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
-                           is_kit=False)
+                           is_kit=False,
+                           fav_tipo='especial', fav_id=produto.id,
+                           is_favorito=(produto.id in fav_e))
 
 
 @app.route('/busca')
@@ -655,8 +719,10 @@ def busca():
         Kit.is_admin_kit == True,
         Kit.ativo == True
     ).all()
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('busca.html', termo=termo,
-                           produtos=produtos, especiais=especiais, kits=kits)
+                           produtos=produtos, especiais=especiais, kits=kits,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
 
 # ─────────────────────────────────────
@@ -1119,7 +1185,7 @@ def admin_design():
         config.card_radius      = request.form.get('card_radius', '16px')
         config.flash_success    = request.form.get('flash_success', '#d4edda')
         config.flash_error      = request.form.get('flash_error',  '#f8d7da')
-        config.flash_info       = request.form.get('flash_info',   '#d1ecf1')
+        config.flash_info       = request.form.get('flash_info',   '#ffffff')
 
         logo_file = request.files.get('logo_file')
         if logo_file and logo_file.filename != '':

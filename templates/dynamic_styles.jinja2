@@ -36,7 +36,7 @@ html body .card img { height: {{ config.card_img_height or 200 }}px !important; 
 html body .card { border-radius: {{ config.card_radius or '16px' }} !important; }
 .flash-modal-success { background: {{ config.flash_success or '#d4edda' }} !important; }
 .flash-modal-error   { background: {{ config.flash_error  or '#f8d7da' }} !important; }
-.flash-modal-info    { background: {{ config.flash_info   or '#d1ecf1' }} !important; }
+.flash-modal-info    { background: {{ config.flash_info   or '#ffffff' }} !important; }
 {% if not config.anim_enabled %}
 *, *::before, *::after { transition: none !important; animation-duration: 0.001s !important; }
 {% elif config.anim_intensity == 'soft' %}

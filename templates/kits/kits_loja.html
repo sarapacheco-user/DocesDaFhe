@@ -136,6 +136,11 @@
     {% else %}
       <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
     {% endif %}
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
     <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
       <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
@@ -184,8 +189,10 @@
   {% if kits %}
     {% for kit in kits %}
     <div class="kit-item" data-nome="{{ kit.name | lower }}">
-      <div class="kit-card">
-
+      <div class="kit-card" style="position:relative;">
+        <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}"
+                data-tipo="kit" data-id="{{ kit.id }}"
+                onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
         <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" style="text-decoration:none; color:inherit; display:block;">
           <div class="kit-card-img">
             {% if kit.image_url %}
@@ -308,6 +315,19 @@
     if (val < 1) val = 1;
     display.textContent = val;
     input.value = val;
+  }
+
+  function toggleFav(btn) {
+    fetch('/favoritar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id})
+    })
+    .then(r => r.status === 401 ? r.json().then(d => { window.location.href = d.redirect; }) : r.json().then(data => {
+      btn.classList.toggle('ativo', data.favorito);
+      btn.classList.add('pulsando');
+      setTimeout(() => btn.classList.remove('pulsando'), 300);
+    }));
   }
 </script>
 
