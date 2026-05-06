@@ -59,25 +59,26 @@ header {
 }
 
 .search-bar {
-  background: var(--color-white); border-radius: 24px;
+  background: #F2EAE0; border-radius: 28px;
+  border: 1.5px solid #E0D4C8;
   display: flex; align-items: center;
-  width: 460px; max-width: 100%;
-  padding: .4rem .9rem; gap: .5rem;
-  box-shadow: var(--shadow-sm);
+  width: 600px; max-width: 100%;
+  padding: .55rem 1.2rem; gap: .6rem;
 }
 
 .search-bar input {
   border: none; outline: none; flex: 1;
-  font-size: .95rem; font-family: 'Nunito', sans-serif;
+  font-size: .97rem; font-family: 'Nunito', sans-serif;
   color: var(--color-text); background: transparent;
 }
 
 .search-bar button {
   background: none; border: none;
-  cursor: pointer; color: var(--color-primary); font-size: 1.1rem;
+  cursor: pointer; color: var(--color-secondary);
+  display: flex; align-items: center;
 }
 
-.header-right { display: flex; align-items: center; gap: 1.2rem; }
+.header-right { display: flex; align-items: center; gap: 2rem; }
 
 .location {
   color: var(--color-white); font-size: .82rem;
@@ -85,13 +86,14 @@ header {
 }
 
 .btn-entrar {
-  background: var(--color-accent); color: var(--color-text);
+  background: var(--color-secondary); color: #fff;
   border: none; border-radius: 24px; padding: .45rem 1.2rem;
-  font-weight: 700; font-size: .9rem; cursor: pointer;
+  font-weight: 700; font-size: .9rem; letter-spacing: .04em; cursor: pointer;
+  display: flex; align-items: center; gap: .4rem;
   text-decoration: none; transition: background .2s;
 }
 
-.btn-entrar:hover { background: var(--color-hover-accent); }
+.btn-entrar:hover { background: var(--color-hover-secondary); }
 
 /* ── USER MENU DROPDOWN ── */
 .user-menu {

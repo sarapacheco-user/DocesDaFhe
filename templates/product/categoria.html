@@ -37,23 +37,28 @@
   </div>
   <div class="search-bar-wrap">
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Buscar produtos..."
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
              onkeydown="if(event.key==='Enter') buscarGlobal()" />
-      <button onclick="buscarGlobal()">🔍</button>
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
     </div>
   </div>
   <div class="header-right">
-    <span class="location">📍 São Paulo | Cid. Tiradentes ZL</span>
     {% if current_user.is_authenticated %}
       <div class="user-menu">
-        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')">Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
         <div class="user-dropdown">
           <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
         </div>
       </div>
     {% else %}
-      <a href="{{ url_for('login') }}" class="btn-entrar">Entrar</a>
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
     {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -145,7 +150,7 @@
     <!-- ENDEREÇO -->
     <div class="footer-col">
       <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
-      <p class="footer-endereco">São Paulo | Cid. Tiradentes ZL</p>
+      <p class="footer-endereco">São Paulo - SP</p>
     </div>
 
     <!-- FUNCIONAMENTO -->
@@ -161,8 +166,8 @@
           </svg>
         </a>
         <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 192 192" fill="currentColor">
-            <path d="M141.537 88.988c-.49-2.438-1.127-4.816-1.902-7.122a68.575 68.575 0 0 0-1.437-3.893c-3.353-8.212-8.213-15.281-14.4-20.98C113.04 47.66 103.16 44 92.166 44c-12.6 0-23.893 4.614-32.34 13.197C51.2 65.97 46.667 77.817 46.667 91.5c0 13.686 4.533 25.53 13.16 34.302 8.447 8.584 19.74 13.198 32.34 13.198 8.374 0 16.099-2.21 22.934-6.568 6.14-3.953 11.178-9.506 14.747-16.118a59.048 59.048 0 0 0 1.44-3.02c.458-1.068.875-2.156 1.25-3.261.484-1.435.9-2.893 1.247-4.37.198-.844.37-1.697.514-2.558a50.59 50.59 0 0 0 .657-7.917c0-.576-.013-1.148-.038-1.717a53.43 53.43 0 0 0-.381-4.463ZM96 130c-21.5 0-38-16.5-38-38.5S74.5 53 96 53s38 16.5 38 38.5S117.5 130 96 130Zm0-60c-12.15 0-22 9.626-22 21.5S83.85 113 96 113s22-9.626 22-21.5S108.15 70 96 70Zm0 30c-4.694 0-8.5-3.806-8.5-8.5S91.306 83 96 83s8.5 3.806 8.5 8.5S100.694 100 96 100Z"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.851 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.033.215.07.321.11 1.154.433 2.068 1.143 2.672 2.069 1.119 1.714 1.23 4.06.292 6.03-1.61 3.42-5.043 5.218-9.642 5.812z"/>
           </svg>
         </a>
         <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
