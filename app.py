@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem
 import bcrypt
 import re
 import requests
@@ -94,6 +94,19 @@ def load_user(user_id):
 
 with app.app_context():
     db.create_all()
+    # Migrações seguras
+    with db.engine.connect() as conn:
+        for tbl, col, typedef in [
+            ('eventos_especiais', 'data_inicio',    'DATETIME'),
+            ('eventos_especiais', 'data_fim',       'DATETIME'),
+            ('site_config',       'auth_bg_color1', 'VARCHAR(20)'),
+            ('site_config',       'auth_bg_color2', 'VARCHAR(20)'),
+        ]:
+            try:
+                conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typedef}'))
+                conn.commit()
+            except Exception:
+                pass
 
 
 def user_can_edit_kit(kit):
@@ -329,7 +342,7 @@ def favoritos():
     produtos  = Product.query.filter(Product.id.in_(fav_p)).all()  if fav_p else []
     kits      = Kit.query.filter(Kit.id.in_(fav_k)).all()          if fav_k else []
     especiais = ProdutoEspecial.query.filter(ProdutoEspecial.id.in_(fav_e)).all() if fav_e else []
-    return render_template('favoritos.html',
+    return render_template('pedidos/favoritos.html',
                            produtos=produtos, kits=kits, especiais=especiais,
                            fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
@@ -341,7 +354,7 @@ def favoritos():
 @app.route('/dashboard')
 def dashboard():
     produtos  = Product.query.filter_by(ativo=True).all()
-    eventos   = EventoEspecial.query.filter_by(ativo=True).all()
+    eventos   = [e for e in EventoEspecial.query.filter_by(ativo=True).all() if e.no_periodo]
     carrossel = CarrosselItem.query.filter_by(ativo=True).order_by(CarrosselItem.ordem).all()
     kits      = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
@@ -722,7 +735,7 @@ def busca():
         Kit.ativo == True
     ).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
-    return render_template('busca.html', termo=termo,
+    return render_template('pedidos/busca.html', termo=termo,
                            produtos=produtos, especiais=especiais, kits=kits,
                            fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
 
@@ -752,12 +765,50 @@ def criar_evento():
         if EventoEspecial.query.filter_by(nome=nome).first():
             flash('Já existe um evento com esse nome.', 'error')
             return redirect(url_for('criar_evento'))
-        evento = EventoEspecial(nome=nome, descricao=descricao)
+        ini_d = request.form.get('data_inicio_date', '').strip()
+        ini_t = request.form.get('data_inicio_time', '').strip() or '00:00'
+        fim_d = request.form.get('data_fim_date', '').strip()
+        fim_t = request.form.get('data_fim_time', '').strip() or '00:00'
+        data_inicio = datetime.strptime(f'{ini_d}T{ini_t}', '%Y-%m-%dT%H:%M') if ini_d else None
+        data_fim    = datetime.strptime(f'{fim_d}T{fim_t}', '%Y-%m-%dT%H:%M') if fim_d else None
+        evento = EventoEspecial(nome=nome, descricao=descricao,
+                                data_inicio=data_inicio, data_fim=data_fim)
         db.session.add(evento)
         db.session.commit()
         flash(f'Evento "{nome}" criado com sucesso!', 'success')
         return redirect(url_for('listar_eventos'))
     return render_template('special/criar_evento.html')
+
+
+@app.route('/special/eventos/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_evento(id):
+    evento = EventoEspecial.query.get_or_404(id)
+    if request.method == 'POST':
+        nome      = request.form.get('nome', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        if not nome:
+            flash('O nome do evento é obrigatório.', 'error')
+            return redirect(url_for('editar_evento', id=id))
+        duplicado = EventoEspecial.query.filter(
+            EventoEspecial.nome == nome, EventoEspecial.id != id
+        ).first()
+        if duplicado:
+            flash('Já existe outro evento com esse nome.', 'error')
+            return redirect(url_for('editar_evento', id=id))
+        ini_d = request.form.get('data_inicio_date', '').strip()
+        ini_t = request.form.get('data_inicio_time', '').strip() or '00:00'
+        fim_d = request.form.get('data_fim_date', '').strip()
+        fim_t = request.form.get('data_fim_time', '').strip() or '00:00'
+        evento.nome        = nome
+        evento.descricao   = descricao
+        evento.data_inicio = datetime.strptime(f'{ini_d}T{ini_t}', '%Y-%m-%dT%H:%M') if ini_d else None
+        evento.data_fim    = datetime.strptime(f'{fim_d}T{fim_t}', '%Y-%m-%dT%H:%M') if fim_d else None
+        db.session.commit()
+        flash(f'Evento "{nome}" atualizado!', 'success')
+        return redirect(url_for('listar_eventos'))
+    return render_template('special/editar_evento.html', evento=evento)
 
 
 @app.route('/special/eventos/<int:id>/toggle-ativo')
@@ -918,7 +969,7 @@ def carrinho():
     itens            = CarrinhoItem.query.filter_by(user_id=current_user.id).all()
     total            = sum(item.subtotal for item in itens)
     quantidade_total = sum(item.quantidade for item in itens)
-    return render_template('carrinho.html', itens=itens,
+    return render_template('pedidos/carrinho.html', itens=itens,
                            total=total, quantidade_total=quantidade_total)
 
 
@@ -1024,12 +1075,31 @@ def finalizar_pedido():
 
     linhas.append(f'\n💰 *Total: R$ {total:.2f}*')
 
+    # ── SALVAR PEDIDO ──
+    pedido = Pedido(
+        user_id  = current_user.id,
+        tipo     = tipo,
+        endereco = endereco if tipo == 'entrega' else None,
+        total    = total,
+        status   = 'pendente',
+    )
+    db.session.add(pedido)
+    db.session.flush()  # gera pedido.id antes do commit
+
+    for item in itens:
+        db.session.add(PedidoItem(
+            pedido_id  = pedido.id,
+            nome       = item.nome,
+            quantidade = item.quantidade,
+            preco_unit = item.preco_unit,
+        ))
+
     # ── BAIXA AUTOMÁTICA DE ESTOQUE ──
     for item in itens:
         qtd = item.quantidade
         obj = None
         kwargs = {'tipo': 'saida', 'quantidade': qtd,
-                  'motivo': 'Pedido via loja'}
+                  'motivo': f'Pedido #{pedido.id} via loja'}
 
         if item.produto_id and item.produto:
             obj = item.produto
@@ -1054,6 +1124,75 @@ def finalizar_pedido():
     CarrinhoItem.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
     return redirect(whatsapp_url)
+
+
+# ══════════════════════════════════════════════
+#  PEDIDOS — CLIENTE
+# ══════════════════════════════════════════════
+
+@app.route('/meus-pedidos')
+@login_required
+def meus_pedidos():
+    pedidos = Pedido.query.filter_by(user_id=current_user.id)\
+                          .order_by(Pedido.created_at.desc()).all()
+    return render_template('pedidos/meus_pedidos.html', pedidos=pedidos)
+
+
+@app.route('/pedidos/<int:id>/cancelar', methods=['POST'])
+@login_required
+def cancelar_pedido(id):
+    pedido = Pedido.query.get_or_404(id)
+    if pedido.user_id != current_user.id:
+        flash('Pedido não encontrado.', 'error')
+        return redirect(url_for('meus_pedidos'))
+    if pedido.status == 'pendente':
+        pedido.status = 'cancelado'
+        db.session.commit()
+        flash('Pedido cancelado com sucesso.', 'success')
+    else:
+        flash('Não é possível cancelar este pedido.', 'error')
+    return redirect(url_for('meus_pedidos'))
+
+
+# ══════════════════════════════════════════════
+#  PEDIDOS — ADMIN
+# ══════════════════════════════════════════════
+
+@app.route('/admin/pedidos')
+@login_required
+@admin_required
+def admin_pedidos():
+    status_filter = request.args.get('status', '')
+    q = Pedido.query.order_by(Pedido.created_at.desc())
+    if status_filter:
+        q = q.filter_by(status=status_filter)
+    pedidos = q.all()
+
+    stats = dict(
+        total      = Pedido.query.count(),
+        pendente   = Pedido.query.filter_by(status='pendente').count(),
+        confirmado = Pedido.query.filter_by(status='confirmado').count(),
+        entregue   = Pedido.query.filter_by(status='entregue').count(),
+        cancelado  = Pedido.query.filter_by(status='cancelado').count(),
+        faturado   = float(db.session.query(db.func.sum(Pedido.total))
+                          .filter(Pedido.status.in_(['confirmado', 'entregue']))
+                          .scalar() or 0),
+    )
+    return render_template('admin/pedidos.html',
+                           pedidos=pedidos, status_filter=status_filter, stats=stats)
+
+
+@app.route('/admin/pedidos/<int:id>/status', methods=['POST'])
+@login_required
+@admin_required
+def admin_pedido_status(id):
+    pedido = Pedido.query.get_or_404(id)
+    novo   = request.form.get('status')
+    if novo in ('pendente', 'confirmado', 'entregue', 'cancelado'):
+        pedido.status = novo
+        db.session.commit()
+        flash(f'Pedido #{id} atualizado para "{novo}".', 'success')
+    return redirect(url_for('admin_pedidos', status=request.args.get('status', '')))
 
 
 # ══════════════════════════════════════════════
@@ -1237,14 +1376,42 @@ def relatorio_estoque():
     grafico_motivos   = list(motivo_counter.keys())
     grafico_quantidades = [motivo_counter[k] for k in grafico_motivos]
 
+    # ── DADOS DE VENDAS (Pedidos) ──
+    pedidos_periodo = Pedido.query.filter(
+        Pedido.created_at >= dt_ini,
+        Pedido.created_at <= dt_fim,
+    ).order_by(Pedido.created_at.desc()).all()
+
+    venda_stats = dict(
+        total      = len(pedidos_periodo),
+        pendente   = sum(1 for p in pedidos_periodo if p.status == 'pendente'),
+        confirmado = sum(1 for p in pedidos_periodo if p.status == 'confirmado'),
+        entregue   = sum(1 for p in pedidos_periodo if p.status == 'entregue'),
+        cancelado  = sum(1 for p in pedidos_periodo if p.status == 'cancelado'),
+        faturado   = float(sum(p.total for p in pedidos_periodo
+                               if p.status in ('confirmado', 'entregue'))),
+        itens_vendidos = sum(
+            sum(it.quantidade for it in p.itens)
+            for p in pedidos_periodo if p.status in ('confirmado', 'entregue')
+        ),
+    )
+
     # exportar CSV
     if request.args.get('export') == 'csv':
         import csv, io
         output = io.StringIO()
         w = csv.writer(output, delimiter=';')
+        w.writerow(['--- ESTOQUE ---'])
         w.writerow(['Item', 'Tipo', 'Entradas', 'Saídas', 'Saldo', 'Movimentações'])
         for i in itens_rel:
             w.writerow([i['nome'], i['tipo'], i['entradas'], i['saidas'], i['saldo'], i['total_movs']])
+        w.writerow([])
+        w.writerow(['--- VENDAS ---'])
+        w.writerow(['#', 'Data', 'Cliente', 'Tipo', 'Total (R$)', 'Status'])
+        for p in pedidos_periodo:
+            w.writerow([p.id, p.created_at.strftime('%d/%m/%Y %H:%M'),
+                        p.user.name or p.user.email, p.tipo,
+                        f'{float(p.total):.2f}', p.status])
         from flask import Response
         return Response(
             '﻿' + output.getvalue(),
@@ -1252,11 +1419,13 @@ def relatorio_estoque():
             headers={'Content-Disposition': f'attachment; filename=relatorio_{data_ini_str or "periodo"}.csv'}
         )
 
-    return render_template('admin/relatorio_estoque.html',
+    return render_template('admin/relatorio.html',
         itens=itens_rel, movs=movs,
         total_entradas=total_entradas, total_saidas=total_saidas,
         grafico_motivos=grafico_motivos,
         grafico_quantidades=grafico_quantidades,
+        pedidos_periodo=pedidos_periodo,
+        venda_stats=venda_stats,
         data_ini=data_ini_str or data_ini.strftime('%Y-%m-%d'),
         data_fim=data_fim_str or data_fim.strftime('%Y-%m-%d'),
         tipo_filtro=tipo_filtro)
@@ -1449,6 +1618,8 @@ def admin_design():
         config.flash_error      = request.form.get('flash_error',  '#f8d7da')
         config.flash_info       = request.form.get('flash_info',   '#ffffff')
         config.new_badge_days   = int(request.form.get('new_badge_days', 7) or 7)
+        config.auth_bg_color1   = request.form.get('auth_bg_color1', '#e8eed8')
+        config.auth_bg_color2   = request.form.get('auth_bg_color2', '#8fa05a')
 
         logo_file = request.files.get('logo_file')
         if logo_file and logo_file.filename != '':

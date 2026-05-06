@@ -48,6 +48,7 @@
       <div class="user-menu">
         <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
         <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
           <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
         </div>
       </div>
@@ -58,7 +59,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
       </svg>
-      São Paulo - SP
+      Cidade Tiradentes SL | SP
     </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -218,7 +219,7 @@
     <!-- ENDEREÇO -->
     <div class="footer-col">
       <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
-      <p class="footer-endereco">São Paulo - SP</p>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
     </div>
 
     <!-- FUNCIONAMENTO -->

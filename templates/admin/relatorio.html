@@ -39,6 +39,41 @@
 
   /* ── CARDS ── */
   .rel-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
+  .rel-cards-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
+
+  /* ── SECTION DIVIDER ── */
+  .rel-section-divider {
+    display: flex; align-items: center; gap: .8rem;
+    margin: 2rem 0 1.2rem;
+  }
+  .rel-section-divider-label {
+    font-size: .72rem; font-weight: 800; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
+  }
+  .rel-section-divider-line { flex: 1; height: 1px; background: #e8ecf0; }
+
+  /* status badges para pedidos */
+  .st-pendente   { background: #fef3c7; color: #92400e; }
+  .st-confirmado { background: #dbeafe; color: #1e40af; }
+  .st-entregue   { background: #dcfce7; color: #166534; }
+  .st-cancelado  { background: #fee2e2; color: #991b1b; }
+  .status-pill {
+    display: inline-block; padding: .2rem .65rem; border-radius: 20px;
+    font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  }
+
+  .rel-card.vendas   { border-top-color: #8b5cf6; }
+  .rel-card.faturado { border-top-color: #5B6D3D; }
+  .rel-card.cancel   { border-top-color: #ef4444; }
+  .rel-card.itens-v  { border-top-color: #f59e0b; }
+  .rel-card-icon.vendas   { background: #f5f3ff; color: #8b5cf6; }
+  .rel-card-icon.faturado { background: #f0fdf4; color: #5B6D3D; }
+  .rel-card-icon.cancel   { background: #fef2f2; color: #ef4444; }
+  .rel-card-icon.itens-v  { background: #fefce8; color: #ca8a04; }
+  .rel-card.vendas .rel-card-value   { color: #8b5cf6; }
+  .rel-card.faturado .rel-card-value { color: #5B6D3D; }
+  .rel-card.cancel .rel-card-value   { color: #ef4444; }
+  .rel-card.itens-v .rel-card-value  { color: #ca8a04; }
   .rel-card {
     background: #fff; border-radius: 14px; padding: 1.2rem 1.4rem;
     box-shadow: 0 1px 4px rgba(0,0,0,.05); border: 1px solid #e8ecf0;
@@ -73,6 +108,12 @@
   .rel-section-title svg { color: #5B6D3D; }
   .rel-section-count { font-size: .78rem; color: #94a3b8; font-weight: 600;
     background: #f1f5f9; padding: .2rem .6rem; border-radius: 20px; }
+
+  /* ── CHARTS ROW ── */
+  .rel-charts-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem;
+  }
+  @media (max-width: 860px) { .rel-charts-row { grid-template-columns: 1fr; } }
 
   /* ── CHART ── */
   .rel-chart-wrap {
@@ -181,13 +222,19 @@
   <!-- HEADER -->
   <div class="rel-header">
     <div>
-      <h1 class="rel-header-title">Relatório de <span>Estoque</span></h1>
-      <p class="rel-header-sub">Movimentações por período — entradas, saídas e saldo</p>
+      <h1 class="rel-header-title">Relatório</h1>
+      <p class="rel-header-sub">Movimentações de estoque e controle de vendas por período</p>
     </div>
-    <a href="{{ url_for('estoque') }}" class="btn-rel-outline">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Voltar ao Estoque
-    </a>
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+      <a href="{{ url_for('admin_pedidos') }}" class="btn-rel-outline">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Controle de Vendas
+      </a>
+      <a href="{{ url_for('estoque') }}" class="btn-rel-outline">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar ao Estoque
+      </a>
+    </div>
   </div>
 
   <!-- FILTROS -->
@@ -260,27 +307,55 @@
     </div>
   </div>
 
-  <!-- GRÁFICO DE PIZZA -->
-  <div class="rel-chart-wrap">
-    <div class="rel-section-header">
-      <span class="rel-section-title">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-        Saídas por Motivo
-      </span>
-    </div>
-    <div class="rel-chart-body">
-      {% if grafico_motivos %}
-      <div class="rel-chart-canvas">
-        <canvas id="graficoPizza" width="220" height="220"></canvas>
+  <!-- GRÁFICOS LADO A LADO -->
+  <div class="rel-charts-row">
+
+    <!-- Pizza 1: Saídas por Motivo -->
+    <div class="rel-chart-wrap" style="margin-bottom:0">
+      <div class="rel-section-header">
+        <span class="rel-section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          Saídas por Motivo
+        </span>
       </div>
-      <div class="rel-chart-legend" id="graficoPizzaLegenda"></div>
-      {% else %}
-      <div class="rel-chart-empty" style="width:100%;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:.6rem;"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        <div>Nenhuma saída registrada no período.</div>
+      <div class="rel-chart-body">
+        {% if grafico_motivos %}
+        <div class="rel-chart-canvas">
+          <canvas id="graficoPizza" width="180" height="180"></canvas>
+        </div>
+        <div class="rel-chart-legend" id="graficoPizzaLegenda"></div>
+        {% else %}
+        <div class="rel-chart-empty" style="width:100%;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:.6rem;"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div>Nenhuma saída registrada no período.</div>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
+
+    <!-- Pizza 2: Pedidos por Status -->
+    <div class="rel-chart-wrap" style="margin-bottom:0">
+      <div class="rel-section-header">
+        <span class="rel-section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          Pedidos por Status
+        </span>
+      </div>
+      <div class="rel-chart-body">
+        {% if venda_stats.total > 0 %}
+        <div class="rel-chart-canvas">
+          <canvas id="graficoPedidos" width="180" height="180"></canvas>
+        </div>
+        <div class="rel-chart-legend" id="graficoPedidosLegenda"></div>
+        {% else %}
+        <div class="rel-chart-empty" style="width:100%;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:.6rem;"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div>Nenhum pedido no período.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 
   {% if itens %}
@@ -420,6 +495,147 @@
   </div>
   {% endif %}
 
+  <!-- ══════════════════════════════════════════
+       SEÇÃO DE VENDAS
+  ═══════════════════════════════════════════ -->
+  <div class="rel-section-divider">
+    <span class="rel-section-divider-label">Controle de Vendas</span>
+    <span class="rel-section-divider-line"></span>
+    <a href="{{ url_for('admin_pedidos') }}" class="btn-rel-outline btn-rel-sm">Ver todos os pedidos</a>
+  </div>
+
+  <!-- CARDS VENDAS -->
+  <div class="rel-cards-4">
+    <div class="rel-card vendas">
+      <div class="rel-card-icon vendas">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+      </div>
+      <div>
+        <span class="rel-card-label">Total pedidos</span>
+        <span class="rel-card-value">{{ venda_stats.total }}</span>
+      </div>
+    </div>
+    <div class="rel-card faturado">
+      <div class="rel-card-icon faturado">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <span class="rel-card-label">Faturado</span>
+        <span class="rel-card-value" style="font-size:1.25rem;">R$ {{ "%.2f"|format(venda_stats.faturado) }}</span>
+      </div>
+    </div>
+    <div class="rel-card cancel">
+      <div class="rel-card-icon cancel">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div>
+        <span class="rel-card-label">Cancelados</span>
+        <span class="rel-card-value">{{ venda_stats.cancelado }}</span>
+      </div>
+    </div>
+    <div class="rel-card itens-v">
+      <div class="rel-card-icon itens-v">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/>
+          <line x1="10" y1="12" x2="14" y2="12"/>
+        </svg>
+      </div>
+      <div>
+        <span class="rel-card-label">Itens vendidos</span>
+        <span class="rel-card-value">{{ venda_stats.itens_vendidos }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BREAKDOWN -->
+  <div class="rel-table-wrap" style="margin-bottom:1.4rem;">
+    <div class="rel-section-header">
+      <span class="rel-section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Pedidos no Período
+      </span>
+      <span class="rel-section-count">{{ pedidos_periodo|length }} pedido(s)</span>
+    </div>
+
+    {% if pedidos_periodo %}
+    <table class="rel-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Itens</th>
+          <th style="text-align:right;">Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos_periodo %}
+        <tr>
+          <td style="font-weight:800; color:#475569;">#{{ p.id }}</td>
+          <td style="color:#94a3b8; font-size:.8rem; white-space:nowrap;">
+            {{ p.created_at.strftime('%d/%m/%Y %H:%M') }}
+          </td>
+          <td>
+            <div style="font-weight:700; color:#1e293b;">{{ p.user.name or p.user.email }}</div>
+            <div style="font-size:.75rem; color:#94a3b8;">{{ p.user.phone }}</div>
+          </td>
+          <td>
+            {% if p.tipo == 'entrega' %}
+              <span class="tipo-badge" style="background:#eff6ff;color:#1d4ed8;">Entrega</span>
+            {% else %}
+              <span class="tipo-badge" style="background:#f0fdf4;color:#15803d;">Retirar</span>
+            {% endif %}
+          </td>
+          <td style="color:#475569; font-size:.82rem;">
+            {% for it in p.itens %}
+            <div>{{ it.nome }} &times;{{ it.quantidade }}</div>
+            {% endfor %}
+          </td>
+          <td style="text-align:right; font-weight:800; color:#1e293b;">
+            R$ {{ "%.2f"|format(p.total) }}
+          </td>
+          <td>
+            <span class="status-pill st-{{ p.status }}">{{ p.status }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" style="font-weight:800;">Total faturado (confirmados + entregues)</td>
+          <td style="text-align:right; font-weight:800; color:#5B6D3D;">
+            R$ {{ "%.2f"|format(venda_stats.faturado) }}
+          </td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="rel-empty" style="padding:2rem;">
+      <p class="rel-empty-title">Nenhum pedido no período selecionado</p>
+    </div>
+    {% endif %}
+  </div>
+
 </div>
 
 <script>
@@ -457,7 +673,7 @@ async function exportarPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
-    doc.text('Relatório de Estoque', 14, 15);
+    doc.text('Relatório', 14, 15);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(200, 215, 180);
@@ -523,54 +739,74 @@ async function exportarPDF() {
       return yPos + 12;
     }
 
-    // ── GRÁFICO DE PIZZA ──
-    {% if grafico_motivos %}
-    const canvas = document.getElementById('graficoPizza');
-    if (canvas) {
-      y = secao('Saídas por Motivo', y);
+    // ── GRÁFICOS LADO A LADO ──
+    const halfW = (W - 33) / 2;
+
+    function renderPizzaPdf(canvasId, titulo, labelsArr, dadosArr, coresArr, xOff, yPos) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return yPos;
+
+      doc.setFillColor(...BGCARD);
+      doc.roundedRect(xOff, yPos - 2, halfW, 82, 4, 4, 'F');
 
       const imgData = canvas.toDataURL('image/png', 1.0);
-      const tamanho = 70;
+      const tamanho = 60;
+      const gx = xOff + 4;
+      doc.addImage(imgData, 'PNG', gx, yPos + 2, tamanho, tamanho);
 
-      // caixa de fundo do gráfico
-      doc.setFillColor(...BGCARD);
-      doc.roundedRect(14, y - 2, W - 28, tamanho + 16, 4, 4, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      doc.text(titulo, xOff + 4, yPos - 4);
 
-      const gx = 20;
-      doc.addImage(imgData, 'PNG', gx, y + 2, tamanho, tamanho);
-
-      // legenda
-      const labels = {{ grafico_motivos | tojson }};
-      const dados  = {{ grafico_quantidades | tojson }};
-      const total  = dados.reduce((a, b) => a + b, 0);
-      const coresPdf = [
-        [91,109,61],[214,113,85],[243,182,81],[147,46,80],[59,130,246],
-        [139,92,246],[236,72,153],[20,184,166],[249,115,22],[100,116,139]
-      ];
-
-      let ly = y + 8;
-      const lx = gx + tamanho + 10;
-      labels.forEach((l, i) => {
-        const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
-        const cor = coresPdf[i] || [100,116,139];
-        // bolinha colorida
+      const total = dadosArr.reduce((a, b) => a + b, 0);
+      const lx = gx + tamanho + 5;
+      let ly = yPos + 8;
+      labelsArr.forEach((l, i) => {
+        if (dadosArr[i] === 0) return;
+        const pct = total > 0 ? ((dadosArr[i] / total) * 100).toFixed(1) : 0;
+        const cor = coresArr[i] || [100,116,139];
         doc.setFillColor(...cor);
-        doc.circle(lx + 2, ly - 1.5, 2.5, 'F');
-        // nome do motivo
+        doc.circle(lx + 2, ly - 1.5, 2, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.setTextColor(...DARK);
-        doc.text(l, lx + 7, ly);
-        // quantidade e %
-        doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
+        doc.setTextColor(...DARK);
+        doc.text(l, lx + 6, ly);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
         doc.setTextColor(...MUTED);
-        doc.text(`${dados[i]} unidades  ·  ${pct}%`, lx + 7, ly + 5);
-        ly += 14;
+        doc.text(`${dadosArr[i]}  ·  ${pct}%`, lx + 6, ly + 4.5);
+        ly += 11;
       });
-
-      y += tamanho + 20;
+      return yPos + 86;
     }
+
+    {% if grafico_motivos %}
+    const labelsMotivo = {{ grafico_motivos | tojson }};
+    const dadosMotivo  = {{ grafico_quantidades | tojson }};
+    const coresMotivoPdf = [
+      [91,109,61],[214,113,85],[243,182,81],[147,46,80],[59,130,246],
+      [139,92,246],[236,72,153],[20,184,166],[249,115,22],[100,116,139]
+    ];
+    {% endif %}
+
+    {% if venda_stats.total > 0 %}
+    const labelsPedidos = ['Pendente','Confirmado','Entregue','Cancelado'];
+    const dadosPedidos  = [{{ venda_stats.pendente }},{{ venda_stats.confirmado }},{{ venda_stats.entregue }},{{ venda_stats.cancelado }}];
+    const coresPedidosPdf = [[245,158,11],[59,130,246],[34,197,94],[239,68,68]];
+    {% endif %}
+
+    y = secao('Saídas por Motivo  &  Pedidos por Status', y);
+
+    {% if grafico_motivos %}
+    renderPizzaPdf('graficoPizza', 'Saídas por Motivo', labelsMotivo, dadosMotivo, coresMotivoPdf, 14, y);
+    {% endif %}
+    {% if venda_stats.total > 0 %}
+    y = renderPizzaPdf('graficoPedidos', 'Pedidos por Status', labelsPedidos, dadosPedidos, coresPedidosPdf, 14 + halfW + 5, y);
+    {% else %}
+    {% if grafico_motivos %}
+    y += 86;
+    {% endif %}
     {% endif %}
 
     // ── TABELA DE ITENS ──
@@ -618,11 +854,65 @@ async function exportarPDF() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(200, 215, 180);
-        doc.text('Doces da Fhê — Relatório de Estoque', 14, H - 4);
+        doc.text('Doces da Fhê — Relatório', 14, H - 4);
         doc.setTextColor(255,255,255);
         doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
       }
     });
+
+    // ── TABELA DE VENDAS ──
+    {% if pedidos_periodo %}
+    y = doc.lastAutoTable.finalY + 10;
+    y = secao('Controle de Vendas — Pedidos no Período', y);
+
+    const coresStatus = {
+      pendente:   [245,158,11],
+      confirmado: [59,130,246],
+      entregue:   [34,197,94],
+      cancelado:  [239,68,68],
+    };
+
+    doc.autoTable({
+      startY: y,
+      head: [['#', 'Data', 'Cliente', 'Tipo', 'Total (R$)', 'Status']],
+      body: [
+        {% for p in pedidos_periodo %}
+        [
+          '#{{ p.id }}',
+          '{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}',
+          '{{ (p.user.name or p.user.email) | replace("'", "\\'") }}',
+          '{{ "Entrega" if p.tipo == "entrega" else "Retirar" }}',
+          'R$ {{ "%.2f"|format(p.total) }}',
+          '{{ p.status | capitalize }}'
+        ],
+        {% endfor %}
+      ],
+      foot: [['', '', '', 'Faturado (conf.+entregues)', 'R$ {{ "%.2f"|format(venda_stats.faturado) }}', '']],
+      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, lineColor: BORDER, lineWidth: 0.3 },
+      headStyles: { fillColor: [91,109,61], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8, cellPadding: 5 },
+      footStyles: { fillColor: BGCARD, fontStyle: 'bold', textColor: DARK },
+      alternateRowStyles: { fillColor: BGCARD },
+      columnStyles: {
+        0: { cellWidth: 14, halign: 'center', textColor: MUTED },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 'auto', fontStyle: 'bold' },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 26, halign: 'right', fontStyle: 'bold', textColor: [91,109,61] },
+        5: { cellWidth: 24, halign: 'center' },
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        doc.setFillColor(...VERDE);
+        doc.rect(0, H - 10, W, 10, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(200, 215, 180);
+        doc.text('Doces da Fhê — Relatório', 14, H - 4);
+        doc.setTextColor(255,255,255);
+        doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
+      }
+    });
+    {% endif %}
 
     const nomeArquivo = `relatorio_estoque_${hoje.replace(/ /g,'_').replace(/,/g,'')}.pdf`;
     doc.save(nomeArquivo);
@@ -674,6 +964,57 @@ async function exportarPDF() {
       <div class="rel-legend-dot" style="background:${cores[i]}"></div>
       <span class="rel-legend-label">${l}</span>
       <span class="rel-legend-val">${dados[i]} un</span>
+      <span class="rel-legend-pct">(${pct}%)</span>
+    </div>`;
+  }).join('');
+})();
+{% endif %}
+
+{% if venda_stats.total > 0 %}
+(function() {
+  const labels = ['Pendente', 'Confirmado', 'Entregue', 'Cancelado'];
+  const dados  = [
+    {{ venda_stats.pendente }},
+    {{ venda_stats.confirmado }},
+    {{ venda_stats.entregue }},
+    {{ venda_stats.cancelado }}
+  ];
+  const cores = ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444'];
+
+  const ctx = document.getElementById('graficoPedidos').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dados,
+        backgroundColor: cores,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} pedido(s)`
+          }
+        }
+      }
+    }
+  });
+
+  const total = dados.reduce((a, b) => a + b, 0);
+  const leg   = document.getElementById('graficoPedidosLegenda');
+  leg.innerHTML = labels.map((l, i) => {
+    if (dados[i] === 0) return '';
+    const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
+    return `<div class="rel-legend-item">
+      <div class="rel-legend-dot" style="background:${cores[i]}"></div>
+      <span class="rel-legend-label">${l}</span>
+      <span class="rel-legend-val">${dados[i]} ped.</span>
       <span class="rel-legend-pct">(${pct}%)</span>
     </div>`;
   }).join('');

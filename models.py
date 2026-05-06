@@ -107,14 +107,41 @@ class KitProduct(db.Model):
 
 class EventoEspecial(db.Model):
     __tablename__ = "eventos_especiais"
-    id         = db.Column(db.Integer, primary_key=True)
-    nome       = db.Column(db.String(100), nullable=False, unique=True)  # ex: "Páscoa 2026"
-    descricao  = db.Column(db.String(300), nullable=True)
-    ativo      = db.Column(db.Boolean, default=True)   # mostrar/não mostrar na loja
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id          = db.Column(db.Integer, primary_key=True)
+    nome        = db.Column(db.String(100), nullable=False, unique=True)
+    descricao   = db.Column(db.String(300), nullable=True)
+    ativo       = db.Column(db.Boolean, default=True)
+    data_inicio = db.Column(db.DateTime, nullable=True)  # None = sem restrição de início
+    data_fim    = db.Column(db.DateTime, nullable=True)  # None = sem restrição de fim
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # relacionamento com produtos especiais
-    produtos   = db.relationship('ProdutoEspecial', backref='evento', lazy=True, cascade='all, delete-orphan')
+    produtos = db.relationship('ProdutoEspecial', backref='evento', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def no_periodo(self):
+        """Verifica se o evento está dentro do período agendado."""
+        agora = datetime.now()
+        if self.data_inicio and agora < self.data_inicio:
+            return False
+        if self.data_fim and agora > self.data_fim:
+            return False
+        return True
+
+    @property
+    def deve_aparecer(self):
+        return self.ativo and self.no_periodo
+
+    @property
+    def status_agendamento(self):
+        """Retorna o status visual para o admin."""
+        if not self.ativo:
+            return 'inativo'
+        agora = datetime.now()
+        if self.data_inicio and agora < self.data_inicio:
+            return 'programado'
+        if self.data_fim and agora > self.data_fim:
+            return 'encerrado'
+        return 'ativo'
 
     def __repr__(self):
         return f"<EventoEspecial {self.nome}>"
@@ -262,6 +289,8 @@ class SiteConfig(db.Model):
     color_bg         = db.Column(db.String(20), default='#FAF9F6')
     color_text       = db.Column(db.String(20), default='#2B2B2B')
     color_text_light = db.Column(db.String(20), default='#6B6B6B')
+    auth_bg_color1   = db.Column(db.String(20), default='#e8eed8')
+    auth_bg_color2   = db.Column(db.String(20), default='#8fa05a')
     # Typography
     font_title   = db.Column(db.String(100), default='Playfair Display')
     font_body    = db.Column(db.String(100), default='Nunito')
@@ -299,3 +328,38 @@ class SiteConfig(db.Model):
 
     def __repr__(self):
         return f"<SiteConfig {self.site_name}>"
+
+
+class Pedido(db.Model):
+    __tablename__ = "pedidos"
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    tipo       = db.Column(db.String(20), nullable=False)   # 'buscar' | 'entrega'
+    endereco   = db.Column(db.String(500), nullable=True)
+    total      = db.Column(db.Numeric(10, 2), nullable=False)
+    status     = db.Column(db.String(20), default='pendente', nullable=False)
+    # pendente → confirmado → entregue  |  cancelado
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user  = db.relationship('User', backref='pedidos')
+    itens = db.relationship('PedidoItem', backref='pedido', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f"<Pedido #{self.id} {self.status}>"
+
+
+class PedidoItem(db.Model):
+    __tablename__ = "pedido_itens"
+    id         = db.Column(db.Integer, primary_key=True)
+    pedido_id  = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    nome       = db.Column(db.String(200), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
+    preco_unit = db.Column(db.Numeric(10, 2), nullable=False)
+
+    @property
+    def subtotal(self):
+        return float(self.preco_unit) * self.quantidade
+
+    def __repr__(self):
+        return f"<PedidoItem {self.nome} x{self.quantidade}>"

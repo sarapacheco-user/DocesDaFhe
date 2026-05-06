@@ -89,6 +89,35 @@
         </div>
 
         <div class="dp-group">
+          <div class="dp-group-title">Tema do site (cabeçalho, rodapé e login)</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.8rem;">
+            Gradiente aplicado no cabeçalho, rodapé e nas páginas de Login, Cadastro e Recuperação de senha.
+          </p>
+          {% for field, label in [('auth_bg_color1','Cor inicial'), ('auth_bg_color2','Cor final')] %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }}</label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
+                     oninput="syncAuthBg()">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
+                     maxlength="7" oninput="syncAuthBg()">
+            </div>
+          </div>
+          {% endfor %}
+          <div id="auth-bg-preview" style="margin-top:.7rem; height:40px; border-radius:10px; border:1px solid #e2e8f0;"></div>
+          <script>
+            (function(){
+              var c1 = document.getElementById('hex_auth_bg_color1').value || '#e8eed8';
+              var c2 = document.getElementById('hex_auth_bg_color2').value || '#8fa05a';
+              document.getElementById('auth-bg-preview').style.background =
+                'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+            })();
+          </script>
+        </div>
+
+        <div class="dp-group">
           <div class="dp-group-title">Cores das mensagens</div>
           {% set flash_colors = [
             ('flash_success', 'Sucesso', '#d4edda'),
@@ -644,6 +673,15 @@ function switchTab(el, name) {
 }
 
 // ── Color sync ──
+function syncAuthBg() {
+  var c1 = document.getElementById('cp_auth_bg_color1').value;
+  var c2 = document.getElementById('cp_auth_bg_color2').value;
+  document.getElementById('hex_auth_bg_color1').value = c1;
+  document.getElementById('hex_auth_bg_color2').value = c2;
+  document.getElementById('auth-bg-preview').style.background =
+    'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+}
+
 function syncColor(field, value) {
   document.getElementById('hex_' + field).value = value;
   applyColor(field, value);

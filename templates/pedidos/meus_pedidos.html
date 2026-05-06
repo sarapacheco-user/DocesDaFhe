@@ -1,0 +1,211 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  .mp-wrap { max-width: 860px; margin: 2rem auto 3rem; padding: 0 1.2rem; }
+  .mp-titulo { font-size: 1.5rem; font-weight: 800; color: var(--color-primary); margin-bottom: .25rem; }
+  .mp-sub    { font-size: .88rem; color: var(--color-text-light); margin-bottom: 1.8rem; }
+
+  .mp-card {
+    background: #fff; border: 1.5px solid #e5e5e5; border-radius: 16px;
+    padding: 1.2rem 1.4rem; margin-bottom: 1rem;
+    transition: box-shadow .2s;
+  }
+  .mp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+
+  .mp-card-header { display: flex; align-items: center; justify-content: space-between;
+                    flex-wrap: wrap; gap: .6rem; margin-bottom: .8rem; }
+  .mp-num  { font-size: .8rem; font-weight: 800; color: var(--color-muted);
+             text-transform: uppercase; letter-spacing: .06em; }
+  .mp-data { font-size: .8rem; color: var(--color-muted); }
+
+  .badge { display: inline-block; padding: .25rem .7rem; border-radius: 20px;
+           font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .badge-pendente   { background: #fef3c7; color: #92400e; }
+  .badge-confirmado { background: #dbeafe; color: #1e40af; }
+  .badge-entregue   { background: #dcfce7; color: #166534; }
+  .badge-cancelado  { background: #fee2e2; color: #991b1b; }
+
+  .mp-tipo { font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 12px;
+             background: #f0fdf4; color: #15803d; }
+  .mp-tipo.entrega { background: #eff6ff; color: #1d4ed8; }
+
+  .mp-itens  { font-size: .85rem; color: var(--color-text); margin-bottom: .8rem; }
+  .mp-item   { padding: .3rem 0; border-bottom: 1px solid #f5f5f5; display: flex;
+               justify-content: space-between; align-items: center; }
+  .mp-item:last-child { border-bottom: none; }
+
+  .mp-total  { font-size: 1rem; font-weight: 800; color: var(--color-text);
+               text-align: right; padding-top: .5rem; }
+
+  .mp-endereco { font-size: .8rem; color: var(--color-muted); margin-bottom: .6rem; }
+
+  .btn-cancelar {
+    background: none; border: 1.5px solid #ef4444; color: #ef4444;
+    border-radius: 10px; padding: .35rem .9rem;
+    font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .btn-cancelar:hover { background: #ef4444; color: #fff; }
+
+  .mp-empty { text-align: center; padding: 4rem 1rem; color: var(--color-text-light); }
+  .mp-empty p { font-size: 1rem; margin-bottom: 1.4rem; line-height: 1.6; }
+  .mp-empty a {
+    background: var(--color-primary); color: #fff;
+    border-radius: 24px; padding: .6rem 1.8rem;
+    text-decoration: none; font-weight: 700; font-size: .9rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}" >
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn"
+              onclick="this.closest('.user-menu').classList.toggle('open')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+          Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}
+        </span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/>
+        <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      Cidade Tiradentes SL | SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="#">Blog</a>
+</nav>
+
+<div class="mp-wrap">
+  <p style="font-size:.82rem; color:var(--color-text-light); margin-bottom:1rem;">
+    <a href="{{ url_for('dashboard') }}" style="color:inherit;">&#8592; Voltar à loja</a>
+  </p>
+  <div class="mp-titulo">Meus Pedidos</div>
+  <p class="mp-sub">Acompanhe todos os seus pedidos realizados.</p>
+
+  {% if pedidos %}
+    {% for p in pedidos %}
+    <div class="mp-card">
+      <div class="mp-card-header">
+        <div>
+          <span class="mp-num">Pedido #{{ p.id }}</span>
+          <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <span class="mp-tipo {% if p.tipo == 'entrega' %}entrega{% endif %}">
+            {{ 'Entrega' if p.tipo == 'entrega' else 'Retirar' }}
+          </span>
+          <span class="badge badge-{{ p.status }}">{{ p.status }}</span>
+        </div>
+      </div>
+
+      {% if p.endereco %}
+      <div class="mp-endereco">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="10" r="3"/>
+          <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+        </svg>
+        {{ p.endereco }}
+      </div>
+      {% endif %}
+
+      <div class="mp-itens">
+        {% for it in p.itens %}
+        <div class="mp-item">
+          <span>{{ it.nome }} &times; {{ it.quantidade }}</span>
+          <span>R$ {{ "%.2f"|format(it.subtotal) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.6rem;">
+        <div>
+          {% if p.status == 'pendente' %}
+          <form method="POST" action="{{ url_for('cancelar_pedido', id=p.id) }}"
+                onsubmit="return confirm('Deseja cancelar o pedido #{{ p.id }}?')">
+            <button type="submit" class="btn-cancelar">Cancelar pedido</button>
+          </form>
+          {% endif %}
+        </div>
+        <div class="mp-total">Total: R$ {{ "%.2f"|format(p.total) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="mp-empty">
+      <p>Você ainda não fez nenhum pedido.<br>Que tal explorar nossos produtos?</p>
+      <a href="{{ url_for('dashboard') }}">Ver produtos</a>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function buscarGlobal() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) window.location.href = '/busca?q=' + encodeURIComponent(q);
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.user-menu')) {
+      document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+    }
+  });
+</script>
+{% endblock %}

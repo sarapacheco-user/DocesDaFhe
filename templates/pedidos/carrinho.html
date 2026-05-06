@@ -26,6 +26,7 @@
       <div class="user-menu">
         <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}</span>
         <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
           <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
         </div>
       </div>
@@ -36,7 +37,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
       </svg>
-      São Paulo - SP
+      Cidade Tiradentes SL | SP
     </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -168,7 +169,7 @@
     <!-- ENDEREÇO -->
     <div class="footer-col">
       <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
-      <p class="footer-endereco">São Paulo - SP</p>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
     </div>
 
     <!-- FUNCIONAMENTO -->
@@ -240,7 +241,7 @@
                 onmouseout="this.style.background='#fdf8f0'">
           <div style="font-size:2rem; margin-bottom:.4rem;">🚶</div>
           <div style="font-family:'Nunito',sans-serif; font-weight:800;
-                      font-size:.95rem; color:#2B2B2B;">Buscar</div>
+                      font-size:.95rem; color:#2B2B2B;">Retirar</div>
         </button>
 
         <!-- Entregar -->
@@ -252,7 +253,7 @@
                 onmouseout="this.style.background='#f0f8f2'">
           <div style="font-size:2rem; margin-bottom:.4rem;">🚗</div>
           <div style="font-family:'Nunito',sans-serif; font-weight:800;
-                      font-size:.95rem; color:#2B2B2B;">Entregar</div>
+                      font-size:.95rem; color:#2B2B2B;">Entrega</div>
         </button>
       </div>
 
@@ -306,18 +307,32 @@
         Informe o endereço completo para a entrega.
       </p>
 
+      <!-- CEP + busca ViaCEP -->
+      <div style="position:relative; margin-bottom:.6rem;">
+        <input id="endCep" placeholder="CEP (ex: 01310-100)" maxlength="9"
+               oninput="mascaraCep(this)"
+               style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px;
+                      font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B;
+                      outline:none; width:100%; box-sizing:border-box;"
+               onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+        <span id="cepLoading" style="display:none; position:absolute; right:.8rem; top:50%;
+              transform:translateY(-50%); font-size:.78rem; color:#6B6B6B;">buscando…</span>
+      </div>
+      <div id="cepErro" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+        CEP não encontrado. Preencha o endereço manualmente.
+      </div>
+
+      <!-- Rua + Número -->
       <div style="display:grid; grid-template-columns:1fr 90px; gap:.6rem; margin-bottom:.6rem;">
         <input id="endRua" placeholder="Rua / Avenida" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
         <input id="endNumero" placeholder="Nº" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:.6rem;">
+
+      <!-- Bairro + Cidade -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:1rem;">
         <input id="endBairro" placeholder="Bairro" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
         <input id="endCidade" placeholder="Cidade" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
       </div>
-      <input id="endCep" placeholder="CEP" maxlength="9"
-             oninput="mascaraCep(this)"
-             style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box; margin-bottom:1rem;"
-             onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
 
       <div id="erroEndereco" style="display:none; font-size:.82rem; color:#932E50; margin-bottom:.8rem;">
         Por favor, preencha pelo menos Rua, Número e Bairro.
@@ -380,6 +395,30 @@
     let v = el.value.replace(/\D/g, '').slice(0, 8);
     if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
     el.value = v;
+    if (v.replace('-', '').length === 8) buscarCep(v.replace('-', ''));
+  }
+
+  async function buscarCep(cep) {
+    const loading = document.getElementById('cepLoading');
+    const erroEl  = document.getElementById('cepErro');
+    erroEl.style.display  = 'none';
+    loading.style.display = 'block';
+    try {
+      const res  = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+      const data = await res.json();
+      if (data.erro) {
+        erroEl.style.display = 'block';
+      } else {
+        document.getElementById('endRua').value    = data.logradouro || '';
+        document.getElementById('endBairro').value = data.bairro     || '';
+        document.getElementById('endCidade').value = data.localidade || '';
+        document.getElementById('endNumero').focus();
+      }
+    } catch {
+      erroEl.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+    }
   }
 
   function confirmarEntrega() {

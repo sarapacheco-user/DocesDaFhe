@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='pag_dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 <style>
   .fav-wrap {
     max-width: 860px; margin: 2rem auto 3rem; padding: 0 1.2rem;
@@ -83,18 +83,29 @@
   }
   .fav-btn-cart:hover { background: var(--color-hover-primary); }
 
+  .fav-btn-cart:hover { background: #4a5932; }
+
   /* ── Vazio ── */
   .fav-empty {
     text-align: center; padding: 4rem 1rem;
     color: var(--color-text-light);
   }
-  .fav-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-  .fav-empty p { font-size: 1rem; margin-bottom: 1.4rem; line-height: 1.6; }
-  .fav-empty a {
-    background: var(--color-primary); color: #fff;
-    border-radius: 24px; padding: .6rem 1.8rem;
-    text-decoration: none; font-weight: 700; font-size: .9rem;
+  .fav-empty-icon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #fce7ec; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.4rem; color: #e8748a;
   }
+  .fav-empty h2 { font-size: 1.15rem; font-weight: 800; color: var(--color-text);
+                  margin-bottom: .5rem; }
+  .fav-empty p { font-size: .92rem; margin-bottom: 1.6rem; line-height: 1.6; }
+  .fav-empty-btn {
+    display: inline-block;
+    background: var(--color-primary); color: #fff;
+    border-radius: 24px; padding: .65rem 2rem;
+    text-decoration: none; font-weight: 700; font-size: .9rem;
+    transition: background .18s;
+  }
+  .fav-empty-btn:hover { background: #4a5932; }
 
   @media (max-width: 600px) {
     .fav-item { flex-wrap: wrap; }
@@ -109,9 +120,9 @@
 <!-- ══ HEADER ══ -->
 <header>
   <div class="logo">
-    <img class="logo-img"
-         src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}"
-         alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    <a href="{{ url_for('dashboard') }}" >
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
   </div>
   <div class="search-bar-wrap">
     <div class="search-bar">
@@ -125,9 +136,13 @@
       <div class="user-menu">
         <span class="btn-entrar user-btn"
               onclick="this.closest('.user-menu').classList.toggle('open')">
-          Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+          Bem-vindo, {% if current_user.is_admin %}Admin{% else %}{{ (current_user.name or current_user.email).split()[0] }}{% endif %}
         </span>
         <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
           <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
         </div>
       </div>
@@ -138,7 +153,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
       </svg>
-      São Paulo - SP
+      Cidade Tiradentes SL | SP
     </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -179,10 +194,15 @@
   {% if not produtos and not kits and not especiais %}
 
   <div class="fav-empty">
-    <div class="fav-empty-icon">🤍</div>
-    <p>Você ainda não tem nenhum favorito.<br>
-       Clique no coração nos cards para salvar!</p>
-    <a href="{{ url_for('dashboard') }}">Explorar produtos</a>
+    <div class="fav-empty-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </div>
+    <h2>Nenhum favorito ainda</h2>
+    <p>Clique no coração nos cards para<br>salvar seus produtos preferidos aqui.</p>
+    <a href="{{ url_for('dashboard') }}" class="fav-empty-btn">Explorar produtos</a>
   </div>
 
   {% else %}
@@ -276,7 +296,7 @@
   <div class="footer-container">
     <div class="footer-col">
       <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
-      <p class="footer-endereco">São Paulo - SP</p>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
     </div>
     <div class="footer-col">
       <h3 class="footer-titulo">FUNCIONAMENTO</h3>
@@ -314,6 +334,12 @@
     const t = document.getElementById('searchInput').value.trim();
     if (t) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(t);
   }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.user-menu')) {
+      document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+    }
+  });
 
   function changeQtyFav(id, delta) {
     const span = document.getElementById('qtd-fav-' + id);
