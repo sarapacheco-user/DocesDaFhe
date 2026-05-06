@@ -149,21 +149,33 @@
             <div class="td-actions">
               <button class="btn-es btn-es-sm btn-mov btn-es-icon"
                       title="Movimentar estoque"
-                      onclick="abrirMovimentar('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}', {{ item.estoque }}, {{ item.estoque_minimo }})">
+                      data-tipo="{{ item.tipo }}"
+                      data-id="{{ item.id }}"
+                      data-nome="{{ item.nome|e }}"
+                      data-estoque="{{ item.estoque }}"
+                      data-minimo="{{ item.estoque_minimo }}"
+                      onclick="abrirMovimentar(this.dataset.tipo,this.dataset.id,this.dataset.nome,this.dataset.estoque,this.dataset.minimo)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/>
                 </svg>
               </button>
               <button class="btn-es btn-es-sm btn-hist btn-es-icon"
                       title="Histórico"
-                      onclick="abrirHistorico('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}')">
+                      data-tipo="{{ item.tipo }}"
+                      data-id="{{ item.id }}"
+                      data-nome="{{ item.nome|e }}"
+                      onclick="abrirHistorico(this.dataset.tipo,this.dataset.id,this.dataset.nome)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
                 </svg>
               </button>
               <button class="btn-es btn-es-sm btn-del btn-es-icon"
                       title="Editar mínimo"
-                      onclick="abrirEditarMinimo('{{ item.tipo }}', {{ item.id }}, '{{ item.nome|replace("'","\\'")|e }}', {{ item.estoque_minimo }})">
+                      data-tipo="{{ item.tipo }}"
+                      data-id="{{ item.id }}"
+                      data-nome="{{ item.nome|e }}"
+                      data-minimo="{{ item.estoque_minimo }}"
+                      onclick="abrirEditarMinimo(this.dataset.tipo,this.dataset.id,this.dataset.nome,this.dataset.minimo)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/>
                 </svg>
