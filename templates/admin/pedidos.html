@@ -158,13 +158,31 @@
             {% endif %}
           </td>
           <td>
+            {% set brinde = namespace(item=none) %}
+            {% for l in lembrancinhas %}
+              {% if p.total >= l.valor_minimo %}
+                {% set brinde.item = l %}
+              {% endif %}
+            {% endfor %}
             <button class="itens-toggle" data-id="{{ p.id }}" onclick="toggleItens(this.dataset.id)">
               {{ p.itens|length }} item(s)
             </button>
+            {% if brinde.item %}
+            <div title="🎁 Lembrancinha: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }} (pedido acima de R$ {{ '%.2f'|format(brinde.item.valor_minimo) }})"
+                 style="display:inline-block;margin-left:.4rem;cursor:help;">
+              🎁
+            </div>
+            {% endif %}
             <div class="itens-list" id="itens-{{ p.id }}">
               {% for it in p.itens %}
               <div>• {{ it.nome }} x{{ it.quantidade }} — R$ {{ "%.2f"|format(it.subtotal) }}</div>
               {% endfor %}
+              {% if brinde.item %}
+              <div style="margin-top:.4rem;color:#166534;font-weight:700;">
+                🎁 Lembrancinha: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }}
+                <span style="font-weight:400;color:#15803d;">(pedido acima de R$ {{ "%.2f"|format(brinde.item.valor_minimo) }})</span>
+              </div>
+              {% endif %}
             </div>
           </td>
           <td><strong>R$ {{ "%.2f"|format(p.total) }}</strong></td>

@@ -62,6 +62,8 @@
   <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
   <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
   <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
   <a href="{{ url_for('kits_loja') }}">Kits</a>
   <a href="#">Blog</a>
 </nav>
@@ -70,6 +72,18 @@
 <div class="carrinho-wrap">
 
   <h2 class="carrinho-titulo">Carrinho de Compras</h2>
+
+  {% if lembrancinha %}
+  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;border-radius:14px;padding:1rem 1.3rem;margin-bottom:1.4rem;display:flex;align-items:center;gap:.9rem;">
+    <span style="font-size:2rem;">🎁</span>
+    <div>
+      <div style="font-weight:800;color:#166534;font-size:1rem;">Você ganhou uma lembrancinha!</div>
+      <div style="color:#15803d;font-size:.9rem;margin-top:.15rem;">
+        {{ lembrancinha.quantidade_brinde }} × {{ lembrancinha.produto_nome }} de brinde por compras acima de R$ {{ "%.2f"|format(lembrancinha.valor_minimo) }} 🎉
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   {% if itens %}
 
@@ -95,12 +109,25 @@
           <p class="carrinho-preco-unit">R$ {{ "%.2f"|format(item.preco_unit) }} /un</p>
 
           <!-- QUANTIDADE -->
+          {% set min_item = item.quantidade_minima %}
+          {% set max_item = item.quantidade_maxima %}
           <form method="POST" action="{{ url_for('atualizar_carrinho', item_id=item.id) }}"
                 class="carrinho-qty-form">
-            <button type="submit" name="quantidade" value="{{ item.quantidade - 1 }}">−</button>
+            <button type="submit" name="quantidade"
+                    value="{{ [item.quantidade - 1, min_item]|max }}"
+                    {% if item.quantidade <= min_item %}style="opacity:.35;cursor:not-allowed;" title="Quantidade mínima: {{ min_item }}"{% endif %}>−</button>
             <span>{{ item.quantidade }}</span>
-            <button type="submit" name="quantidade" value="{{ item.quantidade + 1 }}">+</button>
+            <button type="submit" name="quantidade" value="{{ item.quantidade + 1 }}"
+                    {% if max_item and item.quantidade >= max_item %}style="opacity:.35;cursor:not-allowed;" title="Quantidade máxima: {{ max_item }}"{% endif %}>+</button>
           </form>
+          {% if min_item > 1 or max_item %}
+          <div style="font-size:.72rem;color:#92400e;margin-top:.2rem;">
+            {% if min_item > 1 %}mín. {{ min_item }}{% endif %}
+            {% if min_item > 1 and max_item %} · {% endif %}
+            {% if max_item %}máx. {{ max_item }}{% endif %}
+            un
+          </div>
+          {% endif %}
         </div>
 
         <!-- SUBTOTAL + REMOVER -->

@@ -43,8 +43,22 @@
                 <option value="brigadeiros">Brigadeiros</option>
                 <option value="chocolates">Chocolates</option>
                 <option value="trufas">Trufas</option>
+                <option value="brownie">Brownie</option>
+                <option value="corporativos">Corporativos</option>
                 <option value="geral">Geral</option>
               </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" name="quantidade_minima" min="1" value="1">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" name="quantidade_maxima" min="1" placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
             </div>
 
             <!-- ✅ Upload dentro do mesmo form -->

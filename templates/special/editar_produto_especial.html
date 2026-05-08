@@ -46,9 +46,26 @@
                 <option value="bolos"       {{ 'selected' if produto.category == 'bolos' }}>Bolos</option>
                 <option value="brigadeiros" {{ 'selected' if produto.category == 'brigadeiros' }}>Brigadeiros</option>
                 <option value="chocolates"  {{ 'selected' if produto.category == 'chocolates' }}>Chocolates</option>
-                <option value="trufas"     {{ 'selected' if produto.category == 'trufas' }}>Trufas</option>
-                <option value="geral"       {{ 'selected' if produto.category == 'geral' }}>Geral</option>
+                <option value="trufas"       {{ 'selected' if produto.category == 'trufas' }}>Trufas</option>
+                <option value="brownie"      {{ 'selected' if produto.category == 'brownie' }}>Brownie</option>
+                <option value="corporativos" {{ 'selected' if produto.category == 'corporativos' }}>Corporativos</option>
+                <option value="geral"        {{ 'selected' if produto.category == 'geral' }}>Geral</option>
               </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" name="quantidade_minima" min="1"
+                     value="{{ produto.quantidade_minima }}">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" name="quantidade_maxima" min="1"
+                     value="{{ produto.quantidade_maxima if produto.quantidade_maxima else '' }}"
+                     placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
             </div>
 
             <div class="mb-3">

@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Lembrancinha, Avaliacao
 import bcrypt
 import re
 import requests
@@ -358,13 +358,24 @@ def dashboard():
     carrossel = CarrosselItem.query.filter_by(ativo=True).order_by(CarrosselItem.ordem).all()
     kits      = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+
+    # médias de avaliação por produto e kit
+    from sqlalchemy import func
+    rows_p = db.session.query(Avaliacao.produto_id, func.avg(Avaliacao.estrelas), func.count(Avaliacao.id))\
+               .filter(Avaliacao.produto_id.isnot(None)).group_by(Avaliacao.produto_id).all()
+    rows_k = db.session.query(Avaliacao.kit_id, func.avg(Avaliacao.estrelas), func.count(Avaliacao.id))\
+               .filter(Avaliacao.kit_id.isnot(None)).group_by(Avaliacao.kit_id).all()
+    medias_p = {r[0]: (round(r[1], 1), r[2]) for r in rows_p}
+    medias_k = {r[0]: (round(r[1], 1), r[2]) for r in rows_k}
+
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
                            eventos=eventos,
                            carrossel=carrossel,
                            kits=kits,
-                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e,
+                           medias_p=medias_p, medias_k=medias_k)
 
 
 # ─────────────────────────────────────
@@ -395,9 +406,13 @@ def create_product():
         except ValueError:
             flash("Formato de preço inválido.", 'error')
             return redirect(url_for('create_product'))
+        qtd_min = max(1, int(request.form.get('quantidade_minima', 1) or 1))
+        qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
+        qtd_max = int(qtd_max_raw) if qtd_max_raw else None
         image_url = salvar_imagem_produto(arquivo)
         product = Product(name=name, description=description,
-                          price=price, category=category, image_url=image_url)
+                          price=price, category=category, image_url=image_url,
+                          quantidade_minima=qtd_min, quantidade_maxima=qtd_max)
         db.session.add(product)
         db.session.commit()
         flash("Produto criado com sucesso!", 'success')
@@ -423,6 +438,9 @@ def edit_product(id):
         except ValueError:
             flash("Formato de preço inválido.", 'error')
             return redirect(url_for('edit_product', id=id))
+        product.quantidade_minima = max(1, int(request.form.get('quantidade_minima', 1) or 1))
+        qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
+        product.quantidade_maxima = int(qtd_max_raw) if qtd_max_raw else None
         nova_imagem = salvar_imagem_produto(arquivo)
         if nova_imagem:
             product.image_url = nova_imagem
@@ -652,12 +670,16 @@ def produto_detalhe(id):
         Product.ativo == True
     ).limit(4).all()
     fav_p, _, _ = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    avaliacoes = Avaliacao.query.filter_by(produto_id=id).order_by(Avaliacao.created_at.desc()).all()
+    media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
+    ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False,
                            fav_tipo='produto', fav_id=produto.id,
-                           is_favorito=(produto.id in fav_p))
+                           is_favorito=(produto.id in fav_p),
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
 
 
 @app.route('/kit-detalhe/<int:kit_id>')
@@ -691,12 +713,16 @@ def kit_detalhe(kit_id):
     relacionados = [KitRelAdapter(k) for k in outros_kits]
 
     _, fav_k, _ = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    avaliacoes = Avaliacao.query.filter_by(kit_id=kit_id).order_by(Avaliacao.created_at.desc()).all()
+    media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
+    ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=True, kit=kit,
                            fav_tipo='kit', fav_id=kit.id,
-                           is_favorito=(kit.id in fav_k))
+                           is_favorito=(kit.id in fav_k),
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
 
 
 @app.route('/produto-especial/<int:id>')
@@ -711,12 +737,16 @@ def produto_especial_detalhe(id):
         ProdutoEspecial.mostrar == True
     ).limit(4).all()
     _, _, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    avaliacoes = Avaliacao.query.filter_by(especial_id=id).order_by(Avaliacao.created_at.desc()).all()
+    media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
+    ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False,
                            fav_tipo='especial', fav_id=produto.id,
-                           is_favorito=(produto.id in fav_e))
+                           is_favorito=(produto.id in fav_e),
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
 
 
 @app.route('/busca')
@@ -876,6 +906,9 @@ def criar_produto_especial(evento_id):
                 arquivo.save(os.path.join(UPLOAD_FOLDER_ESPECIAIS, filename))
                 image_url = f"uploads/especiais/{filename}"
 
+        qtd_min = max(1, int(request.form.get('quantidade_minima', 1) or 1))
+        qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
+        qtd_max = int(qtd_max_raw) if qtd_max_raw else None
         produto = ProdutoEspecial(
             evento_id=evento_id,
             name=name,
@@ -883,7 +916,9 @@ def criar_produto_especial(evento_id):
             price=price,
             category=category,
             image_url=image_url,
-            mostrar=mostrar    # ✅ sem disponivel
+            mostrar=mostrar,
+            quantidade_minima=qtd_min,
+            quantidade_maxima=qtd_max
         )
         db.session.add(produto)
         db.session.commit()
@@ -898,10 +933,13 @@ def criar_produto_especial(evento_id):
 def editar_produto_especial(id):
     produto = ProdutoEspecial.query.get_or_404(id)
     if request.method == 'POST':
-        produto.name        = request.form.get('name', '').strip()
-        produto.description = request.form.get('description', '').strip()
-        produto.category    = request.form.get('category', 'geral')
-        produto.mostrar     = 'mostrar' in request.form   # ✅ sem disponivel
+        produto.name              = request.form.get('name', '').strip()
+        produto.description       = request.form.get('description', '').strip()
+        produto.category          = request.form.get('category', 'geral')
+        produto.mostrar           = 'mostrar' in request.form
+        produto.quantidade_minima = max(1, int(request.form.get('quantidade_minima', 1) or 1))
+        qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
+        produto.quantidade_maxima = int(qtd_max_raw) if qtd_max_raw else None
         arquivo             = request.files.get('arquivo')
 
         try:
@@ -970,8 +1008,14 @@ def carrinho():
     itens            = CarrinhoItem.query.filter_by(user_id=current_user.id).all()
     total            = sum(item.subtotal for item in itens)
     quantidade_total = sum(item.quantidade for item in itens)
+    lembrancinha = (Lembrancinha.query
+                    .filter_by(ativo=True)
+                    .filter(Lembrancinha.valor_minimo <= total)
+                    .order_by(Lembrancinha.valor_minimo.desc())
+                    .first())
     return render_template('pedidos/carrinho.html', itens=itens,
-                           total=total, quantidade_total=quantidade_total)
+                           total=total, quantidade_total=quantidade_total,
+                           lembrancinha=lembrancinha)
 
 
 @app.route('/carrinho/adicionar', methods=['POST'])
@@ -982,6 +1026,34 @@ def adicionar_carrinho():
     especial_id = request.form.get('especial_id', type=int)
     quantidade  = request.form.get('quantidade', 1, type=int)
     proxima_url = request.form.get('next', url_for('carrinho'))
+
+    # verifica quantidade mínima do produto
+    qtd_min = 1
+    if produto_id:
+        p = Product.query.get(produto_id)
+        if p:
+            qtd_min = p.quantidade_minima
+    elif especial_id:
+        pe = ProdutoEspecial.query.get(especial_id)
+        if pe:
+            qtd_min = pe.quantidade_minima
+
+    qtd_max = None
+    if produto_id:
+        p = Product.query.get(produto_id)
+        if p:
+            qtd_max = p.quantidade_maxima
+    elif especial_id:
+        pe = ProdutoEspecial.query.get(especial_id)
+        if pe:
+            qtd_max = pe.quantidade_maxima
+
+    if quantidade < qtd_min:
+        flash(f'A quantidade mínima para este produto é {qtd_min} unidade(s).', 'error')
+        return redirect(proxima_url)
+    if qtd_max and quantidade > qtd_max:
+        flash(f'A quantidade máxima para este produto é {qtd_max} unidade(s).', 'error')
+        return redirect(proxima_url)
 
     item = CarrinhoItem.query.filter_by(
         user_id=current_user.id,
@@ -1018,8 +1090,20 @@ def remover_carrinho(item_id):
 def atualizar_carrinho(item_id):
     item       = CarrinhoItem.query.filter_by(id=item_id, user_id=current_user.id).first_or_404()
     quantidade = request.form.get('quantidade', 1, type=int)
+    qtd_min    = item.quantidade_minima
+    qtd_max    = item.quantidade_maxima
     if quantidade < 1:
         db.session.delete(item)
+    elif quantidade < qtd_min:
+        item.quantidade = qtd_min
+        db.session.commit()
+        flash(f'A quantidade mínima de "{item.nome}" é {qtd_min} unidade(s).', 'warning')
+        return redirect(url_for('carrinho'))
+    elif qtd_max and quantidade > qtd_max:
+        item.quantidade = qtd_max
+        db.session.commit()
+        flash(f'A quantidade máxima de "{item.nome}" é {qtd_max} unidade(s).', 'warning')
+        return redirect(url_for('carrinho'))
     else:
         item.quantidade = quantidade
     db.session.commit()
@@ -1075,6 +1159,16 @@ def finalizar_pedido():
         linhas.append(f'  Qtd: {item.quantidade} x R$ {item.preco_unit:.2f} = R$ {subtotal:.2f}')
 
     linhas.append(f'\n💰 *Total: R$ {total:.2f}*')
+
+    # ── LEMBRANCINHA ──
+    lembrancinha = (Lembrancinha.query
+                    .filter_by(ativo=True)
+                    .filter(Lembrancinha.valor_minimo <= total)
+                    .order_by(Lembrancinha.valor_minimo.desc())
+                    .first())
+    if lembrancinha:
+        linhas.append('')
+        linhas.append(f'🎁 *Lembrancinha:* {lembrancinha.quantidade_brinde}x {lembrancinha.produto_nome} (brinde por pedidos acima de R$ {float(lembrancinha.valor_minimo):.2f})')
 
     # ── SALVAR PEDIDO ──
     pedido = Pedido(
@@ -1179,8 +1273,10 @@ def admin_pedidos():
                           .filter(Pedido.status.in_(['confirmado', 'entregue']))
                           .scalar() or 0),
     )
+    lembrancinhas = Lembrancinha.query.filter_by(ativo=True).order_by(Lembrancinha.valor_minimo).all()
     return render_template('admin/pedidos.html',
-                           pedidos=pedidos, status_filter=status_filter, stats=stats)
+                           pedidos=pedidos, status_filter=status_filter, stats=stats,
+                           lembrancinhas=lembrancinhas)
 
 
 @app.route('/admin/pedidos/<int:id>/status', methods=['POST'])
@@ -1645,6 +1741,100 @@ def admin_design():
         return redirect(url_for('admin_design'))
 
     return render_template('admin/design.html', config=config)
+
+
+# ══════════════════════════════════════════════
+#  AVALIAÇÕES
+# ══════════════════════════════════════════════
+
+@app.route('/avaliar', methods=['POST'])
+@login_required
+def avaliar():
+    produto_id  = request.form.get('produto_id', type=int)
+    kit_id      = request.form.get('kit_id', type=int)
+    especial_id = request.form.get('especial_id', type=int)
+    estrelas    = request.form.get('estrelas', type=int)
+    comentario  = request.form.get('comentario', '').strip()
+    next_url    = request.form.get('next', url_for('dashboard'))
+
+    if not estrelas or not (1 <= estrelas <= 5):
+        flash('Selecione uma nota de 1 a 5 estrelas.', 'error')
+        return redirect(next_url)
+
+    ja_existe = Avaliacao.query.filter_by(
+        user_id=current_user.id,
+        produto_id=produto_id,
+        kit_id=kit_id,
+        especial_id=especial_id
+    ).first()
+    if ja_existe:
+        flash('Você já avaliou este produto.', 'warning')
+        return redirect(next_url)
+
+    av = Avaliacao(user_id=current_user.id, produto_id=produto_id,
+                   kit_id=kit_id, especial_id=especial_id,
+                   estrelas=estrelas, comentario=comentario or None)
+    db.session.add(av)
+    db.session.commit()
+    flash('Avaliação enviada! Obrigada pelo feedback 💖', 'success')
+    return redirect(next_url)
+
+
+@app.route('/avaliar/<int:id>/deletar', methods=['POST'])
+@login_required
+@admin_required
+def deletar_avaliacao(id):
+    av = Avaliacao.query.get_or_404(id)
+    next_url = request.form.get('next', url_for('dashboard'))
+    db.session.delete(av)
+    db.session.commit()
+    flash('Avaliação removida.', 'info')
+    return redirect(next_url)
+
+
+# ══════════════════════════════════════════════
+#  LEMBRANCINHAS
+# ══════════════════════════════════════════════
+
+@app.route('/admin/lembrancinhas', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_lembrancinhas():
+    if request.method == 'POST':
+        acao = request.form.get('acao')
+
+        if acao == 'criar':
+            try:
+                valor_min = float(request.form['valor_minimo'])
+                qtd_brind = int(request.form.get('quantidade_brinde', 1))
+                nome      = request.form['produto_nome'].strip()
+                if not nome or valor_min <= 0 or qtd_brind < 1:
+                    raise ValueError
+                l = Lembrancinha(valor_minimo=valor_min,
+                                 produto_nome=nome,
+                                 quantidade_brinde=qtd_brind)
+                db.session.add(l)
+                db.session.commit()
+                flash('Lembrancinha criada com sucesso!', 'success')
+            except (ValueError, KeyError):
+                flash('Preencha todos os campos corretamente.', 'error')
+
+        elif acao == 'toggle':
+            l = Lembrancinha.query.get_or_404(int(request.form['id']))
+            l.ativo = not l.ativo
+            db.session.commit()
+            flash('Status atualizado.', 'success')
+
+        elif acao == 'deletar':
+            l = Lembrancinha.query.get_or_404(int(request.form['id']))
+            db.session.delete(l)
+            db.session.commit()
+            flash('Lembrancinha removida.', 'info')
+
+        return redirect(url_for('admin_lembrancinhas'))
+
+    itens = Lembrancinha.query.order_by(Lembrancinha.valor_minimo).all()
+    return render_template('admin/lembrancinhas.html', lembrancinhas=itens)
 
 
 # ─────────────────────────────────────

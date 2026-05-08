@@ -36,8 +36,10 @@
                 <option value="bolos"       {% if product and product.category == 'bolos' %}selected{% endif %}>Bolos</option>
                 <option value="brigadeiros" {% if product and product.category == 'brigadeiros' %}selected{% endif %}>Brigadeiros</option>
                 <option value="chocolates"  {% if product and product.category == 'chocolates' %}selected{% endif %}>Chocolates</option>
-                <option value="trufas"     {% if product and product.category == 'trufas' %}selected{% endif %}>Trufas</option>
-                <option value="geral"       {% if product and product.category == 'geral' %}selected{% endif %}>Geral</option>
+                <option value="trufas"        {% if product and product.category == 'trufas' %}selected{% endif %}>Trufas</option>
+                <option value="brownie"       {% if product and product.category == 'brownie' %}selected{% endif %}>Brownie</option>
+                <option value="corporativos"  {% if product and product.category == 'corporativos' %}selected{% endif %}>Corporativos</option>
+                <option value="geral"         {% if product and product.category == 'geral' %}selected{% endif %}>Geral</option>
               </select>
             </div>
 
@@ -49,6 +51,21 @@
                        step="0.01" min="0.01"
                        value="{{ '%.2f'|format(product.price) if product else '' }}" required>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="quantidade_minima" class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" id="quantidade_minima" name="quantidade_minima"
+                     min="1" value="{{ product.quantidade_minima if product else 1 }}">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="quantidade_maxima" class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" id="quantidade_maxima" name="quantidade_maxima"
+                     min="1" value="{{ product.quantidade_maxima if product and product.quantidade_maxima else '' }}"
+                     placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
             </div>
 
             <!-- ✅ Upload dentro do mesmo form -->

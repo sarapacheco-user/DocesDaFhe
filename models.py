@@ -38,10 +38,12 @@ class Product(db.Model):
     description = db.Column(db.String(800), nullable=False)
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
-    category    = db.Column(db.String(100), nullable=True, default='geral')  # ✅ NOVO
-    ativo          = db.Column(db.Boolean, default=True, nullable=False)
-    estoque        = db.Column(db.Integer, default=0, nullable=False)
-    estoque_minimo = db.Column(db.Integer, default=5, nullable=False)
+    category          = db.Column(db.String(100), nullable=True, default='geral')  # ✅ NOVO
+    ativo             = db.Column(db.Boolean, default=True, nullable=False)
+    estoque           = db.Column(db.Integer, default=0, nullable=False)
+    estoque_minimo    = db.Column(db.Integer, default=5, nullable=False)
+    quantidade_minima = db.Column(db.Integer, default=1, nullable=False)
+    quantidade_maxima = db.Column(db.Integer, nullable=True)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -154,11 +156,13 @@ class ProdutoEspecial(db.Model):
     name         = db.Column(db.String(200), nullable=False)
     description  = db.Column(db.String(800), nullable=False)
     price        = db.Column(db.Numeric(10, 2), nullable=False)
-    category     = db.Column(db.String(100), nullable=True, default='geral')
-    image_url      = db.Column(db.String(300), nullable=True)
-    mostrar        = db.Column(db.Boolean, default=True)
-    estoque        = db.Column(db.Integer, default=0, nullable=False)
-    estoque_minimo = db.Column(db.Integer, default=5, nullable=False)
+    category          = db.Column(db.String(100), nullable=True, default='geral')
+    image_url         = db.Column(db.String(300), nullable=True)
+    mostrar           = db.Column(db.Boolean, default=True)
+    estoque           = db.Column(db.Integer, default=0, nullable=False)
+    estoque_minimo    = db.Column(db.Integer, default=5, nullable=False)
+    quantidade_minima = db.Column(db.Integer, default=1, nullable=False)
+    quantidade_maxima = db.Column(db.Integer, nullable=True)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -234,6 +238,22 @@ class CarrinhoItem(db.Model):
             return self.kit.image_url
         if self.especial:
             return self.especial.image_url
+        return None
+
+    @property
+    def quantidade_minima(self):
+        if self.produto:
+            return self.produto.quantidade_minima
+        if self.especial:
+            return self.especial.quantidade_minima
+        return 1
+
+    @property
+    def quantidade_maxima(self):
+        if self.produto:
+            return self.produto.quantidade_maxima
+        if self.especial:
+            return self.especial.quantidade_maxima
         return None
 
     @property
@@ -363,3 +383,40 @@ class PedidoItem(db.Model):
 
     def __repr__(self):
         return f"<PedidoItem {self.nome} x{self.quantidade}>"
+
+
+class Lembrancinha(db.Model):
+    __tablename__ = "lembrancinhas"
+    id                = db.Column(db.Integer, primary_key=True)
+    valor_minimo      = db.Column(db.Numeric(10, 2), nullable=False)
+    produto_nome      = db.Column(db.String(200), nullable=False)
+    quantidade_brinde = db.Column(db.Integer, default=1, nullable=False)
+    ativo             = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Lembrancinha {self.produto_nome} a partir de R${self.valor_minimo}>"
+
+
+class Avaliacao(db.Model):
+    __tablename__ = "avaliacoes"
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    produto_id  = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    kit_id      = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True)
+    especial_id = db.Column(db.Integer, db.ForeignKey('produtos_especiais.id'), nullable=True)
+    estrelas    = db.Column(db.Integer, nullable=False)
+    comentario  = db.Column(db.String(1000), nullable=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user    = db.relationship('User', backref='avaliacoes')
+    produto = db.relationship('Product', backref='avaliacoes')
+    kit     = db.relationship('Kit', backref='avaliacoes')
+    especial = db.relationship('ProdutoEspecial', backref='avaliacoes')
+
+    @property
+    def media(self):
+        avs = Avaliacao.query.filter_by(produto_id=self.produto_id).all() if self.produto_id else []
+        return round(sum(a.estrelas for a in avs) / len(avs), 1) if avs else 0
+
+    def __repr__(self):
+        return f"<Avaliacao {self.estrelas}★ by user {self.user_id}>"

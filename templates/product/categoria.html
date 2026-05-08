@@ -87,6 +87,10 @@
      class="{% if categoria == 'chocolates' %}nav-active{% endif %}">Chocolates</a>
   <a href="{{ url_for('categoria', nome='trufas') }}"
      class="{% if categoria == 'trufas' %}nav-active{% endif %}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}"
+     class="{% if categoria == 'brownie' %}nav-active{% endif %}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}"
+     class="{% if categoria == 'corporativos' %}nav-active{% endif %}">Corporativos</a>
   <a href="{{ url_for('kits_loja') }}">Kits</a>
   <a href="#">Blog</a>
 </nav>

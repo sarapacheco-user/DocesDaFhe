@@ -24,6 +24,48 @@
     0%,100% { transform: scale(1); }
     50%      { transform: scale(1.1); }
   }
+
+  /* ═══════ AVALIAÇÕES ═══════ */
+  .av-wrap { max-width: 820px; margin: 2.5rem auto 0; padding: 0 1.2rem 2rem; }
+  .av-header { display:flex; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.4rem; }
+  .av-titulo { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:800; color:#1e293b; margin:0; }
+  .av-media-wrap { display:flex; align-items:center; gap:.5rem; }
+  .av-media-num { font-size:1.8rem; font-weight:800; color:#f59e0b; line-height:1; }
+  .av-stars-static { display:flex; gap:2px; }
+  .av-total { font-size:.85rem; color:#64748b; }
+
+  .av-form-card { background:#fff; border-radius:14px; box-shadow:0 1px 8px rgba(0,0,0,.07);
+                  padding:1.2rem 1.4rem; margin-bottom:1.6rem; }
+  .av-form-title { font-weight:800; color:#334155; margin:0 0 .9rem; font-size:.95rem; }
+
+  .av-star-picker { display:flex; gap:4px; margin-bottom:.9rem; }
+  .av-star-picker label input { display:none; }
+  .av-star-pick { fill:#e2e8f0; stroke:#cbd5e1; cursor:pointer; transition:fill .15s,transform .1s; }
+  .av-star-pick:hover, .av-star-pick.ativa { fill:#f59e0b; stroke:#f59e0b; transform:scale(1.15); }
+
+  .av-textarea { width:100%; border:1.5px solid #e2e8f0; border-radius:10px; padding:.7rem .9rem;
+                 font-size:.9rem; resize:vertical; outline:none; transition:border .15s;
+                 font-family:inherit; box-sizing:border-box; }
+  .av-textarea:focus { border-color:#5B6D3D; }
+  .av-btn-enviar { margin-top:.8rem; padding:.55rem 1.4rem; background:#5B6D3D; color:#fff;
+                   border:none; border-radius:10px; font-size:.9rem; font-weight:700;
+                   cursor:pointer; transition:background .15s; }
+  .av-btn-enviar:hover { background:#4a5932; }
+
+  .av-ja-avaliou, .av-login-msg, .av-empty { font-size:.9rem; color:#64748b; margin-bottom:1.2rem; }
+  .av-login-msg a { color:#5B6D3D; font-weight:700; }
+
+  .av-lista { display:flex; flex-direction:column; gap:.9rem; }
+  .av-card { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.06);
+             padding:1rem 1.2rem; }
+  .av-card-top { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.5rem; }
+  .av-avatar { width:36px; height:36px; border-radius:50%; background:#5B6D3D; color:#fff;
+               display:flex; align-items:center; justify-content:center;
+               font-weight:800; font-size:.95rem; flex-shrink:0; }
+  .av-user-name { font-weight:700; font-size:.9rem; color:#1e293b; }
+  .av-date { font-size:.75rem; color:#94a3b8; }
+  .av-stars-row { display:flex; gap:2px; }
+  .av-comentario { font-size:.88rem; color:#475569; margin:0; line-height:1.5; }
 </style>
 {% endblock %}
 
@@ -84,6 +126,8 @@
   <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
   <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
   <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
   <a href="{{ url_for('kits_loja') }}">Kits</a>
   <a href="#">Blog</a>
 </nav>
@@ -151,6 +195,16 @@
       </span>
     </div>
 
+    {% set min_qty = produto.quantidade_minima if not is_kit else 1 %}
+    {% set max_qty = produto.quantidade_maxima if not is_kit else none %}
+    {% if min_qty > 1 or max_qty %}
+    <div style="background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:.6rem 1rem;margin-bottom:.8rem;font-size:.88rem;color:#854d0e;">
+      {% if min_qty > 1 %}⚠️ Mínimo: <strong>{{ min_qty }} unidades</strong>{% endif %}
+      {% if min_qty > 1 and max_qty %} &nbsp;|&nbsp; {% endif %}
+      {% if max_qty %}🔒 Máximo: <strong>{{ max_qty }} unidades</strong>{% endif %}
+    </div>
+    {% endif %}
+
     <!-- FORMULÁRIO CARRINHO — ✅ CORRIGIDO -->
     <form method="POST" action="{{ url_for('adicionar_carrinho') }}" class="produto-qty-wrap">
 
@@ -166,10 +220,11 @@
       <!-- quantidade — ✅ atualiza o input hidden junto -->
       <div class="produto-qty">
         <button type="button" onclick="changeQty(-1)">−</button>
-        <span id="qtyValue">1</span>
+        <span id="qtyValue">{{ min_qty }}</span>
         <button type="button" onclick="changeQty(1)">+</button>
       </div>
-      <input type="hidden" name="quantidade" id="qtyInput" value="1">
+      <input type="hidden" name="quantidade" id="qtyInput" value="{{ min_qty }}"
+             data-min="{{ min_qty }}" data-max="{{ max_qty if max_qty else '' }}">
 
       <button type="submit" class="produto-btn-cart">
         Adicionar ao carrinho 🛒
@@ -186,6 +241,111 @@
 
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- AVALIAÇÕES                             -->
+<!-- ═══════════════════════════════════════ -->
+<section class="av-wrap">
+
+  <!-- CABEÇALHO -->
+  <div class="av-header">
+    <h2 class="av-titulo">Avaliações</h2>
+    {% if avaliacoes %}
+    <div class="av-media-wrap">
+      <span class="av-media-num">{{ media }}</span>
+      <div class="av-stars-static">
+        {% for i in range(1,6) %}
+          <svg viewBox="0 0 24 24" width="22" height="22"
+               fill="{{ '#f59e0b' if i <= media|round(0,'ceil')|int else '#e2e8f0' }}"
+               stroke="{{ '#f59e0b' if i <= media|round(0,'ceil')|int else '#cbd5e1' }}" stroke-width="1.5">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+        {% endfor %}
+      </div>
+      <span class="av-total">({{ avaliacoes|length }} avaliação{{ 's' if avaliacoes|length != 1 }})</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- FORMULÁRIO -->
+  {% if current_user.is_authenticated and not ja_avaliou %}
+  <div class="av-form-card">
+    <p class="av-form-title">Deixe sua avaliação</p>
+    <form method="POST" action="{{ url_for('avaliar') }}">
+      {% if is_kit %}
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      {% elif fav_tipo == 'especial' %}
+        <input type="hidden" name="especial_id" value="{{ produto.id }}">
+      {% else %}
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      {% endif %}
+      <input type="hidden" name="next" value="{{ request.url }}">
+
+      <!-- ESTRELAS INTERATIVAS -->
+      <div class="av-star-picker" id="starPicker">
+        {% for i in range(1,6) %}
+        <label>
+          <input type="radio" name="estrelas" value="{{ i }}" required>
+          <svg viewBox="0 0 24 24" width="32" height="32" class="av-star-pick" data-val="{{ i }}">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+        </label>
+        {% endfor %}
+      </div>
+
+      <textarea class="av-textarea" name="comentario"
+                placeholder="Conte como foi sua experiência (opcional)..." rows="3"></textarea>
+
+      <button type="submit" class="av-btn-enviar">Enviar avaliação</button>
+    </form>
+  </div>
+  {% elif current_user.is_authenticated and ja_avaliou %}
+  <p class="av-ja-avaliou">✅ Você já avaliou este produto.</p>
+  {% else %}
+  <p class="av-login-msg"><a href="{{ url_for('login') }}">Faça login</a> para avaliar este produto.</p>
+  {% endif %}
+
+  <!-- LISTA DE AVALIAÇÕES -->
+  {% if avaliacoes %}
+  <div class="av-lista">
+    {% for av in avaliacoes %}
+    <div class="av-card">
+      <div class="av-card-top">
+        <div class="av-avatar">{{ av.user.name[0].upper() if av.user.name else '?' }}</div>
+        <div>
+          <div class="av-user-name">{{ av.user.name or av.user.email }}</div>
+          <div class="av-date">{{ av.created_at.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div class="av-stars-row" style="margin-left:auto;">
+          {% for i in range(1,6) %}
+          <svg viewBox="0 0 24 24" width="16" height="16"
+               fill="{{ '#f59e0b' if i <= av.estrelas else '#e2e8f0' }}"
+               stroke="{{ '#f59e0b' if i <= av.estrelas else '#cbd5e1' }}" stroke-width="1.5">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+          {% endfor %}
+        </div>
+      </div>
+      {% if av.comentario %}
+      <p class="av-comentario">{{ av.comentario }}</p>
+      {% endif %}
+      {% if current_user.is_authenticated and current_user.is_admin %}
+      <form method="POST" action="{{ url_for('deletar_avaliacao', id=av.id) }}"
+            onsubmit="return confirm('Remover esta avaliação?')" style="margin-top:.5rem;">
+        <input type="hidden" name="next" value="{{ request.url }}">
+        <button type="submit" style="background:none;border:none;color:#ef4444;font-size:.75rem;cursor:pointer;padding:0;">
+          🗑 Remover
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="av-empty">Ainda sem avaliações. Seja o primeiro! ⭐</p>
+  {% endif %}
+
+</section>
 
 <!-- RELACIONADOS -->
 {% if relacionados %}
@@ -267,8 +427,11 @@
   function changeQty(delta) {
     const display = document.getElementById('qtyValue');
     const input   = document.getElementById('qtyInput');
+    const minQty  = parseInt(input.dataset.min) || 1;
+    const maxQty  = input.dataset.max ? parseInt(input.dataset.max) : null;
     let val = parseInt(display.textContent) + delta;
-    if (val < 1) val = 1;
+    if (val < minQty) val = minQty;
+    if (maxQty && val > maxQty) val = maxQty;
     display.textContent = val;
     input.value = val;
   }
@@ -295,6 +458,26 @@
           btn.querySelector('.btn-fav-txt').textContent = data.favorito ? 'Favoritado' : 'Favoritar';
         })
     );
+  }
+
+  // ── Estrelas interativas ──
+  const picker = document.getElementById('starPicker');
+  if (picker) {
+    const stars = picker.querySelectorAll('.av-star-pick');
+    picker.querySelectorAll('input[type=radio]').forEach((radio, idx) => {
+      radio.addEventListener('change', () => {
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= idx));
+      });
+    });
+    stars.forEach((star, idx) => {
+      star.addEventListener('mouseenter', () =>
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= idx)));
+      star.addEventListener('mouseleave', () => {
+        const checked = picker.querySelector('input:checked');
+        const val = checked ? parseInt(checked.value) - 1 : -1;
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= val));
+      });
+    });
   }
 </script>
 
