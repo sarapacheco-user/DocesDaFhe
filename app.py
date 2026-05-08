@@ -803,6 +803,7 @@ def editar_evento(id):
         fim_t = request.form.get('data_fim_time', '').strip() or '00:00'
         evento.nome        = nome
         evento.descricao   = descricao
+        evento.ativo       = bool(request.form.get('ativo'))
         evento.data_inicio = datetime.strptime(f'{ini_d}T{ini_t}', '%Y-%m-%dT%H:%M') if ini_d else None
         evento.data_fim    = datetime.strptime(f'{fim_d}T{fim_t}', '%Y-%m-%dT%H:%M') if fim_d else None
         db.session.commit()
