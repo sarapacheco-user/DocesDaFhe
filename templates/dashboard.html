@@ -219,6 +219,36 @@
   <button class="cards-btn next" onclick="moverCards('kitsGridAll', 1)">&#8250;</button>
 </div>
 
+<!-- ══ LINHA CORPORATIVA ══ -->
+{% if produtos_corp %}
+<h2 class="section-title">Linha Corporativa</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('corpGrid', -1)">&#8249;</button>
+  <div class="cards-track" id="corpGrid">
+    {% for produto in produtos_corp %}
+    <div class="card produto-item" data-nome="{{ produto.name | lower }}">
+      <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if produto.image_url %}
+            <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+          {% else %}🍫{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ produto.name }}</h3>
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+      </div>
+      <a href="{{ url_for('corporativo_personalizar') }}?produto_id={{ produto.id }}" class="btn-cart"
+         style="display:block;text-align:center;text-decoration:none;">Personalizar</a>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="cards-btn next" onclick="moverCards('corpGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
 <!-- ══ TODOS OS PRODUTOS ══ -->
 {% if produtos %}
 <h2 class="section-title">Nossos Produtos</h2>

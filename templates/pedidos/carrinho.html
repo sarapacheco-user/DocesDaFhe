@@ -73,13 +73,13 @@
 
   <h2 class="carrinho-titulo">Carrinho de Compras</h2>
 
-  {% if lembrancinha %}
+  {% if brinde %}
   <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;border-radius:14px;padding:1rem 1.3rem;margin-bottom:1.4rem;display:flex;align-items:center;gap:.9rem;">
     <span style="font-size:2rem;">🎁</span>
     <div>
-      <div style="font-weight:800;color:#166534;font-size:1rem;">Você ganhou uma lembrancinha!</div>
+      <div style="font-weight:800;color:#166534;font-size:1rem;">Você ganhou um brinde!</div>
       <div style="color:#15803d;font-size:.9rem;margin-top:.15rem;">
-        {{ lembrancinha.quantidade_brinde }} × {{ lembrancinha.produto_nome }} de brinde por compras acima de R$ {{ "%.2f"|format(lembrancinha.valor_minimo) }} 🎉
+        {{ brinde.quantidade_brinde }} × {{ brinde.produto_nome }} de brinde por compras acima de R$ {{ "%.2f"|format(brinde.valor_minimo) }} 🎉
       </div>
     </div>
   </div>
@@ -107,6 +107,9 @@
         <div class="carrinho-info">
           <h3>{{ item.nome }}</h3>
           <p class="carrinho-preco-unit">R$ {{ "%.2f"|format(item.preco_unit) }} /un</p>
+          {% if item.notas_corp %}
+          <div style="margin-top:.4rem;padding:.5rem .7rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.78rem;color:#166534;white-space:pre-line;">{{ item.notas_corp }}</div>
+          {% endif %}
 
           <!-- QUANTIDADE -->
           {% set min_item = item.quantidade_minima %}
@@ -461,12 +464,14 @@
     }
     document.getElementById('erroEndereco').style.display = 'none';
 
-    const partes = [rua + ', ' + numero, bairro];
-    if (cidade) partes.push(cidade);
-    if (cep)    partes.push('CEP: ' + cep);
-    const end = partes.join(' — ');
-
-    window.location.href = "{{ url_for('finalizar_pedido') }}?tipo=entrega&endereco=" + encodeURIComponent(end);
+    const params = new URLSearchParams({
+      tipo: 'entrega',
+      rua: rua + ', ' + numero,
+      bairro: bairro,
+      cidade: cidade,
+      cep: cep.replace(/\D/g, '')
+    });
+    window.location.href = "{{ url_for('finalizar_pedido') }}?" + params.toString();
   }
 
   // fecha clicando fora

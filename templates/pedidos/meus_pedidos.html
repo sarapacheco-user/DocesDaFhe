@@ -171,9 +171,14 @@
 
       <div class="mp-itens">
         {% for it in p.itens %}
-        <div class="mp-item">
-          <span>{{ it.nome }} &times; {{ it.quantidade }}</span>
-          <span>R$ {{ "%.2f"|format(it.subtotal) }}</span>
+        <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.2rem;">
+          <div style="display:flex;justify-content:space-between;width:100%;">
+            <span>{{ it.nome }} &times; {{ it.quantidade }}</span>
+            <span>R$ {{ "%.2f"|format(it.subtotal) }}</span>
+          </div>
+          {% if it.notas_corp %}
+          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;white-space:pre-line;width:100%;box-sizing:border-box;">{{ it.notas_corp }}</div>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -197,12 +202,63 @@
       <a href="{{ url_for('dashboard') }}">Ver produtos</a>
     </div>
   {% endif %}
+
+  {% if pedidos_corp %}
+  <div style="margin-top:2rem;">
+    <div class="mp-titulo" style="font-size:1.15rem;margin-bottom:.25rem;">Pedidos Corporativos</div>
+    <p class="mp-sub">Solicitações e personalizações corporativas.</p>
+
+    {% for p in pedidos_corp %}
+    <div class="mp-card" style="border-left:4px solid #5B6D3D;">
+      <div class="mp-card-header">
+        <div>
+          <span class="mp-num">Corporativo #{{ p.id }}</span>
+          <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <span class="mp-tipo">{{ 'Personalização' if p.tipo == 'personalizar' else 'Solicitação' }}</span>
+          <span class="badge badge-{% if p.status == 'novo' %}pendente{% elif p.status == 'em_andamento' %}confirmado{% elif p.status == 'concluido' %}entregue{% else %}cancelado{% endif %}">
+            {{ p.status.replace('_', ' ') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="mp-itens">
+        <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+          <div style="display:flex;justify-content:space-between;width:100%;">
+            <span style="font-weight:700;">{{ p.produto_nome or 'Produto personalizado' }}
+              {% if p.quantidade %} &times; {{ p.quantidade }}{% endif %}
+            </span>
+          </div>
+          {% if p.personalizacao %}
+          <div style="font-size:.82rem;color:#475569;">{{ p.personalizacao }}</div>
+          {% endif %}
+          {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
+          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
+            {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}
+            {% if p.modelo_tag %}<div>Modelo de tag: {{ p.modelo_tag }}</div>{% endif %}
+            {% if p.frase_tag %}<div>Frase na tag: {{ p.frase_tag }}</div>{% endif %}
+          </div>
+          {% endif %}
+          {% if p.observacoes %}
+          <div style="font-size:.76rem;color:#94a3b8;">Obs: {{ p.observacoes }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">
+        Nossa equipe entrará em contato para confirmar detalhes e orçamento.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 
 <script>
   function buscarGlobal() {
     const q = document.getElementById('searchInput').value.trim();
-    if (q) window.location.href = '/busca?q=' + encodeURIComponent(q);
+    if (q) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(q);
   }
   document.addEventListener('click', e => {
     if (!e.target.closest('.user-menu')) {

@@ -1,16 +1,18 @@
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Lembrancinha, Avaliacao
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo
 import bcrypt
 import re
 import requests
 import secrets
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+from sqlalchemy import func, or_
 import time
 import os
+import urllib.parse
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -219,7 +221,6 @@ def forgot_password():
             db.session.commit()
             reset_url = url_for('reset_password', token=token, _external=True)
             flash(f'Link para redefinição de senha: {reset_url}', 'info')
-            print(f"\n=== LINK PARA REDEFINIÇÃO DE SENHA ===\n{reset_url}\n==========================\n")
         else:
             flash('Se esse e-mail existir, um link de redefinição foi enviado.', 'info')
         return redirect(url_for('login'))
@@ -312,7 +313,6 @@ def _fav_sets(user_id):
 
 @app.route('/favoritar', methods=['POST'])
 def favoritar():
-    from flask import jsonify
     if not current_user.is_authenticated:
         return jsonify(redirect=url_for('login')), 401
     data = request.get_json()
@@ -353,14 +353,14 @@ def favoritos():
 
 @app.route('/dashboard')
 def dashboard():
-    produtos  = Product.query.filter_by(ativo=True).all()
+    produtos      = Product.query.filter(Product.ativo == True, Product.category != 'corporativos').all()
+    produtos_corp = Product.query.filter_by(ativo=True, category='corporativos').all()
     eventos   = [e for e in EventoEspecial.query.filter_by(ativo=True).all() if e.no_periodo]
     carrossel = CarrosselItem.query.filter_by(ativo=True).order_by(CarrosselItem.ordem).all()
     kits      = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
 
     # médias de avaliação por produto e kit
-    from sqlalchemy import func
     rows_p = db.session.query(Avaliacao.produto_id, func.avg(Avaliacao.estrelas), func.count(Avaliacao.id))\
                .filter(Avaliacao.produto_id.isnot(None)).group_by(Avaliacao.produto_id).all()
     rows_k = db.session.query(Avaliacao.kit_id, func.avg(Avaliacao.estrelas), func.count(Avaliacao.id))\
@@ -371,6 +371,7 @@ def dashboard():
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
+                           produtos_corp=produtos_corp,
                            eventos=eventos,
                            carrossel=carrossel,
                            kits=kits,
@@ -613,6 +614,8 @@ def edit_kit_products(kit_id):
 
 @app.route('/categoria/<nome>')
 def categoria(nome):
+    if nome == 'corporativos':
+        return redirect(url_for('corporativo'))
     produtos = Product.query.filter_by(category=nome, ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
     return render_template('product/categoria.html', produtos=produtos, categoria=nome,
@@ -1008,14 +1011,14 @@ def carrinho():
     itens            = CarrinhoItem.query.filter_by(user_id=current_user.id).all()
     total            = sum(item.subtotal for item in itens)
     quantidade_total = sum(item.quantidade for item in itens)
-    lembrancinha = (Lembrancinha.query
+    brinde = (Brinde.query
                     .filter_by(ativo=True)
-                    .filter(Lembrancinha.valor_minimo <= total)
-                    .order_by(Lembrancinha.valor_minimo.desc())
+                    .filter(Brinde.valor_minimo <= total)
+                    .order_by(Brinde.valor_minimo.desc())
                     .first())
     return render_template('pedidos/carrinho.html', itens=itens,
                            total=total, quantidade_total=quantidade_total,
-                           lembrancinha=lembrancinha)
+                           brinde=brinde)
 
 
 @app.route('/carrinho/adicionar', methods=['POST'])
@@ -1127,48 +1130,63 @@ def finalizar_pedido():
         flash('Seu carrinho está vazio!', 'error')
         return redirect(url_for('carrinho'))
 
-    tipo     = request.args.get('tipo', 'buscar')       # 'buscar' ou 'entrega'
-    endereco = request.args.get('endereco', '').strip()
+    tipo   = request.args.get('tipo', 'buscar')
+    rua    = request.args.get('rua', '').strip()
+    bairro = request.args.get('bairro', '').strip()
+    cidade = request.args.get('cidade', '').strip()
+    cep    = request.args.get('cep', '').strip()
+    endereco = f"{rua} | {bairro} | {cidade} | CEP: {cep}" if rua else request.args.get('endereco', '').strip()
 
-    linhas = ['🛍️ *Olá! Quero fazer um pedido:*\n']
+    linhas = ['*Ola! Quero fazer um pedido:*\n']
 
     # ── TIPO DE ENTREGA ──
     if tipo == 'entrega':
-        linhas.append('🚚 *Tipo: Entrega*')
-        if endereco:
-            linhas.append(f'📍 *Endereço de entrega:* {endereco}')
+        linhas.append('*Tipo: Entrega*')
+        if rua:
+            linhas.append(f'Endereco de entrega: {rua}')
+            if bairro: linhas.append(f'Bairro: {bairro}')
+            if cidade: linhas.append(f'Cidade: {cidade}')
+            if cep:    linhas.append(f'CEP: {cep}')
+        elif endereco:
+            linhas.append(f'Endereco: {endereco}')
     else:
-        linhas.append('🏍️ *Tipo: Buscar (motoboy/Uber)*')
+        linhas.append('*Tipo: Buscar (motoboy/Uber)*')
     linhas.append('')
 
     # ── DADOS DO CLIENTE ──
-    linhas.append('👤 *Dados do Cliente:*')
+    linhas.append('*Dados do Cliente:*')
     linhas.append(f'  Nome: {current_user.name or current_user.email}')
-    linhas.append(f'  📧 Email: {current_user.email}')
-    linhas.append(f'  📍 CEP: {current_user.cep}')
-    linhas.append(f'  📱 Telefone: {current_user.phone}')
+    linhas.append(f'  Email: {current_user.email}')
+    linhas.append(f'  Telefone: {current_user.phone}')
     linhas.append('')
 
     # ── ITENS DO PEDIDO ──
-    linhas.append('🛒 *Itens do Pedido:*')
+    linhas.append('*Itens do Pedido:*')
     total = 0
     for item in itens:
         subtotal = item.subtotal
         total   += subtotal
-        linhas.append(f'• *{item.nome}*')
+        linhas.append(f'- *{item.nome}*')
         linhas.append(f'  Qtd: {item.quantidade} x R$ {item.preco_unit:.2f} = R$ {subtotal:.2f}')
+        if item.notas_corp:
+            detalhes = [l.strip() for l in item.notas_corp.split('\n')
+                        if l.strip() and not l.strip().startswith('[')]
+            if detalhes:
+                linhas.append('  *Detalhes corporativos:*')
+                for d in detalhes:
+                    linhas.append(f'  • {d}')
 
-    linhas.append(f'\n💰 *Total: R$ {total:.2f}*')
+    linhas.append(f'\n*Total: R$ {total:.2f}*')
 
     # ── LEMBRANCINHA ──
-    lembrancinha = (Lembrancinha.query
+    brinde = (Brinde.query
                     .filter_by(ativo=True)
-                    .filter(Lembrancinha.valor_minimo <= total)
-                    .order_by(Lembrancinha.valor_minimo.desc())
+                    .filter(Brinde.valor_minimo <= total)
+                    .order_by(Brinde.valor_minimo.desc())
                     .first())
-    if lembrancinha:
+    if brinde:
         linhas.append('')
-        linhas.append(f'🎁 *Lembrancinha:* {lembrancinha.quantidade_brinde}x {lembrancinha.produto_nome} (brinde por pedidos acima de R$ {float(lembrancinha.valor_minimo):.2f})')
+        linhas.append(f'*Brinde:* {brinde.quantidade_brinde}x {brinde.produto_nome} (brinde em pedidos acima de R$ {float(brinde.valor_minimo):.2f})')
 
     # ── SALVAR PEDIDO ──
     pedido = Pedido(
@@ -1187,6 +1205,7 @@ def finalizar_pedido():
             nome       = item.nome,
             quantidade = item.quantidade,
             preco_unit = item.preco_unit,
+            notas_corp = item.notas_corp,
         ))
 
     # ── BAIXA AUTOMÁTICA DE ESTOQUE ──
@@ -1212,7 +1231,6 @@ def finalizar_pedido():
             kwargs['estoque_novo'] = obj.estoque
             db.session.add(MovimentacaoEstoque(**kwargs))
 
-    import urllib.parse
     msg_encoded  = urllib.parse.quote('\n'.join(linhas))
     whatsapp_url = f'https://wa.me/{WHATSAPP_NUMBER}?text={msg_encoded}'
 
@@ -1230,7 +1248,10 @@ def finalizar_pedido():
 def meus_pedidos():
     pedidos = Pedido.query.filter_by(user_id=current_user.id)\
                           .order_by(Pedido.created_at.desc()).all()
-    return render_template('pedidos/meus_pedidos.html', pedidos=pedidos)
+    pedidos_corp = PedidoCorporativo.query.filter_by(user_id=current_user.id)\
+                                          .order_by(PedidoCorporativo.created_at.desc()).all()
+    return render_template('pedidos/meus_pedidos.html', pedidos=pedidos,
+                           pedidos_corp=pedidos_corp)
 
 
 @app.route('/pedidos/<int:id>/cancelar', methods=['POST'])
@@ -1257,26 +1278,32 @@ def cancelar_pedido(id):
 @login_required
 @admin_required
 def admin_pedidos():
+    corp_ids = {r[0] for r in db.session.query(PedidoItem.pedido_id)
+                                        .filter(PedidoItem.notas_corp.isnot(None))
+                                        .distinct().all()}
+
     status_filter = request.args.get('status', '')
-    q = Pedido.query.order_by(Pedido.created_at.desc())
+    q = Pedido.query.filter(~Pedido.id.in_(corp_ids)).order_by(Pedido.created_at.desc())
     if status_filter:
         q = q.filter_by(status=status_filter)
     pedidos = q.all()
 
+    base = Pedido.query.filter(~Pedido.id.in_(corp_ids))
     stats = dict(
-        total      = Pedido.query.count(),
-        pendente   = Pedido.query.filter_by(status='pendente').count(),
-        confirmado = Pedido.query.filter_by(status='confirmado').count(),
-        entregue   = Pedido.query.filter_by(status='entregue').count(),
-        cancelado  = Pedido.query.filter_by(status='cancelado').count(),
+        total      = base.count(),
+        pendente   = base.filter_by(status='pendente').count(),
+        confirmado = base.filter_by(status='confirmado').count(),
+        entregue   = base.filter_by(status='entregue').count(),
+        cancelado  = base.filter_by(status='cancelado').count(),
         faturado   = float(db.session.query(db.func.sum(Pedido.total))
+                          .filter(~Pedido.id.in_(corp_ids))
                           .filter(Pedido.status.in_(['confirmado', 'entregue']))
                           .scalar() or 0),
     )
-    lembrancinhas = Lembrancinha.query.filter_by(ativo=True).order_by(Lembrancinha.valor_minimo).all()
+    brindes = Brinde.query.filter_by(ativo=True).order_by(Brinde.valor_minimo).all()
     return render_template('admin/pedidos.html',
                            pedidos=pedidos, status_filter=status_filter, stats=stats,
-                           lembrancinhas=lembrancinhas)
+                           brindes=brindes)
 
 
 @app.route('/admin/pedidos/<int:id>/status', methods=['POST'])
@@ -1339,7 +1366,6 @@ def _get_item_estoque(tipo, item_id):
 @login_required
 @admin_required
 def movimentar_estoque():
-    from flask import jsonify
     data      = request.get_json()
     tipo_item = data.get('tipo_item', 'produto')
     item_id   = int(data.get('item_id', 0))
@@ -1377,7 +1403,6 @@ def movimentar_estoque():
 @login_required
 @admin_required
 def historico_estoque(tipo_item, item_id):
-    from flask import jsonify
     filtro = {f'{tipo_item}_id': item_id}
     movs = (MovimentacaoEstoque.query
             .filter_by(**filtro)
@@ -1396,7 +1421,6 @@ def historico_estoque(tipo_item, item_id):
 @admin_required
 def relatorio_estoque():
     from datetime import datetime as _dt2, timedelta
-    from sqlalchemy import or_
 
     # parâmetros de filtro
     data_ini_str = request.args.get('data_ini', '')
@@ -1493,6 +1517,22 @@ def relatorio_estoque():
         ),
     )
 
+    # ── DADOS CORPORATIVOS ──
+    corp_pedidos = PedidoCorporativo.query.filter(
+        PedidoCorporativo.created_at >= dt_ini,
+        PedidoCorporativo.created_at <= dt_fim,
+    ).order_by(PedidoCorporativo.created_at.desc()).all()
+
+    corp_stats = dict(
+        total        = len(corp_pedidos),
+        novo         = sum(1 for p in corp_pedidos if p.status == 'novo'),
+        em_andamento = sum(1 for p in corp_pedidos if p.status == 'em_andamento'),
+        concluido    = sum(1 for p in corp_pedidos if p.status == 'concluido'),
+        cancelado    = sum(1 for p in corp_pedidos if p.status == 'cancelado'),
+        personalizar = sum(1 for p in corp_pedidos if p.tipo == 'personalizar'),
+        solicitar    = sum(1 for p in corp_pedidos if p.tipo == 'solicitar'),
+    )
+
     # exportar CSV
     if request.args.get('export') == 'csv':
         import csv, io
@@ -1509,7 +1549,13 @@ def relatorio_estoque():
             w.writerow([p.id, p.created_at.strftime('%d/%m/%Y %H:%M'),
                         p.user.name or p.user.email, p.tipo,
                         f'{float(p.total):.2f}', p.status])
-        from flask import Response
+        w.writerow([])
+        w.writerow(['--- CORPORATIVOS ---'])
+        w.writerow(['#', 'Data', 'Nome', 'Telefone', 'Tipo', 'Produto', 'Qtd', 'Status'])
+        for p in corp_pedidos:
+            w.writerow([p.id, p.created_at.strftime('%d/%m/%Y %H:%M'),
+                        p.nome, p.telefone, p.tipo,
+                        p.produto_nome or '', p.quantidade or '', p.status])
         return Response(
             '﻿' + output.getvalue(),
             mimetype='text/csv; charset=utf-8',
@@ -1523,6 +1569,8 @@ def relatorio_estoque():
         grafico_quantidades=grafico_quantidades,
         pedidos_periodo=pedidos_periodo,
         venda_stats=venda_stats,
+        corp_pedidos=corp_pedidos,
+        corp_stats=corp_stats,
         data_ini=data_ini_str or data_ini.strftime('%Y-%m-%d'),
         data_fim=data_fim_str or data_fim.strftime('%Y-%m-%d'),
         tipo_filtro=tipo_filtro)
@@ -1532,7 +1580,6 @@ def relatorio_estoque():
 @login_required
 @admin_required
 def editar_minimo_estoque(tipo_item, item_id):
-    from flask import jsonify
     data = request.get_json()
     item = _get_item_estoque(tipo_item, item_id)
     if not item:
@@ -1796,10 +1843,10 @@ def deletar_avaliacao(id):
 #  LEMBRANCINHAS
 # ══════════════════════════════════════════════
 
-@app.route('/admin/lembrancinhas', methods=['GET', 'POST'])
+@app.route('/admin/brindes', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def admin_lembrancinhas():
+def admin_brindes():
     if request.method == 'POST':
         acao = request.form.get('acao')
 
@@ -1810,31 +1857,205 @@ def admin_lembrancinhas():
                 nome      = request.form['produto_nome'].strip()
                 if not nome or valor_min <= 0 or qtd_brind < 1:
                     raise ValueError
-                l = Lembrancinha(valor_minimo=valor_min,
+                l = Brinde(valor_minimo=valor_min,
                                  produto_nome=nome,
                                  quantidade_brinde=qtd_brind)
                 db.session.add(l)
                 db.session.commit()
-                flash('Lembrancinha criada com sucesso!', 'success')
+                flash('Brinde criado com sucesso!', 'success')
             except (ValueError, KeyError):
                 flash('Preencha todos os campos corretamente.', 'error')
 
         elif acao == 'toggle':
-            l = Lembrancinha.query.get_or_404(int(request.form['id']))
+            l = Brinde.query.get_or_404(int(request.form['id']))
             l.ativo = not l.ativo
             db.session.commit()
             flash('Status atualizado.', 'success')
 
         elif acao == 'deletar':
-            l = Lembrancinha.query.get_or_404(int(request.form['id']))
+            l = Brinde.query.get_or_404(int(request.form['id']))
             db.session.delete(l)
             db.session.commit()
-            flash('Lembrancinha removida.', 'info')
+            flash('Brinde removido.', 'info')
 
-        return redirect(url_for('admin_lembrancinhas'))
+        return redirect(url_for('admin_brindes'))
 
-    itens = Lembrancinha.query.order_by(Lembrancinha.valor_minimo).all()
-    return render_template('admin/lembrancinhas.html', lembrancinhas=itens)
+    itens = Brinde.query.order_by(Brinde.valor_minimo).all()
+    return render_template('admin/brindes.html', brindes=itens)
+
+
+# ─────────────────────────────────────
+# CORPORATIVO
+# ─────────────────────────────────────
+
+def _corp_config():
+    cfg = ConfigCorporativo.query.first()
+    if not cfg:
+        cfg = ConfigCorporativo()
+        db.session.add(cfg)
+        db.session.commit()
+    return cfg
+
+
+@app.route('/corporativo')
+def corporativo():
+    config = _corp_config()
+    produtos = Product.query.filter_by(category='corporativos', ativo=True).all()
+    fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    return render_template('corporativo/index.html',
+                           config=config, produtos=produtos,
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e,
+                           categoria='corporativos')
+
+
+@app.route('/corporativo/personalizar', methods=['GET', 'POST'])
+@login_required
+def corporativo_personalizar():
+    config = _corp_config()
+    produtos = Product.query.filter_by(category='corporativos', ativo=True).all()
+    produto_id = request.args.get('produto_id', type=int)
+    produto_selecionado = Product.query.get(produto_id) if produto_id else None
+
+    if request.method == 'POST':
+        prod_id       = request.form.get('produto_id', type=int)
+        prod_nome     = request.form.get('produto_nome', '').strip()
+        quantidade    = request.form.get('quantidade', type=int) or 1
+        personalizacao = request.form.get('personalizacao', '').strip()
+        cor_fita      = request.form.get('cor_fita', '').strip()
+        modelo_tag    = request.form.get('modelo_tag', '').strip()
+        frase_tag     = request.form.get('frase_tag', '').strip()
+        observacoes   = request.form.get('observacoes', '').strip()
+
+        if not prod_id:
+            flash('Selecione um produto.', 'error')
+            return redirect(request.url)
+
+        partes = ['[Pedido Corporativo]']
+        if personalizacao: partes.append(f'Personalização: {personalizacao}')
+        if cor_fita:       partes.append(f'Cor da fita: {cor_fita}')
+        if modelo_tag:     partes.append(f'Modelo de tag: {modelo_tag}')
+        if frase_tag:      partes.append(f'Frase na tag: {frase_tag}')
+        if observacoes:    partes.append(f'Observações: {observacoes}')
+        notas = '\n'.join(partes)
+
+        pedido = PedidoCorporativo(
+            user_id=current_user.id,
+            nome=current_user.name or '', email=current_user.email,
+            telefone=current_user.phone or '', tipo='personalizar',
+            produto_id=prod_id, produto_nome=prod_nome, quantidade=quantidade,
+            personalizacao=personalizacao, cor_fita=cor_fita,
+            modelo_tag=modelo_tag, frase_tag=frase_tag, observacoes=observacoes
+        )
+        db.session.add(pedido)
+
+        item = CarrinhoItem.query.filter_by(
+            user_id=current_user.id, produto_id=prod_id,
+            kit_id=None, especial_id=None
+        ).first()
+        if item:
+            item.quantidade += quantidade
+            item.notas_corp = notas
+        else:
+            item = CarrinhoItem(user_id=current_user.id, produto_id=prod_id,
+                                quantidade=quantidade, notas_corp=notas)
+            db.session.add(item)
+
+        db.session.commit()
+        flash('Produto adicionado ao carrinho!', 'success')
+        return redirect(url_for('carrinho'))
+
+    user_data = {'nome': current_user.name or '', 'email': current_user.email,
+                 'telefone': current_user.phone or ''} if current_user.is_authenticated else {}
+    return render_template('corporativo/personalizar.html',
+                           config=config, produtos=produtos,
+                           produto_selecionado=produto_selecionado,
+                           user_data=user_data, categoria='corporativos')
+
+
+@app.route('/corporativo/solicitar', methods=['GET', 'POST'])
+@login_required
+def corporativo_solicitar():
+    config = _corp_config()
+
+    if request.method == 'POST':
+        descricao     = request.form.get('descricao', '').strip()
+        quantidade    = request.form.get('quantidade', '').strip()
+        cor_fita      = request.form.get('cor_fita', '').strip()
+        modelo_tag    = request.form.get('modelo_tag', '').strip()
+        frase_tag     = request.form.get('frase_tag', '').strip()
+        observacoes   = request.form.get('observacoes', '').strip()
+
+        if not descricao:
+            flash('Descreva o produto desejado.', 'error')
+            return redirect(request.url)
+
+        qtd_int = int(quantidade) if quantidade.isdigit() else None
+        pedido = PedidoCorporativo(
+            user_id=current_user.id,
+            nome=current_user.name or '', email=current_user.email,
+            telefone=current_user.phone or '', tipo='solicitar',
+            personalizacao=descricao, quantidade=qtd_int,
+            cor_fita=cor_fita, modelo_tag=modelo_tag, frase_tag=frase_tag,
+            observacoes=observacoes
+        )
+        db.session.add(pedido)
+        db.session.commit()
+        flash('Solicitação enviada! Nossa equipe entrará em contato em breve.', 'success')
+        return redirect(url_for('corporativo'))
+
+    user_data = {'nome': current_user.name or '', 'email': current_user.email,
+                 'telefone': current_user.phone or ''} if current_user.is_authenticated else {}
+    return render_template('corporativo/solicitar.html', config=config,
+                           user_data=user_data, categoria='corporativos')
+
+
+@app.route('/admin/corporativo', methods=['GET', 'POST'])
+@login_required
+def admin_corporativo():
+    if not current_user.is_admin:
+        return redirect(url_for('dashboard'))
+    config = _corp_config()
+
+    if request.method == 'POST':
+        acao = request.form.get('acao')
+        if acao == 'config':
+            config.prazo_texto  = request.form.get('prazo_texto', '15 dias uteis').strip()
+            config.informacoes  = request.form.get('informacoes', '').strip()
+            config.cor_hero_ini = request.form.get('cor_hero_ini', '#1e293b')
+            config.cor_hero_fim = request.form.get('cor_hero_fim', '#334155')
+            config.cor_destaque = request.form.get('cor_destaque', '#5B6D3D')
+            db.session.commit()
+            flash('Configuracoes atualizadas!', 'success')
+        return redirect(url_for('admin_corporativo'))
+
+    status_filter = request.args.get('status', '')
+    q = PedidoCorporativo.query
+    if status_filter:
+        q = q.filter_by(status=status_filter)
+    pedidos = q.order_by(PedidoCorporativo.created_at.desc()).all()
+
+    stats = {
+        'total':        PedidoCorporativo.query.count(),
+        'novo':         PedidoCorporativo.query.filter_by(status='novo').count(),
+        'em_andamento': PedidoCorporativo.query.filter_by(status='em_andamento').count(),
+        'concluido':    PedidoCorporativo.query.filter_by(status='concluido').count(),
+        'cancelado':    PedidoCorporativo.query.filter_by(status='cancelado').count(),
+    }
+    return render_template('admin/corporativo.html', config=config,
+                           pedidos=pedidos, stats=stats, status_filter=status_filter)
+
+
+@app.route('/admin/corporativo/<int:id>/status', methods=['POST'])
+@login_required
+def admin_corporativo_status(id):
+    if not current_user.is_admin:
+        return redirect(url_for('dashboard'))
+    p = PedidoCorporativo.query.get_or_404(id)
+    p.status = request.form.get('status', p.status)
+    db.session.commit()
+    flash('Status atualizado.', 'success')
+    sf = request.form.get('status_filter', '')
+    return redirect(url_for('admin_corporativo', status=sf))
 
 
 # ─────────────────────────────────────

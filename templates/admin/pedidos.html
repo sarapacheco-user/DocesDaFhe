@@ -159,7 +159,7 @@
           </td>
           <td>
             {% set brinde = namespace(item=none) %}
-            {% for l in lembrancinhas %}
+            {% for l in brindes %}
               {% if p.total >= l.valor_minimo %}
                 {% set brinde.item = l %}
               {% endif %}
@@ -168,7 +168,7 @@
               {{ p.itens|length }} item(s)
             </button>
             {% if brinde.item %}
-            <div title="🎁 Lembrancinha: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }} (pedido acima de R$ {{ '%.2f'|format(brinde.item.valor_minimo) }})"
+            <div title="🎁 Brinde: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }} (pedido acima de R$ {{ '%.2f'|format(brinde.item.valor_minimo) }})"
                  style="display:inline-block;margin-left:.4rem;cursor:help;">
               🎁
             </div>
@@ -176,10 +176,13 @@
             <div class="itens-list" id="itens-{{ p.id }}">
               {% for it in p.itens %}
               <div>• {{ it.nome }} x{{ it.quantidade }} — R$ {{ "%.2f"|format(it.subtotal) }}</div>
+              {% if it.notas_corp %}
+              <div style="margin:.2rem 0 .2rem 1rem;padding:.3rem .5rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:4px;font-size:.75rem;color:#166534;white-space:pre-line;">{{ it.notas_corp }}</div>
+              {% endif %}
               {% endfor %}
               {% if brinde.item %}
               <div style="margin-top:.4rem;color:#166534;font-weight:700;">
-                🎁 Lembrancinha: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }}
+                🎁 Brinde: {{ brinde.item.quantidade_brinde }}× {{ brinde.item.produto_nome }}
                 <span style="font-weight:400;color:#15803d;">(pedido acima de R$ {{ "%.2f"|format(brinde.item.valor_minimo) }})</span>
               </div>
               {% endif %}

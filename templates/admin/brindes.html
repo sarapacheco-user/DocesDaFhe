@@ -56,15 +56,15 @@
 </style>
 
 <div class="lmb-page">
-  <div class="lmb-title">🎁 <span>Lembrancinhas</span> por Valor do Pedido</div>
+  <div class="lmb-title">🎁 <span>Brindes</span> por Valor do Pedido</div>
 
   <p class="lmb-hint">
-    Configure brindes automáticos: quando o cliente atingir o valor mínimo no carrinho, a lembrancinha aparece para ele.
+    Configure brindes automáticos: quando o cliente atingir o valor mínimo no carrinho, a brinde aparece para ele.
   </p>
 
   <!-- FORMULÁRIO CRIAR -->
   <div class="lmb-form-card">
-    <h3>Nova Lembrancinha</h3>
+    <h3>Nova Brinde</h3>
     <form method="POST">
       <input type="hidden" name="acao" value="criar">
       <div class="lmb-grid">
@@ -74,7 +74,7 @@
                  placeholder="Ex: 80.00" required>
         </div>
         <div class="lmb-field">
-          <label>Produto da lembrancinha</label>
+          <label>Produto da brinde</label>
           <input type="text" name="produto_nome" placeholder="Ex: Brigadeiro de baunilha" required>
         </div>
         <div class="lmb-field">
@@ -91,19 +91,19 @@
 
   <!-- TABELA -->
   <div class="lmb-card">
-    {% if lembrancinhas %}
+    {% if brindes %}
     <table class="lmb-table">
       <thead>
         <tr>
           <th>Valor mínimo</th>
-          <th>Lembrancinha</th>
+          <th>Brinde</th>
           <th>Qtd brinde</th>
           <th>Status</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
-        {% for l in lembrancinhas %}
+        {% for l in brindes %}
         <tr>
           <td><strong>R$ {{ "%.2f"|format(l.valor_minimo) }}+</strong></td>
           <td><span class="lmb-gift-icon">🎁</span>{{ l.produto_nome }}</td>
@@ -120,7 +120,7 @@
               <button class="btn-toggle">{{ 'Desativar' if l.ativo else 'Ativar' }}</button>
             </form>
             <form method="POST" style="display:inline"
-                  onsubmit="return confirm('Remover esta lembrancinha?')">
+                  onsubmit="return confirm('Remover esta brinde?')">
               <input type="hidden" name="acao" value="deletar">
               <input type="hidden" name="id" value="{{ l.id }}">
               <button class="btn-del">Excluir</button>
@@ -131,7 +131,7 @@
       </tbody>
     </table>
     {% else %}
-    <div class="empty-msg">Nenhuma lembrancinha cadastrada ainda.</div>
+    <div class="empty-msg">Nenhuma brinde cadastrada ainda.</div>
     {% endif %}
   </div>
 </div>

@@ -105,7 +105,6 @@ class KitProduct(db.Model):
     # Relationships
     product = db.relationship('Product')
 
-# Adicione esses modelos no seu models.py
 
 class EventoEspecial(db.Model):
     __tablename__ = "eventos_especiais"
@@ -202,6 +201,7 @@ class CarrinhoItem(db.Model):
     kit_id      = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True)
     especial_id = db.Column(db.Integer, db.ForeignKey('produtos_especiais.id'), nullable=True)
     quantidade  = db.Column(db.Integer, default=1, nullable=False)
+    notas_corp  = db.Column(db.Text, nullable=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     # relacionamentos
@@ -376,6 +376,7 @@ class PedidoItem(db.Model):
     nome       = db.Column(db.String(200), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
     preco_unit = db.Column(db.Numeric(10, 2), nullable=False)
+    notas_corp = db.Column(db.Text, nullable=True)
 
     @property
     def subtotal(self):
@@ -385,8 +386,8 @@ class PedidoItem(db.Model):
         return f"<PedidoItem {self.nome} x{self.quantidade}>"
 
 
-class Lembrancinha(db.Model):
-    __tablename__ = "lembrancinhas"
+class Brinde(db.Model):
+    __tablename__ = "brindes"
     id                = db.Column(db.Integer, primary_key=True)
     valor_minimo      = db.Column(db.Numeric(10, 2), nullable=False)
     produto_nome      = db.Column(db.String(200), nullable=False)
@@ -394,7 +395,7 @@ class Lembrancinha(db.Model):
     ativo             = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
-        return f"<Lembrancinha {self.produto_nome} a partir de R${self.valor_minimo}>"
+        return f"<Brinde {self.produto_nome} a partir de R${self.valor_minimo}>"
 
 
 class Avaliacao(db.Model):
@@ -420,3 +421,43 @@ class Avaliacao(db.Model):
 
     def __repr__(self):
         return f"<Avaliacao {self.estrelas}★ by user {self.user_id}>"
+
+
+class ConfigCorporativo(db.Model):
+    __tablename__ = "config_corporativo"
+    id          = db.Column(db.Integer, primary_key=True)
+    prazo_texto = db.Column(db.String(200), default="15 dias úteis")
+    informacoes = db.Column(db.Text, default="")
+    cor_hero_ini  = db.Column(db.String(20), default="#1e293b")
+    cor_hero_fim  = db.Column(db.String(20), default="#334155")
+    cor_destaque  = db.Column(db.String(20), default="#5B6D3D")
+    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ConfigCorporativo prazo={self.prazo_texto}>"
+
+
+class PedidoCorporativo(db.Model):
+    __tablename__ = "pedidos_corporativos"
+    id             = db.Column(db.Integer, primary_key=True)
+    user_id        = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    nome           = db.Column(db.String(200), nullable=False)
+    email          = db.Column(db.String(200), nullable=False)
+    telefone       = db.Column(db.String(50), nullable=False)
+    tipo           = db.Column(db.String(20), default='personalizar')  # 'personalizar' | 'solicitar'
+    produto_id     = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    produto_nome   = db.Column(db.String(200), nullable=True)
+    quantidade     = db.Column(db.Integer, nullable=True)
+    personalizacao = db.Column(db.Text, nullable=True)
+    cor_fita       = db.Column(db.String(100), nullable=True)
+    modelo_tag     = db.Column(db.String(30), nullable=True)   # quadrada | redonda | retangular
+    frase_tag      = db.Column(db.String(300), nullable=True)
+    data_desejada  = db.Column(db.String(100), nullable=True)
+    observacoes    = db.Column(db.Text, nullable=True)
+    status         = db.Column(db.String(20), default='novo')  # novo | em_andamento | concluido | cancelado
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    produto = db.relationship('Product', backref='pedidos_corporativos', lazy=True)
+
+    def __repr__(self):
+        return f"<PedidoCorporativo #{self.id} {self.tipo} {self.status}>"
