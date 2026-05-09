@@ -233,6 +233,16 @@
           {% if p.personalizacao %}
           <div style="font-size:.82rem;color:#475569;">{{ p.personalizacao }}</div>
           {% endif %}
+          {% if p.logo_url %}
+          <div style="font-size:.76rem;color:#475569;">
+            Logo enviada:
+            <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+                 style="max-height:36px;vertical-align:middle;border-radius:4px;border:1px solid #e2e8f0;margin-left:.3rem;">
+          </div>
+          {% endif %}
+          {% if p.sabor %}
+          <div style="font-size:.76rem;color:#475569;">Sabor: <strong>{{ p.sabor }}</strong></div>
+          {% endif %}
           {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
           <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
             {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}

@@ -449,6 +449,8 @@ class PedidoCorporativo(db.Model):
     produto_nome   = db.Column(db.String(200), nullable=True)
     quantidade     = db.Column(db.Integer, nullable=True)
     personalizacao = db.Column(db.Text, nullable=True)
+    logo_url       = db.Column(db.String(300), nullable=True)
+    sabor          = db.Column(db.String(200), nullable=True)
     cor_fita       = db.Column(db.String(100), nullable=True)
     modelo_tag     = db.Column(db.String(30), nullable=True)   # quadrada | redonda | retangular
     frase_tag      = db.Column(db.String(300), nullable=True)

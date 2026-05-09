@@ -157,7 +157,7 @@
     {% endif %}
 
     <div class="corp-form-body">
-      <form method="POST" action="{{ url_for('corporativo_personalizar') }}">
+      <form method="POST" action="{{ url_for('corporativo_personalizar') }}" enctype="multipart/form-data">
 
         <div class="form-section-title">Produto</div>
         <div class="form-row">
@@ -190,6 +190,13 @@
           <div class="hint">Quanto mais detalhes, melhor poderemos atendê-la.</div>
         </div>
 
+        <div class="form-group">
+          <label>Sabor desejado <span style="font-weight:400;text-transform:none;color:#b0bec5;">(opcional)</span></label>
+          <input type="text" name="sabor"
+                 placeholder="Ex: chocolate belga, maracujá, pistache, morango...">
+          <div class="hint">Informe o sabor ou combinação de sabores que preferir.</div>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Cor da fita</label>
@@ -211,6 +218,13 @@
           <input type="text" name="frase_tag" maxlength="300"
                  placeholder="Ex: Obrigada pela parceria! Com carinho, Empresa X">
           <div class="hint">A frase será impressa na tag do produto.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Logo da empresa <span style="font-weight:400;text-transform:none;color:#b0bec5;">(opcional)</span></label>
+          <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif"
+                 style="padding:.5rem .9rem;">
+          <div class="hint">PNG, JPG ou WEBP. Envie o arquivo da logo para personalização da embalagem.</div>
         </div>
 
         <div class="form-group">

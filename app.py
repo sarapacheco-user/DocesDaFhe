@@ -36,10 +36,12 @@ UPLOAD_FOLDER_PRODUTOS  = os.path.join('static', 'uploads', 'produtos')
 UPLOAD_FOLDER_KITS      = os.path.join('static', 'uploads', 'kits')
 UPLOAD_FOLDER_ESPECIAIS = os.path.join('static', 'uploads', 'especiais')
 UPLOAD_FOLDER_LOGO      = os.path.join('static', 'uploads', 'logo')
+UPLOAD_FOLDER_CORP      = os.path.join('static', 'uploads', 'corporativo')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 
 for folder in [UPLOAD_FOLDER_CARROSSEL, UPLOAD_FOLDER_PRODUTOS,
-               UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO]:
+               UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO,
+               UPLOAD_FOLDER_CORP]:
     os.makedirs(folder, exist_ok=True)
 
 
@@ -1917,24 +1919,36 @@ def corporativo_personalizar():
     produto_selecionado = Product.query.get(produto_id) if produto_id else None
 
     if request.method == 'POST':
-        prod_id       = request.form.get('produto_id', type=int)
-        prod_nome     = request.form.get('produto_nome', '').strip()
-        quantidade    = request.form.get('quantidade', type=int) or 1
+        prod_id        = request.form.get('produto_id', type=int)
+        prod_nome      = request.form.get('produto_nome', '').strip()
+        quantidade     = request.form.get('quantidade', type=int) or 1
         personalizacao = request.form.get('personalizacao', '').strip()
-        cor_fita      = request.form.get('cor_fita', '').strip()
-        modelo_tag    = request.form.get('modelo_tag', '').strip()
-        frase_tag     = request.form.get('frase_tag', '').strip()
-        observacoes   = request.form.get('observacoes', '').strip()
+        sabor          = request.form.get('sabor', '').strip()
+        cor_fita       = request.form.get('cor_fita', '').strip()
+        modelo_tag     = request.form.get('modelo_tag', '').strip()
+        frase_tag      = request.form.get('frase_tag', '').strip()
+        observacoes    = request.form.get('observacoes', '').strip()
 
         if not prod_id:
             flash('Selecione um produto.', 'error')
             return redirect(request.url)
 
+        logo_url = None
+        arquivo = request.files.get('logo')
+        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
+            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
+            arquivo.save(os.path.join(UPLOAD_FOLDER_CORP, filename))
+            logo_url = f"uploads/corporativo/{filename}"
+
         partes = ['[Pedido Corporativo]']
         if personalizacao: partes.append(f'Personalização: {personalizacao}')
+        if sabor:          partes.append(f'Sabor: {sabor}')
         if cor_fita:       partes.append(f'Cor da fita: {cor_fita}')
         if modelo_tag:     partes.append(f'Modelo de tag: {modelo_tag}')
         if frase_tag:      partes.append(f'Frase na tag: {frase_tag}')
+        if logo_url:
+            logo_link = url_for('static', filename=logo_url, _external=True)
+            partes.append(f'Logo da empresa: {logo_link}')
         if observacoes:    partes.append(f'Observações: {observacoes}')
         notas = '\n'.join(partes)
 
@@ -1943,7 +1957,7 @@ def corporativo_personalizar():
             nome=current_user.name or '', email=current_user.email,
             telefone=current_user.phone or '', tipo='personalizar',
             produto_id=prod_id, produto_nome=prod_nome, quantidade=quantidade,
-            personalizacao=personalizacao, cor_fita=cor_fita,
+            personalizacao=personalizacao, sabor=sabor, logo_url=logo_url, cor_fita=cor_fita,
             modelo_tag=modelo_tag, frase_tag=frase_tag, observacoes=observacoes
         )
         db.session.add(pedido)
@@ -1989,12 +2003,19 @@ def corporativo_solicitar():
             flash('Descreva o produto desejado.', 'error')
             return redirect(request.url)
 
+        logo_url = None
+        arquivo = request.files.get('logo')
+        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
+            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
+            arquivo.save(os.path.join(UPLOAD_FOLDER_CORP, filename))
+            logo_url = f"uploads/corporativo/{filename}"
+
         qtd_int = int(quantidade) if quantidade.isdigit() else None
         pedido = PedidoCorporativo(
             user_id=current_user.id,
             nome=current_user.name or '', email=current_user.email,
             telefone=current_user.phone or '', tipo='solicitar',
-            personalizacao=descricao, quantidade=qtd_int,
+            personalizacao=descricao, quantidade=qtd_int, logo_url=logo_url,
             cor_fita=cor_fita, modelo_tag=modelo_tag, frase_tag=frase_tag,
             observacoes=observacoes
         )
