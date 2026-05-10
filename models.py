@@ -357,9 +357,10 @@ class Pedido(db.Model):
     tipo       = db.Column(db.String(20), nullable=False)   # 'buscar' | 'entrega'
     endereco   = db.Column(db.String(500), nullable=True)
     total      = db.Column(db.Numeric(10, 2), nullable=False)
-    status     = db.Column(db.String(20), default='pendente', nullable=False)
+    status          = db.Column(db.String(20), default='pendente', nullable=False)
     # pendente → confirmado → entregue  |  cancelado
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    oculto_cliente  = db.Column(db.Boolean, default=False, nullable=False)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user  = db.relationship('User', backref='pedidos')
@@ -456,8 +457,9 @@ class PedidoCorporativo(db.Model):
     frase_tag      = db.Column(db.String(300), nullable=True)
     data_desejada  = db.Column(db.String(100), nullable=True)
     observacoes    = db.Column(db.Text, nullable=True)
-    status         = db.Column(db.String(20), default='novo')  # novo | em_andamento | concluido | cancelado
-    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+    status          = db.Column(db.String(20), default='novo')  # novo | em_andamento | concluido | cancelado
+    oculto_cliente  = db.Column(db.Boolean, default=False, nullable=False)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
     produto = db.relationship('Product', backref='pedidos_corporativos', lazy=True)
 

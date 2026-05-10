@@ -49,6 +49,58 @@
   }
   .btn-cancelar:hover { background: #ef4444; color: #fff; }
 
+  /* modo seleção */
+  .mp-card.selecionavel { cursor: pointer; }
+  .mp-card.selecionavel:hover { border-color: #94a3b8; }
+  .mp-card.selecionado { border-color: #ef4444 !important; background: #fff5f5; }
+
+  .mp-checkbox {
+    display: none; width: 20px; height: 20px; accent-color: #ef4444;
+    flex-shrink: 0; cursor: pointer;
+  }
+  #formApagar.modo-selecao .mp-checkbox { display: block; }
+
+  .barra-selecao {
+    display: none; position: sticky; bottom: 1.2rem; z-index: 50;
+    background: #1e293b; color: #fff; border-radius: 16px;
+    padding: .9rem 1.4rem; margin-top: 1.2rem;
+    align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .8rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  }
+  .barra-selecao.visivel { display: flex; }
+
+  .barra-selecao-info { font-size: .88rem; font-weight: 700; }
+
+  .btn-selecionar-todos {
+    background: none; border: 1.5px solid rgba(255,255,255,.35); color: #fff;
+    border-radius: 10px; padding: .4rem 1rem; font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .btn-selecionar-todos:hover { background: rgba(255,255,255,.1); }
+
+  .btn-apagar-sel {
+    background: #ef4444; border: none; color: #fff;
+    border-radius: 10px; padding: .4rem 1.2rem; font-size: .8rem;
+    font-weight: 800; cursor: pointer; font-family: inherit; transition: filter .15s;
+  }
+  .btn-apagar-sel:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn-apagar-sel:not(:disabled):hover { filter: brightness(.88); }
+
+  .btn-cancelar-sel {
+    background: none; border: none; color: rgba(255,255,255,.6);
+    font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancelar-sel:hover { color: #fff; }
+
+  .btn-abrir-apagar {
+    background: none; border: 1.5px solid #94a3b8; color: #64748b;
+    border-radius: 10px; padding: .45rem 1.2rem; font-size: .82rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+    margin-top: .4rem;
+  }
+  .btn-abrir-apagar:hover { border-color: #ef4444; color: #ef4444; }
+
   .mp-empty { text-align: center; padding: 4rem 1rem; color: var(--color-text-light); }
   .mp-empty p { font-size: 1rem; margin-bottom: 1.4rem; line-height: 1.6; }
   .mp-empty a {
@@ -104,7 +156,7 @@
         <circle cx="12" cy="10" r="3"/>
         <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
       </svg>
-      Cidade Tiradentes SL | SP
+      São Paulo - SP
     </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
@@ -142,13 +194,29 @@
   <div class="mp-titulo">Meus Pedidos</div>
   <p class="mp-sub">Acompanhe todos os seus pedidos realizados.</p>
 
-  {% if pedidos %}
+  {# verifica se há qualquer pedido apagável nos dois tipos #}
+  {% set ns = namespace(tem=false) %}
+  {% for p in pedidos %}{% if p.status in ('cancelado', 'entregue') %}{% set ns.tem = true %}{% endif %}{% endfor %}
+  {% for p in pedidos_corp %}{% if p.status in ('concluido', 'cancelado') %}{% set ns.tem = true %}{% endif %}{% endfor %}
+
+  <form id="formApagar" method="POST" action="{{ url_for('apagar_pedidos') }}">
+
+    {# ── PEDIDOS NORMAIS ── #}
+    {% if pedidos %}
+    <div id="listaPedidos">
     {% for p in pedidos %}
-    <div class="mp-card">
+    {% set deletavel = p.status in ('cancelado', 'entregue') %}
+    <div class="mp-card {% if deletavel %}selecionavel{% endif %}"
+         data-deletavel="{{ 'sim' if deletavel else 'nao' }}"
+         onclick="toggleCard(this)">
       <div class="mp-card-header">
-        <div>
-          <span class="mp-num">Pedido #{{ p.id }}</span>
-          <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+        <div style="display:flex;align-items:center;gap:.7rem;">
+          <input type="checkbox" class="mp-checkbox" name="ids" value="{{ p.id }}"
+                 onclick="event.stopPropagation()" onchange="atualizarBarra()">
+          <div>
+            <span class="mp-num">Pedido #{{ p.id }}</span>
+            <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:.6rem;">
           <span class="mp-tipo {% if p.tipo == 'entrega' %}entrega{% endif %}">
@@ -183,86 +251,118 @@
         {% endfor %}
       </div>
 
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.6rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;">
         <div>
           {% if p.status == 'pendente' %}
-          <form method="POST" action="{{ url_for('cancelar_pedido', id=p.id) }}"
-                onsubmit="return confirm('Deseja cancelar o pedido #{{ p.id }}?')">
-            <button type="submit" class="btn-cancelar">Cancelar pedido</button>
-          </form>
+          <button type="button" class="btn-cancelar"
+                  onclick="cancelarPedido({{ p.id }}, event)">Cancelar pedido</button>
           {% endif %}
         </div>
         <div class="mp-total">Total: R$ {{ "%.2f"|format(p.total) }}</div>
       </div>
     </div>
     {% endfor %}
-  {% else %}
+    </div>
+    {% else %}
     <div class="mp-empty">
       <p>Você ainda não fez nenhum pedido.<br>Que tal explorar nossos produtos?</p>
       <a href="{{ url_for('dashboard') }}">Ver produtos</a>
     </div>
-  {% endif %}
+    {% endif %}
 
-  {% if pedidos_corp %}
-  <div style="margin-top:2rem;">
-    <div class="mp-titulo" style="font-size:1.15rem;margin-bottom:.25rem;">Pedidos Corporativos</div>
-    <p class="mp-sub">Solicitações e personalizações corporativas.</p>
+    {# ── PEDIDOS CORPORATIVOS ── #}
+    {% if pedidos_corp %}
+    <div style="margin-top:2rem;">
+      <div class="mp-titulo" style="font-size:1.15rem;margin-bottom:.25rem;">Pedidos Corporativos</div>
+      <p class="mp-sub">Solicitações e personalizações corporativas.</p>
 
-    {% for p in pedidos_corp %}
-    <div class="mp-card" style="border-left:4px solid #5B6D3D;">
-      <div class="mp-card-header">
-        <div>
-          <span class="mp-num">Corporativo #{{ p.id }}</span>
-          <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:.6rem;">
-          <span class="mp-tipo">{{ 'Personalização' if p.tipo == 'personalizar' else 'Solicitação' }}</span>
-          <span class="badge badge-{% if p.status == 'novo' %}pendente{% elif p.status == 'em_andamento' %}confirmado{% elif p.status == 'concluido' %}entregue{% else %}cancelado{% endif %}">
-            {{ p.status.replace('_', ' ') }}
-          </span>
-        </div>
-      </div>
-
-      <div class="mp-itens">
-        <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
-          <div style="display:flex;justify-content:space-between;width:100%;">
-            <span style="font-weight:700;">{{ p.produto_nome or 'Produto personalizado' }}
-              {% if p.quantidade %} &times; {{ p.quantidade }}{% endif %}
+      <div id="listaCorp">
+      {% for p in pedidos_corp %}
+      {% set deletavel_corp = p.status in ('concluido', 'cancelado') %}
+      <div class="mp-card {% if deletavel_corp %}selecionavel{% endif %}" style="border-left:4px solid #5B6D3D;"
+           data-deletavel="{{ 'sim' if deletavel_corp else 'nao' }}"
+           onclick="toggleCard(this)">
+        <div class="mp-card-header">
+          <div style="display:flex;align-items:center;gap:.7rem;">
+            <input type="checkbox" class="mp-checkbox" name="corp_ids" value="{{ p.id }}"
+                   onclick="event.stopPropagation()" onchange="atualizarBarra()">
+            <div>
+              <span class="mp-num">Corporativo #{{ p.id }}</span>
+              <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.6rem;">
+            <span class="mp-tipo">{{ 'Personalização' if p.tipo == 'personalizar' else 'Solicitação' }}</span>
+            <span class="badge badge-{% if p.status == 'novo' %}pendente{% elif p.status == 'em_andamento' %}confirmado{% elif p.status == 'concluido' %}entregue{% else %}cancelado{% endif %}">
+              {{ p.status.replace('_', ' ') }}
             </span>
           </div>
-          {% if p.personalizacao %}
-          <div style="font-size:.82rem;color:#475569;">{{ p.personalizacao }}</div>
-          {% endif %}
-          {% if p.logo_url %}
-          <div style="font-size:.76rem;color:#475569;">
-            Logo enviada:
-            <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
-                 style="max-height:36px;vertical-align:middle;border-radius:4px;border:1px solid #e2e8f0;margin-left:.3rem;">
+        </div>
+
+        <div class="mp-itens">
+          <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+            <div style="display:flex;justify-content:space-between;width:100%;">
+              <span style="font-weight:700;">{{ p.produto_nome or 'Produto personalizado' }}
+                {% if p.quantidade %} &times; {{ p.quantidade }}{% endif %}
+              </span>
+            </div>
+            {% if p.personalizacao %}
+            <div style="font-size:.82rem;color:#475569;">{{ p.personalizacao }}</div>
+            {% endif %}
+            {% if p.logo_url %}
+            <div style="font-size:.76rem;color:#475569;">
+              Logo enviada:
+              <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+                   style="max-height:36px;vertical-align:middle;border-radius:4px;border:1px solid #e2e8f0;margin-left:.3rem;">
+            </div>
+            {% endif %}
+            {% if p.sabor %}
+            <div style="font-size:.76rem;color:#475569;">Sabor: <strong>{{ p.sabor }}</strong></div>
+            {% endif %}
+            {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
+            <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
+              {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}
+              {% if p.modelo_tag %}<div>Modelo de tag: {{ p.modelo_tag }}</div>{% endif %}
+              {% if p.frase_tag %}<div>Frase na tag: {{ p.frase_tag }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% if p.observacoes %}
+            <div style="font-size:.76rem;color:#94a3b8;">Obs: {{ p.observacoes }}</div>
+            {% endif %}
           </div>
-          {% endif %}
-          {% if p.sabor %}
-          <div style="font-size:.76rem;color:#475569;">Sabor: <strong>{{ p.sabor }}</strong></div>
-          {% endif %}
-          {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
-          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
-            {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}
-            {% if p.modelo_tag %}<div>Modelo de tag: {{ p.modelo_tag }}</div>{% endif %}
-            {% if p.frase_tag %}<div>Frase na tag: {{ p.frase_tag }}</div>{% endif %}
-          </div>
-          {% endif %}
-          {% if p.observacoes %}
-          <div style="font-size:.76rem;color:#94a3b8;">Obs: {{ p.observacoes }}</div>
-          {% endif %}
+        </div>
+
+        <div style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">
+          Nossa equipe entrará em contato para confirmar detalhes e orçamento.
         </div>
       </div>
-
-      <div style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">
-        Nossa equipe entrará em contato para confirmar detalhes e orçamento.
+      {% endfor %}
       </div>
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+    {% endif %}
+
+    {# ── BOTÃO E BARRA ÚNICOS ── #}
+    {% if ns.tem %}
+    <div style="text-align:right; margin-top:1.2rem;">
+      <button type="button" class="btn-abrir-apagar" onclick="abrirModoSelecao()">
+        Apagar pedidos
+      </button>
+    </div>
+
+    <div class="barra-selecao" id="barraSelecao">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <span class="barra-selecao-info" id="infoSelecao">0 selecionado(s)</span>
+        <button type="button" class="btn-selecionar-todos" onclick="selecionarTodos()">Selecionar todos</button>
+        <button type="button" class="btn-cancelar-sel" onclick="fecharModoSelecao()">Cancelar</button>
+      </div>
+      <button type="submit" class="btn-apagar-sel" id="btnApagar" disabled
+              onclick="return confirm('Apagar os pedidos selecionados? Esta ação não pode ser desfeita.')">
+        Apagar selecionados
+      </button>
+    </div>
+    {% endif %}
+
+  </form>
 </div>
 
 <script>
@@ -275,5 +375,60 @@
       document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
     }
   });
+
+  function cancelarPedido(id, e) {
+    e.stopPropagation();
+    if (!confirm('Deseja cancelar o pedido #' + id + '?')) return;
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/pedidos/' + id + '/cancelar';
+    document.body.appendChild(f);
+    f.submit();
+  }
+
+  function todosOsDeletaveis() {
+    return document.querySelectorAll('#formApagar .mp-card[data-deletavel="sim"] .mp-checkbox');
+  }
+
+  function abrirModoSelecao() {
+    document.getElementById('formApagar').classList.add('modo-selecao');
+    document.getElementById('barraSelecao').classList.add('visivel');
+    atualizarBarra();
+  }
+
+  function fecharModoSelecao() {
+    document.getElementById('formApagar').classList.remove('modo-selecao');
+    document.getElementById('barraSelecao').classList.remove('visivel');
+    todosOsDeletaveis().forEach(cb => {
+      cb.checked = false;
+      cb.closest('.mp-card').classList.remove('selecionado');
+    });
+    atualizarBarra();
+  }
+
+  function toggleCard(card) {
+    if (!document.getElementById('formApagar').classList.contains('modo-selecao')) return;
+    if (card.dataset.deletavel !== 'sim') return;
+    const cb = card.querySelector('.mp-checkbox');
+    cb.checked = !cb.checked;
+    card.classList.toggle('selecionado', cb.checked);
+    atualizarBarra();
+  }
+
+  function selecionarTodos() {
+    const todos = todosOsDeletaveis();
+    const algumDesmarcado = [...todos].some(cb => !cb.checked);
+    todos.forEach(cb => {
+      cb.checked = algumDesmarcado;
+      cb.closest('.mp-card').classList.toggle('selecionado', algumDesmarcado);
+    });
+    atualizarBarra();
+  }
+
+  function atualizarBarra() {
+    const selecionados = document.querySelectorAll('#formApagar .mp-checkbox:checked').length;
+    document.getElementById('infoSelecao').textContent = selecionados + ' selecionado(s)';
+    document.getElementById('btnApagar').disabled = selecionados === 0;
+  }
 </script>
 {% endblock %}

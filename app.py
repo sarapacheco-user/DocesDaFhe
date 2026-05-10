@@ -1132,12 +1132,13 @@ def finalizar_pedido():
         flash('Seu carrinho está vazio!', 'error')
         return redirect(url_for('carrinho'))
 
-    tipo   = request.args.get('tipo', 'buscar')
-    rua    = request.args.get('rua', '').strip()
-    bairro = request.args.get('bairro', '').strip()
-    cidade = request.args.get('cidade', '').strip()
-    cep    = request.args.get('cep', '').strip()
-    endereco = f"{rua} | {bairro} | {cidade} | CEP: {cep}" if rua else request.args.get('endereco', '').strip()
+    tipo      = request.args.get('tipo', 'buscar')
+    rua       = request.args.get('rua', '').strip()
+    bairro    = request.args.get('bairro', '').strip()
+    cidade    = request.args.get('cidade', '').strip()
+    cep       = request.args.get('cep', '').strip()
+    pagamento = request.args.get('pagamento', '').strip()
+    endereco  = f"{rua} | {bairro} | {cidade} | CEP: {cep}" if rua else request.args.get('endereco', '').strip()
 
     linhas = ['*Ola! Quero fazer um pedido:*\n']
 
@@ -1153,6 +1154,8 @@ def finalizar_pedido():
             linhas.append(f'Endereco: {endereco}')
     else:
         linhas.append('*Tipo: Buscar (motoboy/Uber)*')
+    if pagamento:
+        linhas.append(f'*Forma de pagamento: {pagamento}*')
     linhas.append('')
 
     # ── DADOS DO CLIENTE ──
@@ -1248,9 +1251,9 @@ def finalizar_pedido():
 @app.route('/meus-pedidos')
 @login_required
 def meus_pedidos():
-    pedidos = Pedido.query.filter_by(user_id=current_user.id)\
+    pedidos = Pedido.query.filter_by(user_id=current_user.id, oculto_cliente=False)\
                           .order_by(Pedido.created_at.desc()).all()
-    pedidos_corp = PedidoCorporativo.query.filter_by(user_id=current_user.id)\
+    pedidos_corp = PedidoCorporativo.query.filter_by(user_id=current_user.id, oculto_cliente=False)\
                                           .order_by(PedidoCorporativo.created_at.desc()).all()
     return render_template('pedidos/meus_pedidos.html', pedidos=pedidos,
                            pedidos_corp=pedidos_corp)
@@ -1269,6 +1272,45 @@ def cancelar_pedido(id):
         flash('Pedido cancelado com sucesso.', 'success')
     else:
         flash('Não é possível cancelar este pedido.', 'error')
+    return redirect(url_for('meus_pedidos'))
+
+
+@app.route('/pedidos/apagar', methods=['POST'])
+@login_required
+def apagar_pedidos():
+    ids      = request.form.getlist('ids')
+    corp_ids = request.form.getlist('corp_ids')
+    if not ids and not corp_ids:
+        flash('Nenhum pedido selecionado.', 'error')
+        return redirect(url_for('meus_pedidos'))
+    apagados = 0
+    for pid in ids:
+        try:
+            pedido = Pedido.query.get(int(pid))
+        except (ValueError, TypeError):
+            continue
+        if not pedido or pedido.user_id != current_user.id:
+            continue
+        if pedido.status not in ('cancelado', 'entregue'):
+            continue
+        pedido.oculto_cliente = True
+        apagados += 1
+    for pid in corp_ids:
+        try:
+            pedido = PedidoCorporativo.query.get(int(pid))
+        except (ValueError, TypeError):
+            continue
+        if not pedido or pedido.user_id != current_user.id:
+            continue
+        if pedido.status not in ('concluido', 'cancelado'):
+            continue
+        pedido.oculto_cliente = True
+        apagados += 1
+    db.session.commit()
+    if apagados:
+        flash(f'{apagados} pedido(s) removido(s) do seu histórico.', 'success')
+    else:
+        flash('Nenhum pedido pôde ser removido.', 'error')
     return redirect(url_for('meus_pedidos'))
 
 
@@ -2022,7 +2064,7 @@ def corporativo_solicitar():
         db.session.add(pedido)
         db.session.commit()
         flash('Solicitação enviada! Nossa equipe entrará em contato em breve.', 'success')
-        return redirect(url_for('corporativo'))
+        return redirect(url_for('meus_pedidos'))
 
     user_data = {'nome': current_user.name or '', 'email': current_user.email,
                  'telefone': current_user.phone or ''} if current_user.is_authenticated else {}

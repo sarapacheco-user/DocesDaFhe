@@ -3,6 +3,16 @@
 {% block styles %}
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='carrinho.css') }}">
+<style>
+  .btn-pag {
+    flex: 1; padding: .55rem .4rem; border: 2px solid #e2e8f0;
+    border-radius: 10px; background: #f8fafc; color: #475569;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-pag:hover { border-color: #5B6D3D; color: #5B6D3D; background: #f0fdf4; }
+  .btn-pag.ativo { border-color: #5B6D3D; background: #f0fdf4; color: #5B6D3D; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -37,7 +47,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
       </svg>
-      Cidade Tiradentes SL | SP
+      São Paulo - SP
     </span>
     <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -304,12 +314,23 @@
       </p>
       <p style="font-size:.88rem; color:#932E50; font-weight:700;
                 background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
-                margin-bottom:1.4rem;">
+                margin-bottom:1.2rem;">
         ⚠️ Não garantimos a integridade do produto durante o transporte!
       </p>
-      <p style="font-size:.85rem; color:#6B6B6B; margin-bottom:1.4rem;">
-        Deseja continuar mesmo assim?
+
+      <!-- pagamento buscar -->
+      <p style="font-size:.88rem; font-weight:800; color:#2B2B2B; margin-bottom:.6rem;">
+        💳 Forma de pagamento
       </p>
+      <div style="display:flex; gap:.6rem; margin-bottom:1.2rem;" id="pgBuscar">
+        <button type="button" class="btn-pag" data-valor="Pix"     onclick="selecionarPag(this,'buscar')">Pix</button>
+        <button type="button" class="btn-pag" data-valor="Cartão"  onclick="selecionarPag(this,'buscar')">Cartão</button>
+        <button type="button" class="btn-pag" data-valor="Dinheiro" onclick="selecionarPag(this,'buscar')">Dinheiro</button>
+      </div>
+      <div id="erroPagBuscar" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+        Selecione a forma de pagamento.
+      </div>
+
       <div style="display:flex; gap:1rem; justify-content:center;">
         <button onclick="voltarStep1()"
                 style="background:transparent; border:2px solid #5B6D3D; color:#5B6D3D;
@@ -318,13 +339,13 @@
                        font-weight:700; cursor:pointer;">
           ← Voltar
         </button>
-        <a href="{{ url_for('finalizar_pedido') }}?tipo=buscar"
-           style="background:#25D366; color:#fff; border-radius:24px;
-                  padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
-                  font-size:.9rem; font-weight:700; text-decoration:none;
-                  display:inline-flex; align-items:center; gap:.4rem;">
+        <button onclick="finalizarBuscar()"
+                style="background:#25D366; color:#fff; border:none; border-radius:24px;
+                       padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
+                       font-size:.9rem; font-weight:700; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:.4rem;">
           Sim, finalizar 💬
-        </a>
+        </button>
       </div>
     </div>
 
@@ -366,6 +387,19 @@
 
       <div id="erroEndereco" style="display:none; font-size:.82rem; color:#932E50; margin-bottom:.8rem;">
         Por favor, preencha pelo menos Rua, Número e Bairro.
+      </div>
+
+      <!-- pagamento entrega -->
+      <p style="font-size:.88rem; font-weight:800; color:#2B2B2B; margin-bottom:.6rem;">
+        💳 Forma de pagamento
+      </p>
+      <div style="display:flex; gap:.6rem; margin-bottom:.8rem;" id="pgEntrega">
+        <button type="button" class="btn-pag" data-valor="Pix"      onclick="selecionarPag(this,'entrega')">Pix</button>
+        <button type="button" class="btn-pag" data-valor="Cartão"   onclick="selecionarPag(this,'entrega')">Cartão</button>
+        <button type="button" class="btn-pag" data-valor="Dinheiro"  onclick="selecionarPag(this,'entrega')">Dinheiro</button>
+      </div>
+      <div id="erroPagEntrega" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+        Selecione a forma de pagamento.
       </div>
 
       <div style="display:flex; gap:1rem; justify-content:center;">
@@ -451,6 +485,25 @@
     }
   }
 
+  const pagSelecionado = { buscar: '', entrega: '' };
+
+  function selecionarPag(btn, step) {
+    document.querySelectorAll('#pg' + (step === 'buscar' ? 'Buscar' : 'Entrega') + ' .btn-pag')
+            .forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    pagSelecionado[step] = btn.dataset.valor;
+    document.getElementById('erroPag' + (step === 'buscar' ? 'Buscar' : 'Entrega')).style.display = 'none';
+  }
+
+  function finalizarBuscar() {
+    if (!pagSelecionado.buscar) {
+      document.getElementById('erroPagBuscar').style.display = 'block';
+      return;
+    }
+    const params = new URLSearchParams({ tipo: 'buscar', pagamento: pagSelecionado.buscar });
+    window.location.href = "{{ url_for('finalizar_pedido') }}?" + params.toString();
+  }
+
   function confirmarEntrega() {
     const rua    = document.getElementById('endRua').value.trim();
     const numero = document.getElementById('endNumero').value.trim();
@@ -464,12 +517,19 @@
     }
     document.getElementById('erroEndereco').style.display = 'none';
 
+    if (!pagSelecionado.entrega) {
+      document.getElementById('erroPagEntrega').style.display = 'block';
+      return;
+    }
+    document.getElementById('erroPagEntrega').style.display = 'none';
+
     const params = new URLSearchParams({
       tipo: 'entrega',
       rua: rua + ', ' + numero,
       bairro: bairro,
       cidade: cidade,
-      cep: cep.replace(/\D/g, '')
+      cep: cep.replace(/\D/g, ''),
+      pagamento: pagSelecionado.entrega
     });
     window.location.href = "{{ url_for('finalizar_pedido') }}?" + params.toString();
   }
