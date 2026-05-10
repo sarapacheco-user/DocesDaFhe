@@ -1,0 +1,434 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Reading progress bar -->
+<div class="reading-progress" id="readingProgress"></div>
+
+<!-- Capa -->
+{% if post.capa_url %}
+<div class="post-capa-wrap">
+  <img src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}">
+  <div class="post-capa-overlay"></div>
+</div>
+{% endif %}
+
+<div class="blog-wrap" style="max-width: 1100px;">
+  <!-- Breadcrumb -->
+  <div style="display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin-top:1.5rem;">
+    <a href="{{ url_for('blog.index') }}" style="display:inline-flex; align-items:center; gap:.3rem; background:#f1f5f9; color:#5B6D3D; font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Blog
+    </a>
+    {% if post.categoria %}
+    <span style="color:#cbd5e1; font-size:.8rem;">›</span>
+    <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" style="display:inline-flex; align-items:center; background:#f1f5f9; color:#5B6D3D; font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+      {{ post.categoria.nome }}
+    </a>
+    {% endif %}
+    <span style="color:#cbd5e1; font-size:.8rem;">›</span>
+    <span style="font-size:.78rem; color:#94a3b8; font-weight:500;">{{ post.titulo | truncate(40) }}</span>
+  </div>
+
+  <div class="blog-grid" style="grid-template-columns: 1fr 290px;">
+    <!-- MAIN CONTENT -->
+    <div id="postMain">
+      <div class="post-header">
+        {% if post.categoria %}
+        <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="blog-card-cat" style="background: {{ post.categoria.cor }}; text-decoration: none; margin-bottom: .75rem; display: inline-block;">{{ post.categoria.nome }}</a>
+        {% endif %}
+
+        <h1 class="post-titulo">{{ post.titulo }}</h1>
+
+        <div class="post-meta-bar">
+          <a href="{{ url_for('blog.perfil_autor', user_id=post.autor.id) }}" class="post-autor-link">
+            {% if post.autor.perfil and post.autor.perfil.avatar_url %}
+            <img class="post-autor-avatar" src="{{ url_for('static', filename=post.autor.perfil.avatar_url) }}" alt="{{ post.autor.name }}">
+            {% else %}
+            <span class="post-autor-avatar-placeholder">{{ (post.autor.name or post.autor.email)[0].upper() }}</span>
+            {% endif %}
+            {{ post.autor.name or post.autor.email.split('@')[0] }}
+          </a>
+          <span class="blog-card-dot">&bull;</span>
+          <span class="post-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            {{ post.created_at.strftime('%d de %B de %Y') }}
+          </span>
+          <span class="blog-card-dot">&bull;</span>
+          <span class="post-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {{ post.tempo_leitura }} min de leitura
+          </span>
+          <span class="blog-card-dot">&bull;</span>
+          <span class="post-meta-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            {{ post.visualizacoes }} visualizações
+          </span>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="post-content" id="postContent">
+        {{ post.conteudo | safe }}
+      </div>
+
+      <!-- Tags -->
+      {% if post.tags %}
+      <div class="post-tags">
+        {% for tag in post.tags %}
+        <a href="{{ url_for('blog.tag', slug=tag.slug) }}" class="post-tag">#{{ tag.nome }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Action bar -->
+      <div class="post-actions">
+        <button id="likeBtn" class="post-action-btn {% if ja_curtiu %}curtido{% endif %}" onclick="curtirPost()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="{% if ja_curtiu %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span id="likeCount">{{ total_curtidas }}</span> curtidas
+        </button>
+
+        <button id="saveBtn" class="post-action-btn {% if ja_salvou %}salvo{% endif %}" onclick="salvarPost()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="{% if ja_salvou %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          {% if ja_salvou %}Salvo{% else %}Salvar{% endif %}
+        </button>
+
+        <div class="share-btns">
+          <!-- WhatsApp -->
+          <a class="share-btn" href="https://wa.me/?text={{ (post.titulo + ' - ' + request.url) | urlencode }}" target="_blank" title="Compartilhar no WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.99 2C6.47 2 2 6.477 2 12.013c0 1.786.465 3.463 1.276 4.918L2 22l5.233-1.247A9.952 9.952 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 11.99 2z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </a>
+          <!-- Twitter -->
+          <a class="share-btn" href="https://twitter.com/intent/tweet?text={{ post.titulo | urlencode }}&url={{ request.url | urlencode }}" target="_blank" title="Compartilhar no Twitter">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <!-- LinkedIn -->
+          <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.url | urlencode }}" target="_blank" title="Compartilhar no LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+          </a>
+          <!-- Copy Link -->
+          <button class="share-btn" onclick="copyLink()" title="Copiar link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+        </div>
+
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('blog.admin_editar', id=post.id) }}" class="post-action-btn" style="margin-left: auto;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Comentários -->
+      <div class="comments-section" id="comentarios">
+        <h2 class="comments-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: .4rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          {{ comentarios | length }} Comentário{% if comentarios | length != 1 %}s{% endif %}
+        </h2>
+
+        {% if current_user.is_authenticated %}
+        <div class="comment-form">
+          <form action="{{ url_for('blog.comentar', id=post.id) }}" method="post">
+            <textarea name="conteudo" placeholder="Escreva seu comentário..." rows="3"></textarea>
+            <button type="submit">Publicar Comentário</button>
+          </form>
+        </div>
+        {% else %}
+        <div class="login-to-comment">
+          <a href="{{ url_for('login') }}">Faça login</a> para deixar um comentário.
+        </div>
+        {% endif %}
+
+        {% for comentario in comentarios %}
+        <div class="comment-item">
+          {% if comentario.autor.perfil and comentario.autor.perfil.avatar_url %}
+          <img class="comment-avatar" src="{{ url_for('static', filename=comentario.autor.perfil.avatar_url) }}" alt="{{ comentario.autor.name }}">
+          {% else %}
+          <span class="comment-avatar-placeholder">{{ (comentario.autor.name or comentario.autor.email)[0].upper() }}</span>
+          {% endif %}
+
+          <div style="flex:1;">
+            <div class="comment-body">
+              <span class="comment-author">{{ comentario.autor.name or comentario.autor.email.split('@')[0] }}</span>
+              <span class="comment-date">{{ comentario.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+              <p class="comment-text">{{ comentario.conteudo }}</p>
+              <div class="comment-actions">
+                {% if current_user.is_authenticated %}
+                <button class="comment-reply-btn" onclick="toggleReply('reply-{{ comentario.id }}')">Responder</button>
+                {% endif %}
+                {% if current_user.is_authenticated and (comentario.user_id == current_user.id or current_user.is_admin) %}
+                <form action="{{ url_for('blog.excluir_comentario', id=comentario.id) }}" method="post" style="display:inline;">
+                  <button class="comment-delete-btn" type="submit" onclick="return confirm('Excluir comentário?')">Excluir</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Reply form -->
+            {% if current_user.is_authenticated %}
+            <div class="reply-form" id="reply-{{ comentario.id }}">
+              <form action="{{ url_for('blog.comentar', id=post.id) }}" method="post">
+                <input type="hidden" name="parent_id" value="{{ comentario.id }}">
+                <textarea name="conteudo" placeholder="Escreva sua resposta..." rows="2"></textarea>
+                <button type="submit">Responder</button>
+              </form>
+            </div>
+            {% endif %}
+
+            <!-- Replies -->
+            {% set respostas = comentario.respostas.all() %}
+            {% if respostas %}
+            <div class="comment-replies">
+              {% for resp in respostas %}
+              <div class="comment-item" style="margin-bottom:.85rem;">
+                {% if resp.autor.perfil and resp.autor.perfil.avatar_url %}
+                <img class="comment-avatar" src="{{ url_for('static', filename=resp.autor.perfil.avatar_url) }}" alt="{{ resp.autor.name }}" style="width:30px;height:30px;">
+                {% else %}
+                <span class="comment-avatar-placeholder" style="width:30px;height:30px;font-size:.75rem;">{{ (resp.autor.name or resp.autor.email)[0].upper() }}</span>
+                {% endif %}
+                <div class="comment-body" style="flex:1;">
+                  <span class="comment-author">{{ resp.autor.name or resp.autor.email.split('@')[0] }}</span>
+                  <span class="comment-date">{{ resp.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                  <p class="comment-text">{{ resp.conteudo }}</p>
+                  {% if current_user.is_authenticated and (resp.user_id == current_user.id or current_user.is_admin) %}
+                  <form action="{{ url_for('blog.excluir_comentario', id=resp.id) }}" method="post">
+                    <button class="comment-delete-btn" type="submit" onclick="return confirm('Excluir?')">Excluir</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Posts relacionados -->
+      {% if relacionados %}
+      <div style="margin-top: 3rem;">
+        <h2 class="comments-title">Você também pode gostar</h2>
+        <div style="position:relative;">
+          <button class="cards-btn prev" onclick="relNav(-1)" style="left:-1.5rem;">&#8249;</button>
+          <button class="cards-btn next" onclick="relNav(1)"  style="right:-1.5rem;">&#8250;</button>
+          <div id="relGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;">
+            {% for p in relacionados %}
+            <article class="blog-card rel-card" style="display:none;">
+              {% if p.capa_url %}
+              <a href="{{ url_for('blog.post', slug=p.slug) }}">
+                <img class="blog-card-img" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy">
+              </a>
+              {% else %}
+              <div class="blog-card-img-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              {% endif %}
+              <div class="blog-card-body">
+                <a href="{{ url_for('blog.post', slug=p.slug) }}" class="blog-card-title" style="font-size:.95rem;">{{ p.titulo }}</a>
+                <div class="blog-card-meta">{{ p.created_at.strftime('%d/%m/%Y') }} &bull; {{ p.tempo_leitura }} min</div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <script>
+      (function(){
+        const cards = document.querySelectorAll('.rel-card');
+        const per = 3;
+        let page = 0;
+        const total = Math.ceil(cards.length / per);
+        function render() {
+          cards.forEach((c,i) => c.style.display = (i>=page*per && i<(page+1)*per) ? 'flex' : 'none');
+        }
+        window.relNav = function(dir){ page=(page+dir+total)%total; render(); };
+        render();
+      })();
+      </script>
+      {% endif %}
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="blog-sidebar">
+
+      <!-- TOC gerado via JS -->
+      <div class="sidebar-widget" id="tocWidget" style="display:none;">
+        <h3 class="sidebar-widget-title">Neste artigo</h3>
+        <ul class="toc-list" id="tocList"></ul>
+      </div>
+
+      <!-- Categorias -->
+      {% if categorias %}
+      <div class="sidebar-widget">
+        <h3 class="sidebar-widget-title">Categorias</h3>
+        <ul class="sidebar-cat-list">
+          {% for cat in categorias %}
+          <li>
+            <a href="{{ url_for('blog.categoria', slug=cat.slug) }}">
+              {{ cat.nome }}
+              <span class="sidebar-cat-badge">{{ cat.posts | selectattr('status', 'equalto', 'publicado') | list | length }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Posts populares -->
+      {% if populares %}
+      <div class="sidebar-widget">
+        <h3 class="sidebar-widget-title">Mais Lidos</h3>
+        {% for p in populares %}
+        <a href="{{ url_for('blog.post', slug=p.slug) }}" class="sidebar-post-item">
+          {% if p.capa_url %}
+          <img class="sidebar-post-img" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy">
+          {% else %}
+          <div class="sidebar-post-img-placeholder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          {% endif %}
+          <div>
+            <span class="sidebar-post-title">{{ p.titulo | truncate(60) }}</span>
+            <div class="sidebar-post-meta">{{ p.visualizacoes }} visualizações</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Newsletter -->
+      <div class="sidebar-widget">
+        <h3 style="font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; color:#1e293b; margin:0 0 .5rem;">Fique por dentro!</h3>
+        <p style="font-size:.85rem; color:#64748b; margin-bottom:.9rem;">Receba novidades no seu e-mail.</p>
+        <form class="newsletter-form" action="{{ url_for('blog.newsletter') }}" method="post">
+          <input type="email" name="email" placeholder="seu@email.com" required>
+          <button type="submit">Inscrever-se</button>
+        </form>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<script>
+function buscarGlobal() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q) window.location.href = '/busca?q=' + encodeURIComponent(q);
+}
+
+// Reading progress bar
+window.addEventListener('scroll', () => {
+  const doc = document.documentElement;
+  const scrollTop = doc.scrollTop || document.body.scrollTop;
+  const height = doc.scrollHeight - doc.clientHeight;
+  const pct = height > 0 ? (scrollTop / height) * 100 : 0;
+  const bar = document.getElementById('readingProgress');
+  if (bar) bar.style.width = pct + '%';
+});
+
+// TOC generator
+document.addEventListener('DOMContentLoaded', () => {
+  const content = document.getElementById('postContent');
+  const tocList = document.getElementById('tocList');
+  const tocWidget = document.getElementById('tocWidget');
+  if (!content || !tocList) return;
+
+  const headings = content.querySelectorAll('h2, h3');
+  if (headings.length < 2) return;
+
+  tocWidget.style.display = 'block';
+  headings.forEach((h, i) => {
+    const id = 'heading-' + i;
+    h.id = id;
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#' + id;
+    a.textContent = h.textContent;
+    if (h.tagName === 'H3') a.classList.add('toc-h3');
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+
+  // Highlight active heading on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const id = e.target.id;
+      const link = tocList.querySelector(`a[href="#${id}"]`);
+      if (link) link.classList.toggle('active', e.isIntersecting);
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+});
+
+// Toggle reply form
+function toggleReply(id) {
+  const form = document.getElementById(id);
+  if (form) form.classList.toggle('open');
+}
+
+// Like
+async function curtirPost() {
+  {% if current_user.is_authenticated %}
+  const btn = document.getElementById('likeBtn');
+  const countEl = document.getElementById('likeCount');
+  try {
+    const resp = await fetch('/blog/{{ post.id }}/curtir', { method: 'POST' });
+    const data = await resp.json();
+    countEl.textContent = data.total;
+    if (data.curtiu) {
+      btn.classList.add('curtido');
+      btn.querySelector('svg').setAttribute('fill', 'currentColor');
+    } else {
+      btn.classList.remove('curtido');
+      btn.querySelector('svg').setAttribute('fill', 'none');
+    }
+  } catch(e) {}
+  {% else %}
+  window.location.href = '{{ url_for("login") }}';
+  {% endif %}
+}
+
+// Save
+async function salvarPost() {
+  {% if current_user.is_authenticated %}
+  const btn = document.getElementById('saveBtn');
+  try {
+    const resp = await fetch('/blog/{{ post.id }}/salvar', { method: 'POST' });
+    const data = await resp.json();
+    if (data.salvou) {
+      btn.classList.add('salvo');
+      btn.querySelector('svg').setAttribute('fill', 'currentColor');
+      btn.querySelector('span') && (btn.querySelector('span').textContent = 'Salvo');
+    } else {
+      btn.classList.remove('salvo');
+      btn.querySelector('svg').setAttribute('fill', 'none');
+    }
+  } catch(e) {}
+  {% else %}
+  window.location.href = '{{ url_for("login") }}';
+  {% endif %}
+}
+
+// Copy link
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = event.currentTarget;
+    btn.title = 'Link copiado!';
+    setTimeout(() => btn.title = 'Copiar link', 2000);
+  });
+}
+</script>
+
+{% endblock %}

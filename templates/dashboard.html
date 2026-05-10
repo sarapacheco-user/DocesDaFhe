@@ -64,7 +64,7 @@
   <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
   <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
   <a href="{{ url_for('kits_loja') }}">Kits</a>
-  <a href="#">Blog</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
 </nav>
 
 <!-- CARROSSEL -->
@@ -120,6 +120,56 @@
   {% endif %}
 </div>
 
+<!-- AGENDA -->
+{% if agenda_proximos %}
+<div style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+  <h2 class="section-title" style="margin:0; padding:0;">Próximos Eventos</h2>
+</div>
+<div style="position:relative; max-width:960px; margin:0 auto 2.5rem; padding:0 3.5rem;">
+  {% if agenda_proximos|length > 3 %}
+  <button onclick="agendaPage(-1)" class="cards-btn prev" style="left:0;">&#8249;</button>
+  <button onclick="agendaPage(1)"  class="cards-btn next" style="right:0;">&#8250;</button>
+  {% endif %}
+  <div id="agendaGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+    {% for ev in agenda_proximos %}
+    <div class="agenda-ev-card" style="background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden; display:none;">
+      <div style="height:5px; background:{{ ev.cor }};"></div>
+      <div style="padding:1rem 1.1rem;">
+        <div style="display:flex; align-items:center; gap:.8rem; margin-bottom:.7rem;">
+          <div style="background:{{ ev.cor }}20; border-radius:10px; padding:.4rem .65rem; text-align:center; min-width:48px; flex-shrink:0;">
+            <div style="font-size:1.35rem; font-weight:800; color:{{ ev.cor }}; line-height:1;">{{ ev.data_inicio.strftime('%d') }}</div>
+            <div style="font-size:.6rem; font-weight:700; text-transform:uppercase; color:{{ ev.cor }}; letter-spacing:.06em;">{{ ev.data_inicio.strftime('%b') }}</div>
+          </div>
+          <h3 style="font-size:.92rem; font-weight:700; color:#1e293b; margin:0; line-height:1.3;">{{ ev.titulo }}</h3>
+        </div>
+        <p style="font-size:.78rem; color:#64748b; margin:0 0 .2rem;">🕐 {{ ev.data_inicio.strftime('%H:%M') }}{% if ev.data_fim %} – {{ ev.data_fim.strftime('%H:%M') }}{% endif %}</p>
+        {% if ev.local %}<p style="font-size:.78rem; color:#64748b; margin:0;">📍 {{ ev.local }}</p>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+<script>
+(function(){
+  const cards = document.querySelectorAll('.agenda-ev-card');
+  const visible = 3;
+  const total = cards.length;
+  let start = 0;
+  function render() {
+    cards.forEach((c, i) => c.style.display = (i >= start && i < start + visible) ? 'block' : 'none');
+    document.querySelectorAll('.cards-btn.prev').forEach(b => b.style.opacity = start === 0 ? '.3' : '1');
+    document.querySelectorAll('.cards-btn.next').forEach(b => b.style.opacity = start + visible >= total ? '.3' : '1');
+  }
+  window.agendaPage = function(dir) {
+    start = Math.max(0, Math.min(start + dir, total - visible));
+    render();
+  };
+  render();
+})();
+</script>
+{% endif %}
+
 <!-- ══ EVENTOS ESPECIAIS ══ -->
 {% for evento in eventos %}
   {% if evento.ativo %}
@@ -134,7 +184,7 @@
           <button class="btn-fav {% if p.id in fav_e %}ativo{% endif %}"
                   data-tipo="especial" data-id="{{ p.id }}"
                   onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-          {% if p.created_at and (now() - p.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+          {% if site_config.new_badge_ativo != false and p.created_at and (now() - p.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
           <a href="{{ url_for('produto_especial_detalhe', id=p.id) }}" class="card-link-inner">
             <div class="card-img">
               {% if p.image_url %}
@@ -179,7 +229,7 @@
       <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}"
               data-tipo="kit" data-id="{{ kit.id }}"
               onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-      {% if kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+      {% if site_config.new_badge_ativo != false and kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
       <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
         <div class="card-img">
           {% if kit.image_url %}
@@ -260,7 +310,7 @@
       <button class="btn-fav {% if produto.id in fav_p %}ativo{% endif %}"
               data-tipo="produto" data-id="{{ produto.id }}"
               onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-      {% if produto.created_at and (now() - produto.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+      {% if site_config.new_badge_ativo != false and produto.created_at and (now() - produto.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
       <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
         <div class="card-img">
           {% if produto.image_url %}
@@ -302,6 +352,34 @@
     {% endfor %}
   </div>
   <button class="cards-btn next" onclick="moverCards('productGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
+<!-- POSTS RECENTES DO BLOG -->
+{% if posts_recentes %}
+<div style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+  <h2 class="section-title" style="margin:0; padding:0;">Do Blog</h2>
+  <a href="{{ url_for('blog.index') }}" style="font-size:.85rem; font-weight:700; color:#5B6D3D; text-decoration:none; white-space:nowrap;">Ver todos →</a>
+</div>
+<div style="max-width:960px; margin:0 auto 3rem; padding:0 3.5rem; display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem;">
+  {% for post in posts_recentes %}
+  <a href="{{ url_for('blog.post', slug=post.slug) }}" style="text-decoration:none; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; transition:transform .2s, box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'">
+    {% if post.capa_url %}
+    <img src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" style="width:100%; height:150px; object-fit:cover; display:block;">
+    {% else %}
+    <div style="width:100%; height:150px; background:linear-gradient(135deg,#5B6D3D,#932E50); display:flex; align-items:center; justify-content:center;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    {% endif %}
+    <div style="padding:.9rem 1rem 1rem; flex:1;">
+      {% if post.categoria %}
+      <span style="display:inline-block; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; background:{{ post.categoria.cor }}; color:#fff; border-radius:4px; padding:.15rem .5rem; margin-bottom:.5rem;">{{ post.categoria.nome }}</span>
+      {% endif %}
+      <p style="font-size:.9rem; font-weight:700; color:#1e293b; margin:0 0 .4rem; line-height:1.35;">{{ post.titulo | truncate(60) }}</p>
+      <p style="font-size:.78rem; color:#64748b; margin:0;">{{ post.created_at.strftime('%d/%m/%Y') }} · {{ post.tempo_leitura }} min</p>
+    </div>
+  </a>
+  {% endfor %}
 </div>
 {% endif %}
 

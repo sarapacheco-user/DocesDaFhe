@@ -344,6 +344,7 @@ class SiteConfig(db.Model):
     flash_error     = db.Column(db.String(20), default='#f8d7da')
     flash_info      = db.Column(db.String(20), default='#ffffff')
     new_badge_days  = db.Column(db.Integer, default=7)
+    new_badge_ativo = db.Column(db.Boolean, default=True)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
@@ -465,3 +466,153 @@ class PedidoCorporativo(db.Model):
 
     def __repr__(self):
         return f"<PedidoCorporativo #{self.id} {self.tipo} {self.status}>"
+
+
+# ─────────────────────────────────────
+# BLOG MODELS
+# ─────────────────────────────────────
+
+class BlogCategoria(db.Model):
+    __tablename__ = 'blog_categorias'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    descricao = db.Column(db.String(300), nullable=True)
+    cor = db.Column(db.String(20), default='#5B6D3D')
+
+    def __repr__(self):
+        return f"<BlogCategoria {self.nome}>"
+
+
+class BlogTag(db.Model):
+    __tablename__ = 'blog_tags'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), unique=True, nullable=False)
+    slug = db.Column(db.String(50), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f"<BlogTag {self.nome}>"
+
+
+blog_post_tags = db.Table(
+    'blog_post_tags',
+    db.Column('post_id', db.Integer, db.ForeignKey('blog_posts.id')),
+    db.Column('tag_id', db.Integer, db.ForeignKey('blog_tags.id'))
+)
+
+
+class BlogPost(db.Model):
+    __tablename__ = 'blog_posts'
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(300), nullable=False)
+    slug = db.Column(db.String(300), unique=True, nullable=False)
+    resumo = db.Column(db.String(500), nullable=True)
+    conteudo = db.Column(db.Text, nullable=False, default='')
+    capa_url = db.Column(db.String(300), nullable=True)
+    status = db.Column(db.String(20), default='rascunho')  # rascunho | publicado
+    visualizacoes = db.Column(db.Integer, default=0)
+    tempo_leitura = db.Column(db.Integer, default=1)  # minutos
+    meta_titulo = db.Column(db.String(200), nullable=True)
+    meta_descricao = db.Column(db.String(300), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    categoria_id = db.Column(db.Integer, db.ForeignKey('blog_categorias.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    autor = db.relationship('User', backref='blog_posts')
+    categoria = db.relationship('BlogCategoria', backref='posts')
+    tags = db.relationship('BlogTag', secondary=blog_post_tags, backref='posts')
+
+    def __repr__(self):
+        return f"<BlogPost {self.titulo[:40]}>"
+
+
+class BlogComentario(db.Model):
+    __tablename__ = 'blog_comentarios'
+    id = db.Column(db.Integer, primary_key=True)
+    conteudo = db.Column(db.Text, nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('blog_comentarios.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    autor = db.relationship('User', backref='comentarios')
+    respostas = db.relationship('BlogComentario',
+                                backref=db.backref('parent', remote_side='BlogComentario.id'),
+                                lazy='dynamic')
+
+    def __repr__(self):
+        return f"<BlogComentario post={self.post_id} user={self.user_id}>"
+
+
+class BlogCurtida(db.Model):
+    __tablename__ = 'blog_curtidas'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id'),)
+
+    def __repr__(self):
+        return f"<BlogCurtida post={self.post_id} user={self.user_id}>"
+
+
+class BlogSalvo(db.Model):
+    __tablename__ = 'blog_salvos'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id'),)
+
+    def __repr__(self):
+        return f"<BlogSalvo post={self.post_id} user={self.user_id}>"
+
+
+class BlogNewsletter(db.Model):
+    __tablename__ = 'blog_newsletter'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<BlogNewsletter {self.email}>"
+
+
+class UserPerfil(db.Model):
+    __tablename__ = 'user_perfis'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    bio = db.Column(db.Text, nullable=True)
+    avatar_url = db.Column(db.String(300), nullable=True)
+    banner_url = db.Column(db.String(300), nullable=True)
+    username = db.Column(db.String(50), unique=True, nullable=True)
+    email_contato = db.Column(db.String(200), nullable=True)
+    telefone = db.Column(db.String(30), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    profissao = db.Column(db.String(100), nullable=True)
+    site = db.Column(db.String(200), nullable=True)
+    instagram = db.Column(db.String(100), nullable=True)
+    tiktok = db.Column(db.String(100), nullable=True)
+    facebook = db.Column(db.String(100), nullable=True)
+    linkedin = db.Column(db.String(100), nullable=True)
+    usuario = db.relationship('User', backref=db.backref('perfil', uselist=False))
+
+    def __repr__(self):
+        return f"<UserPerfil user={self.user_id}>"
+
+
+class AgendaEvento(db.Model):
+    __tablename__ = 'agenda_eventos'
+    id          = db.Column(db.Integer, primary_key=True)
+    titulo      = db.Column(db.String(150), nullable=False)
+    descricao   = db.Column(db.Text, nullable=True)
+    local       = db.Column(db.String(200), nullable=True)
+    data_inicio = db.Column(db.DateTime, nullable=False)
+    data_fim    = db.Column(db.DateTime, nullable=True)
+    cor         = db.Column(db.String(7), default='#5B6D3D')
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def passou(self):
+        fim = self.data_fim or self.data_inicio
+        return fim < datetime.now()
+
+    def __repr__(self):
+        return f"<AgendaEvento {self.titulo}>"

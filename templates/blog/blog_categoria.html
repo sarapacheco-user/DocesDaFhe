@@ -1,0 +1,136 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Category Header -->
+<div class="cat-header" style="background: {{ categoria.cor }};">
+  <div style="display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.75rem;">
+    <a href="{{ url_for('blog.index') }}" style="display:inline-flex; align-items:center; gap:.35rem; background:rgba(255,255,255,.18); color:#fff; font-size:.8rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; text-decoration:none; border:1px solid rgba(255,255,255,.25); backdrop-filter:blur(4px); transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.18)'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Blog
+    </a>
+    <span style="color:rgba(255,255,255,.4); font-size:.8rem;">›</span>
+    <span style="background:rgba(255,255,255,.25); color:#fff; font-size:.8rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; border:1px solid rgba(255,255,255,.3);">{{ categoria.nome }}</span>
+  </div>
+  <h1 class="cat-header-title">{{ categoria.nome }}</h1>
+  {% if categoria.descricao %}
+  <p class="cat-header-desc">{{ categoria.descricao }}</p>
+  {% endif %}
+  <p style="color:rgba(255,255,255,.7); font-size:.85rem; margin-top:.5rem;">{{ posts.total }} post{% if posts.total != 1 %}s{% endif %}</p>
+</div>
+
+<div class="blog-wrap">
+  <div class="blog-grid">
+    <div>
+      {% if posts.items %}
+      <div class="posts-grid">
+        {% for post in posts.items %}
+        <article class="blog-card">
+          {% if post.capa_url %}
+          <a href="{{ url_for('blog.post', slug=post.slug) }}">
+            <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+          </a>
+          {% else %}
+          <div class="blog-card-img-placeholder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          {% endif %}
+          <div class="blog-card-body">
+            <a href="{{ url_for('blog.post', slug=post.slug) }}" class="blog-card-title">{{ post.titulo }}</a>
+            {% if post.resumo %}
+            <p class="blog-card-resumo">{{ post.resumo }}</p>
+            {% else %}
+            <p class="blog-card-resumo">{{ post.conteudo | striptags | truncate(120) }}</p>
+            {% endif %}
+            <div class="blog-card-meta">
+              <span>{{ post.created_at.strftime('%d/%m/%Y') }}</span>
+              <span class="blog-card-dot">&bull;</span>
+              <span>{{ post.tempo_leitura }} min</span>
+              <span class="blog-card-dot">&bull;</span>
+              <span>{{ post.visualizacoes }} views</span>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      {% if posts.pages > 1 %}
+      <div class="blog-pagination">
+        {% if posts.has_prev %}
+        <a href="{{ url_for('blog.categoria', slug=categoria.slug, page=posts.prev_num) }}" class="blog-page-btn">&laquo; Anterior</a>
+        {% endif %}
+        {% for p in posts.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+          {% if p %}
+          <a href="{{ url_for('blog.categoria', slug=categoria.slug, page=p) }}" class="blog-page-btn {% if p == posts.page %}active{% endif %}">{{ p }}</a>
+          {% else %}
+          <span class="blog-page-btn disabled">…</span>
+          {% endif %}
+        {% endfor %}
+        {% if posts.has_next %}
+        <a href="{{ url_for('blog.categoria', slug=categoria.slug, page=posts.next_num) }}" class="blog-page-btn">Próximo &raquo;</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div style="text-align:center; padding:3rem; color:var(--blog-muted);">
+        <p>Nenhum post nesta categoria ainda.</p>
+        <a href="{{ url_for('blog.index') }}" style="color:var(--blog-primary);">Ver todos os posts</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="blog-sidebar">
+      {% if categorias %}
+      <div class="sidebar-widget">
+        <h3 class="sidebar-widget-title">Outras Categorias</h3>
+        <ul class="sidebar-cat-list">
+          {% for cat in categorias %}
+          <li>
+            <a href="{{ url_for('blog.categoria', slug=cat.slug) }}" {% if cat.id == categoria.id %}style="color:var(--blog-primary); font-weight:800;"{% endif %}>
+              {{ cat.nome }}
+              <span class="sidebar-cat-badge">{{ cat.posts | selectattr('status', 'equalto', 'publicado') | list | length }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if populares %}
+      <div class="sidebar-widget">
+        <h3 class="sidebar-widget-title">Mais Lidos</h3>
+        {% for p in populares %}
+        <a href="{{ url_for('blog.post', slug=p.slug) }}" class="sidebar-post-item">
+          {% if p.capa_url %}
+          <img class="sidebar-post-img" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy">
+          {% else %}
+          <div class="sidebar-post-img-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+          {% endif %}
+          <div>
+            <span class="sidebar-post-title">{{ p.titulo | truncate(55) }}</span>
+            <div class="sidebar-post-meta">{{ p.visualizacoes }} visualizações</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="sidebar-widget">
+        <h3 class="sidebar-widget-title" style="color:#1e293b;">Fique por dentro!</h3>
+        <form class="newsletter-form" action="{{ url_for('blog.newsletter') }}" method="post">
+          <input type="email" name="email" placeholder="seu@email.com" required>
+          <button type="submit">Inscrever-se</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+</div>
+
+{% endblock %}

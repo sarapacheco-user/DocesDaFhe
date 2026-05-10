@@ -1,0 +1,220 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="blog-admin-wrap">
+
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Blog — Painel Admin</h1>
+    <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+      <a href="{{ url_for('blog.admin_categorias') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Gerenciar Categorias</a>
+      <a href="{{ url_for('blog.sobre') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Página Sobre</a>
+      <a href="{{ url_for('blog.index') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Ver Blog</a>
+      <a href="{{ url_for('blog.admin_novo') }}" class="editor-btn editor-btn-accent" style="text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle; margin-right:.3rem;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Post
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="admin-stats-grid">
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Total de Posts</div>
+      <div class="admin-stat-value">{{ total_posts }}</div>
+    </div>
+    <div class="admin-stat-card stat-primary">
+      <div class="admin-stat-label">Publicados</div>
+      <div class="admin-stat-value">{{ publicados }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Rascunhos</div>
+      <div class="admin-stat-value">{{ rascunhos }}</div>
+    </div>
+    <div class="admin-stat-card stat-accent">
+      <div class="admin-stat-label">Visualizações</div>
+      <div class="admin-stat-value">{{ total_views }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Curtidas</div>
+      <div class="admin-stat-value">{{ total_curtidas }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Comentários</div>
+      <div class="admin-stat-value">{{ total_comentarios }}</div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  {% if top_posts_views %}
+  <div class="admin-table-wrap" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; margin:0 0 1.2rem; color:var(--blog-text);">Posts Mais Visualizados</h2>
+    <canvas id="viewsChart" height="80"></canvas>
+  </div>
+  {% endif %}
+
+  <!-- Filter bar -->
+  <form class="admin-filter-bar" method="get" action="{{ url_for('blog.admin') }}">
+    <input type="text" name="q" placeholder="Buscar por título..." value="{{ q }}" style="flex:1; max-width:320px;">
+    <select name="status">
+      <option value="">Todos os status</option>
+      <option value="publicado" {% if status_filtro == 'publicado' %}selected{% endif %}>Publicados</option>
+      <option value="rascunho" {% if status_filtro == 'rascunho' %}selected{% endif %}>Rascunhos</option>
+    </select>
+    <button type="submit">Filtrar</button>
+    {% if q or status_filtro %}
+    <a href="{{ url_for('blog.admin') }}" style="font-size:.85rem; color:var(--blog-muted); text-decoration:none; font-weight:700;">Limpar</a>
+    {% endif %}
+  </form>
+
+  <!-- Posts table -->
+  <div class="admin-table-wrap">
+    {% if posts.items %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Capa</th>
+          <th>Título</th>
+          <th>Categoria</th>
+          <th>Status</th>
+          <th>Data</th>
+          <th>Views</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in posts.items %}
+        <tr>
+          <td>
+            {% if p.capa_url %}
+            <img class="admin-table-thumb" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}">
+            {% else %}
+            <div class="admin-table-thumb-placeholder">sem capa</div>
+            {% endif %}
+          </td>
+          <td>
+            <strong style="font-size:.9rem; color:var(--blog-text);">{{ p.titulo | truncate(60) }}</strong>
+            {% if p.resumo %}
+            <div style="font-size:.75rem; color:var(--blog-muted); margin-top:.2rem;">{{ p.resumo | truncate(80) }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.categoria %}
+            <span class="blog-card-cat" style="background: {{ p.categoria.cor }}; font-size:.7rem;">{{ p.categoria.nome }}</span>
+            {% else %}
+            <span style="color:var(--blog-muted); font-size:.82rem;">—</span>
+            {% endif %}
+          </td>
+          <td><span class="status-badge {{ p.status }}">{{ p.status | capitalize }}</span></td>
+          <td style="font-size:.82rem; color:var(--blog-muted);">{{ p.created_at.strftime('%d/%m/%Y') }}</td>
+          <td style="font-weight:700; font-size:.9rem;">{{ p.visualizacoes }}</td>
+          <td>
+            <div class="admin-table-actions">
+              <a href="{{ url_for('blog.admin_editar', id=p.id) }}" class="action-btn action-btn-edit">Editar</a>
+              {% if p.status == 'publicado' %}
+              <a href="{{ url_for('blog.post', slug=p.slug) }}" class="action-btn action-btn-view" target="_blank">Ver</a>
+              {% endif %}
+              <form action="{{ url_for('blog.admin_toggle_status', id=p.id) }}" method="post" style="display:inline;">
+                <button type="submit" class="action-btn action-btn-toggle">
+                  {% if p.status == 'publicado' %}Despublicar{% else %}Publicar{% endif %}
+                </button>
+              </form>
+              <button class="action-btn action-btn-delete" onclick="confirmarExcluir({{ p.id }}, '{{ p.titulo | replace("'", "\\'") }}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center; padding:3rem 1rem; color:var(--blog-muted);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom:.75rem; opacity:.4;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <p>Nenhum post encontrado.</p>
+      <a href="{{ url_for('blog.admin_novo') }}" class="editor-btn editor-btn-primary" style="display:inline-block; text-decoration:none; margin-top:.75rem;">Criar primeiro post</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Paginação -->
+  {% if posts.pages > 1 %}
+  <div class="blog-pagination">
+    {% if posts.has_prev %}
+    <a href="{{ url_for('blog.admin', page=posts.prev_num, q=q, status=status_filtro) }}" class="blog-page-btn">&laquo; Anterior</a>
+    {% endif %}
+    {% for p in posts.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+      {% if p %}
+      <a href="{{ url_for('blog.admin', page=p, q=q, status=status_filtro) }}" class="blog-page-btn {% if p == posts.page %}active{% endif %}">{{ p }}</a>
+      {% else %}
+      <span class="blog-page-btn disabled">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if posts.has_next %}
+    <a href="{{ url_for('blog.admin', page=posts.next_num, q=q, status=status_filtro) }}" class="blog-page-btn">Próximo &raquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <div style="margin-bottom:.75rem; color: #dc2626;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </div>
+    <h3 class="modal-title">Excluir Post</h3>
+    <p class="modal-text" id="deleteModalText">Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="editor-btn editor-btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <form id="deleteForm" method="post" style="display:inline;">
+        <button type="submit" class="editor-btn" style="background:#dc2626; color:#fff;">Excluir</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmarExcluir(id, titulo) {
+  document.getElementById('deleteModalText').textContent = `Tem certeza que deseja excluir "${titulo}"? Esta ação não pode ser desfeita.`;
+  document.getElementById('deleteForm').action = `/blog/admin/${id}/excluir`;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function fecharModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+}
+document.getElementById('deleteModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModal();
+});
+
+{% if top_posts_views %}
+const ctx = document.getElementById('viewsChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: [{% for p in top_posts_views %}'{{ p.titulo[:30] | replace("'", "\\'") }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{
+      label: 'Visualizações',
+      data: [{% for p in top_posts_views %}{{ p.visualizacoes }}{% if not loop.last %},{% endif %}{% endfor %}],
+      backgroundColor: 'rgba(91,109,61,0.7)',
+      borderColor: '#5B6D3D',
+      borderWidth: 1.5,
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' } },
+      x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 11 } } }
+    }
+  }
+});
+{% endif %}
+</script>
+
+{% endblock %}

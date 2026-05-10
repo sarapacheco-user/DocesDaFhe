@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento
 import bcrypt
 import re
 import requests
@@ -80,6 +80,9 @@ db.init_app(app)
 app.jinja_env.filters['darken'] = darken_hex
 from datetime import datetime as _dt
 app.jinja_env.globals['now'] = _dt.utcnow
+
+from blog_routes import blog_bp
+app.register_blueprint(blog_bp)
 
 
 def admin_required(f):
@@ -370,6 +373,14 @@ def dashboard():
     medias_p = {r[0]: (round(r[1], 1), r[2]) for r in rows_p}
     medias_k = {r[0]: (round(r[1], 1), r[2]) for r in rows_k}
 
+    posts_recentes = BlogPost.query.filter_by(status='publicado')\
+                        .order_by(BlogPost.created_at.desc()).limit(3).all()
+
+    from datetime import datetime as dt
+    agenda_proximos = AgendaEvento.query\
+                        .filter(AgendaEvento.data_inicio >= dt.now())\
+                        .order_by(AgendaEvento.data_inicio).limit(5).all()
+
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
@@ -378,7 +389,9 @@ def dashboard():
                            carrossel=carrossel,
                            kits=kits,
                            fav_p=fav_p, fav_k=fav_k, fav_e=fav_e,
-                           medias_p=medias_p, medias_k=medias_k)
+                           medias_p=medias_p, medias_k=medias_k,
+                           posts_recentes=posts_recentes,
+                           agenda_proximos=agenda_proximos)
 
 
 # ─────────────────────────────────────
@@ -1806,6 +1819,7 @@ def admin_design():
         config.flash_error      = request.form.get('flash_error',  '#f8d7da')
         config.flash_info       = request.form.get('flash_info',   '#ffffff')
         config.new_badge_days   = int(request.form.get('new_badge_days', 7) or 7)
+        config.new_badge_ativo  = request.form.get('new_badge_ativo') == '1'
         config.auth_bg_color1   = request.form.get('auth_bg_color1', '#e8eed8')
         config.auth_bg_color2   = request.form.get('auth_bg_color2', '#8fa05a')
 
@@ -1946,7 +1960,7 @@ def corporativo():
     config = _corp_config()
     produtos = Product.query.filter_by(category='corporativos', ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
-    return render_template('corporativo/index.html',
+    return render_template('corporativo/corporativo_index.html',
                            config=config, produtos=produtos,
                            fav_p=fav_p, fav_k=fav_k, fav_e=fav_e,
                            categoria='corporativos')
@@ -2119,6 +2133,74 @@ def admin_corporativo_status(id):
     flash('Status atualizado.', 'success')
     sf = request.form.get('status_filter', '')
     return redirect(url_for('admin_corporativo', status=sf))
+
+
+# ─────────────────────────────────────
+# AGENDA
+# ─────────────────────────────────────
+
+@app.route('/admin/agenda', methods=['GET', 'POST'])
+@login_required
+def admin_agenda():
+    if not current_user.is_admin:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        from datetime import datetime as dt
+        titulo    = request.form.get('titulo', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        local     = request.form.get('local', '').strip()
+        cor       = request.form.get('cor', '#5B6D3D')
+        inicio_data = request.form.get('data_inicio_data', '')
+        inicio_hora = request.form.get('data_inicio_hora', '00:00')
+        fim_data    = request.form.get('data_fim_data', '')
+        fim_hora    = request.form.get('data_fim_hora', '00:00')
+        if titulo and inicio_data:
+            data_inicio = dt.strptime(f'{inicio_data} {inicio_hora}', '%Y-%m-%d %H:%M')
+            data_fim    = dt.strptime(f'{fim_data} {fim_hora}', '%Y-%m-%d %H:%M') if fim_data else None
+            evento = AgendaEvento(titulo=titulo, descricao=descricao, local=local,
+                                  data_inicio=data_inicio, data_fim=data_fim, cor=cor)
+            db.session.add(evento)
+            db.session.commit()
+            flash('Evento adicionado!', 'success')
+        return redirect(url_for('admin_agenda'))
+    from datetime import datetime as dt
+    eventos = AgendaEvento.query.order_by(AgendaEvento.data_inicio).all()
+    return render_template('admin/agenda.html', eventos=eventos, hoje=dt.now())
+
+
+@app.route('/admin/agenda/<int:id>/excluir', methods=['POST'])
+@login_required
+def admin_agenda_excluir(id):
+    if not current_user.is_admin:
+        return redirect(url_for('dashboard'))
+    evento = AgendaEvento.query.get_or_404(id)
+    db.session.delete(evento)
+    db.session.commit()
+    flash('Evento removido.', 'success')
+    return redirect(url_for('admin_agenda'))
+
+
+@app.route('/admin/agenda/<int:id>/editar', methods=['POST'])
+@login_required
+def admin_agenda_editar(id):
+    if not current_user.is_admin:
+        return redirect(url_for('dashboard'))
+    from datetime import datetime as dt
+    evento = AgendaEvento.query.get_or_404(id)
+    evento.titulo    = request.form.get('titulo', evento.titulo).strip()
+    evento.descricao = request.form.get('descricao', '').strip()
+    evento.local     = request.form.get('local', '').strip()
+    evento.cor       = request.form.get('cor', evento.cor)
+    inicio_data = request.form.get('data_inicio_data', '')
+    inicio_hora = request.form.get('data_inicio_hora', '00:00')
+    fim_data    = request.form.get('data_fim_data', '')
+    fim_hora    = request.form.get('data_fim_hora', '00:00')
+    if inicio_data:
+        evento.data_inicio = dt.strptime(f'{inicio_data} {inicio_hora}', '%Y-%m-%d %H:%M')
+    evento.data_fim = dt.strptime(f'{fim_data} {fim_hora}', '%Y-%m-%d %H:%M') if fim_data else None
+    db.session.commit()
+    flash('Evento atualizado!', 'success')
+    return redirect(url_for('admin_agenda'))
 
 
 # ─────────────────────────────────────

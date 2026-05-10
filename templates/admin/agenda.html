@@ -1,0 +1,265 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  .agenda-wrap { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+
+  .agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .agenda-header h1 { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: #1e293b; margin: 0; }
+
+  .agenda-grid { display: grid; grid-template-columns: 1fr 360px; gap: 2rem; align-items: start; }
+
+  /* Lista de eventos */
+  .agenda-lista { display: flex; flex-direction: column; gap: 1rem; }
+
+  .agenda-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    gap: 1.2rem;
+    align-items: flex-start;
+    border-left: 5px solid var(--cor, #5B6D3D);
+  }
+
+  .agenda-card.passado { opacity: .5; }
+
+  .agenda-data-box {
+    min-width: 56px;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: .5rem .4rem;
+  }
+  .agenda-data-dia { font-size: 1.6rem; font-weight: 800; color: #1e293b; line-height: 1; }
+  .agenda-data-mes { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: .05em; }
+
+  .agenda-info { flex: 1; }
+  .agenda-titulo { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 .25rem; }
+  .agenda-meta { font-size: .8rem; color: #64748b; display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .3rem; }
+  .agenda-desc { font-size: .85rem; color: #475569; margin: 0; }
+
+  .agenda-acoes { display: flex; gap: .5rem; align-items: center; }
+  .btn-agenda-del {
+    background: none; border: 1.5px solid #fca5a5; color: #ef4444;
+    border-radius: 7px; padding: .3rem .7rem; font-size: .78rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-agenda-del:hover { background: #fef2f2; }
+  .btn-agenda-edit {
+    background: none; border: 1.5px solid #e2e8f0; color: #5B6D3D;
+    border-radius: 7px; padding: .3rem .7rem; font-size: .78rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-agenda-edit:hover { background: #f8fafc; }
+
+  /* Formulário novo evento */
+  .agenda-form-box {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    padding: 1.5rem;
+    position: sticky;
+    top: 1.5rem;
+  }
+  .agenda-form-box h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: #1e293b; margin: 0 0 1.2rem; }
+  .agenda-form-group { margin-bottom: 1rem; }
+  .agenda-form-group label { display: block; font-size: .8rem; font-weight: 700; color: #475569; margin-bottom: .3rem; }
+  .agenda-form-group input,
+  .agenda-form-group textarea {
+    width: 100%; padding: .55rem .8rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
+    font-size: .88rem; color: #1e293b; background: #f8fafc; box-sizing: border-box;
+  }
+  .agenda-form-group input:focus,
+  .agenda-form-group textarea:focus { outline: none; border-color: #5B6D3D; background: #fff; }
+  .agenda-form-group textarea { resize: vertical; min-height: 70px; }
+  .agenda-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  .btn-agenda-salvar {
+    width: 100%; padding: .7rem; background: #5B6D3D; color: #fff;
+    border: none; border-radius: 10px; font-weight: 700; font-size: .9rem; cursor: pointer;
+    margin-top: .5rem;
+  }
+  .btn-agenda-salvar:hover { background: #4a5c30; }
+
+  .agenda-vazio { text-align: center; padding: 3rem; color: #94a3b8; }
+
+  /* Modal editar */
+  .modal-agenda { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; align-items:center; justify-content:center; }
+  .modal-agenda.open { display:flex; }
+  .modal-agenda-box { background:#fff; border-radius:16px; padding:1.8rem; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+  .modal-agenda-box h2 { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; color:#1e293b; margin:0 0 1.2rem; }
+
+  @media (max-width: 720px) {
+    .agenda-grid { grid-template-columns: 1fr; }
+    .agenda-form-box { position: static; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="agenda-wrap">
+
+  <div class="agenda-header">
+    <h1>Agenda de Eventos</h1>
+    <a href="{{ url_for('dashboard') }}" style="font-size:.82rem; color:#64748b; text-decoration:none; border:1.5px solid #e2e8f0; padding:.4rem 1rem; border-radius:8px; font-weight:700;">← Voltar</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:{% if cat=='success' %}#dcfce7{% else %}#fee2e2{% endif %}; color:{% if cat=='success' %}#166534{% else %}#991b1b{% endif %}; padding:.7rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:.88rem; font-weight:600;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="agenda-grid">
+
+    <!-- Lista de eventos -->
+    <div class="agenda-lista">
+      {% if eventos %}
+        {% for ev in eventos %}
+        <div class="agenda-card {% if ev.passou %}passado{% endif %}" style="--cor: {{ ev.cor }}">
+          <div class="agenda-data-box">
+            <div class="agenda-data-dia">{{ ev.data_inicio.strftime('%d') }}</div>
+            <div class="agenda-data-mes">{{ ev.data_inicio.strftime('%b') }}</div>
+          </div>
+          <div class="agenda-info">
+            <p class="agenda-titulo">{{ ev.titulo }}{% if ev.passou %} <span style="font-size:.7rem; color:#94a3b8; font-weight:400;">(encerrado)</span>{% endif %}</p>
+            <div class="agenda-meta">
+              <span>{{ ev.data_inicio.strftime('%d/%m/%Y %H:%M') }}</span>
+              {% if ev.data_fim %}<span>até {{ ev.data_fim.strftime('%d/%m/%Y %H:%M') }}</span>{% endif %}
+              {% if ev.local %}<span>📍 {{ ev.local }}</span>{% endif %}
+            </div>
+            {% if ev.descricao %}<p class="agenda-desc">{{ ev.descricao }}</p>{% endif %}
+          </div>
+          <div class="agenda-acoes">
+            <button class="btn-agenda-edit" onclick="abrirEdicao({{ ev.id }}, '{{ ev.titulo|replace("'","\\'")|e }}', '{{ ev.descricao|replace("'","\\'")|e if ev.descricao else '' }}', '{{ ev.local|replace("'","\\'")|e if ev.local else '' }}', '{{ ev.data_inicio.strftime('%Y-%m-%d') }}', '{{ ev.data_inicio.strftime('%H:%M') }}', '{{ ev.data_fim.strftime('%Y-%m-%d') if ev.data_fim else '' }}', '{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}', '{{ ev.cor }}')">Editar</button>
+            <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" onsubmit="return confirm('Remover este evento?')">
+              <button type="submit" class="btn-agenda-del">Excluir</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="agenda-vazio">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <p style="margin:.8rem 0 0; font-size:.9rem;">Nenhum evento cadastrado ainda.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Formulário novo evento -->
+    <div class="agenda-form-box">
+      <h2>Novo Evento</h2>
+      <form method="POST" action="{{ url_for('admin_agenda') }}">
+        <div class="agenda-form-group">
+          <label>Título *</label>
+          <input type="text" name="titulo" placeholder="Ex: Feira de Doces" required>
+        </div>
+        <div class="agenda-form-group">
+          <label>Local</label>
+          <input type="text" name="local" placeholder="Ex: Centro de Convenções SP">
+        </div>
+        <div class="agenda-form-row">
+          <div class="agenda-form-group">
+            <label>Data de início *</label>
+            <input type="date" name="data_inicio_data" required>
+          </div>
+          <div class="agenda-form-group">
+            <label>Horário de início *</label>
+            <input type="time" name="data_inicio_hora" required>
+          </div>
+        </div>
+        <div class="agenda-form-row">
+          <div class="agenda-form-group">
+            <label>Data de fim</label>
+            <input type="date" name="data_fim_data">
+          </div>
+          <div class="agenda-form-group">
+            <label>Horário de fim</label>
+            <input type="time" name="data_fim_hora">
+          </div>
+        </div>
+        <div class="agenda-form-group">
+          <label>Descrição</label>
+          <textarea name="descricao" placeholder="Detalhes do evento..."></textarea>
+        </div>
+        <div class="agenda-form-group">
+          <label>Cor</label>
+          <input type="color" name="cor" value="#5B6D3D" style="height:38px; cursor:pointer;">
+        </div>
+        <button type="submit" class="btn-agenda-salvar">Adicionar à Agenda</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Editar -->
+<div class="modal-agenda" id="modalEditar">
+  <div class="modal-agenda-box">
+    <h2>Editar Evento</h2>
+    <form method="POST" id="formEditar">
+      <div class="agenda-form-group">
+        <label>Título *</label>
+        <input type="text" name="titulo" id="editTitulo" required>
+      </div>
+      <div class="agenda-form-group">
+        <label>Local</label>
+        <input type="text" name="local" id="editLocal">
+      </div>
+      <div class="agenda-form-row">
+        <div class="agenda-form-group">
+          <label>Data de início *</label>
+          <input type="date" name="data_inicio_data" id="editInicioData" required>
+        </div>
+        <div class="agenda-form-group">
+          <label>Horário de início *</label>
+          <input type="time" name="data_inicio_hora" id="editInicioHora" required>
+        </div>
+      </div>
+      <div class="agenda-form-row">
+        <div class="agenda-form-group">
+          <label>Data de fim</label>
+          <input type="date" name="data_fim_data" id="editFimData">
+        </div>
+        <div class="agenda-form-group">
+          <label>Horário de fim</label>
+          <input type="time" name="data_fim_hora" id="editFimHora">
+        </div>
+      </div>
+      <div class="agenda-form-group">
+        <label>Descrição</label>
+        <textarea name="descricao" id="editDesc"></textarea>
+      </div>
+      <div class="agenda-form-group">
+        <label>Cor</label>
+        <input type="color" name="cor" id="editCor" style="height:38px; cursor:pointer;">
+      </div>
+      <div style="display:flex; gap:.8rem; margin-top:.5rem;">
+        <button type="submit" class="btn-agenda-salvar" style="flex:1;">Salvar</button>
+        <button type="button" onclick="fecharModal()" style="flex:1; padding:.7rem; border:1.5px solid #e2e8f0; background:#fff; border-radius:10px; font-weight:700; cursor:pointer; color:#64748b;">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function abrirEdicao(id, titulo, desc, local, inicioData, inicioHora, fimData, fimHora, cor) {
+  document.getElementById('formEditar').action     = '/admin/agenda/' + id + '/editar';
+  document.getElementById('editTitulo').value      = titulo;
+  document.getElementById('editDesc').value        = desc;
+  document.getElementById('editLocal').value       = local;
+  document.getElementById('editInicioData').value  = inicioData;
+  document.getElementById('editInicioHora').value  = inicioHora;
+  document.getElementById('editFimData').value     = fimData;
+  document.getElementById('editFimHora').value     = fimHora;
+  document.getElementById('editCor').value         = cor;
+  document.getElementById('modalEditar').classList.add('open');
+}
+function fecharModal() {
+  document.getElementById('modalEditar').classList.remove('open');
+}
+document.getElementById('modalEditar').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+</script>
+{% endblock %}

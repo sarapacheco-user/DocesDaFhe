@@ -1,0 +1,281 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+  .ql-editor { min-height: 320px; font-family: 'Nunito', sans-serif; font-size: 1rem; }
+  .ql-toolbar.ql-snow { border-color: var(--blog-border); }
+  .ql-container.ql-snow { border-color: var(--blog-border); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="editor-wrap">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <a href="{{ url_for('blog.admin') }}" style="display:flex; align-items:center; gap:.5rem; color: var(--blog-muted); text-decoration:none; font-weight:700; font-size:.88rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar ao Admin
+    </a>
+    <h1 style="font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700; color:var(--blog-text); margin:0;">
+      {% if post %}Editar Post{% else %}Novo Post{% endif %}
+    </h1>
+    <div id="autoSaveStatus" style="font-size:.78rem; color:var(--blog-muted);"></div>
+  </div>
+
+  <form id="editorForm" method="post" action="{{ action }}" enctype="multipart/form-data">
+
+    <!-- Título -->
+    <input type="text" name="titulo" id="tituloInput" class="editor-title-input"
+           placeholder="Título do artigo..."
+           value="{{ post.titulo if post else '' }}" required>
+
+    <!-- Resumo -->
+    <div class="editor-field">
+      <label for="resumoInput">Resumo <span style="color:var(--blog-muted); font-weight:400;">(opcional, aparece nos cards)</span></label>
+      <textarea name="resumo" id="resumoInput" rows="2" placeholder="Breve descrição do post...">{{ post.resumo if post else '' }}</textarea>
+    </div>
+
+    <!-- Editor de conteúdo -->
+    <div class="editor-field">
+      <label>Conteúdo</label>
+      <div class="quill-editor-wrap">
+        <div id="quillEditor">{{ post.conteudo | safe if post else '' }}</div>
+      </div>
+      <input type="hidden" name="conteudo" id="conteudoHidden">
+    </div>
+
+    <div class="editor-stats">
+      <span>Palavras: <strong id="wordCount">0</strong></span>
+      <span>Tempo de leitura: <strong id="readTime">1</strong> min</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem;">
+      <!-- Capa -->
+      <div class="editor-field">
+        <label for="capaInput">Imagem de Capa</label>
+        <input type="file" name="capa" id="capaInput" accept="image/*" onchange="previewCapa(this)">
+        {% if post and post.capa_url %}
+        <img id="capaPreview" class="editor-capa-preview show" src="{{ url_for('static', filename=post.capa_url) }}" alt="Capa atual">
+        <p style="font-size:.75rem; color:var(--blog-muted); margin-top:.3rem;">Capa atual. Selecione nova imagem para substituir.</p>
+        {% else %}
+        <img id="capaPreview" class="editor-capa-preview" src="" alt="Preview da capa">
+        {% endif %}
+      </div>
+
+      <!-- Categoria -->
+      <div class="editor-field">
+        <label for="categoriaSelect">Categoria</label>
+        <select name="categoria_id" id="categoriaSelect">
+          <option value="">Sem categoria</option>
+          {% for cat in categorias %}
+          <option value="{{ cat.id }}" {% if post and post.categoria_id == cat.id %}selected{% endif %}>{{ cat.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Status -->
+        <label for="statusSelect" style="margin-top: 1rem; display: block;">Status</label>
+        <select name="status" id="statusSelect">
+          <option value="rascunho" {% if not post or post.status == 'rascunho' %}selected{% endif %}>Rascunho</option>
+          <option value="publicado" {% if post and post.status == 'publicado' %}selected{% endif %}>Publicado</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="editor-field">
+      <label>Tags</label>
+      {% if tags %}
+      <div style="display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:.7rem;">
+        {% for tag in tags %}
+        <label style="cursor:pointer;">
+          <input type="checkbox" name="tags" value="{{ tag.id }}"
+                 {% if post and tag in post.tags %}checked{% endif %}
+                 style="display:none;" onchange="toggleTagChip(this)">
+          <span style="display:inline-block; padding:.3rem .8rem; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid #e2e8f0; background:{% if post and tag in post.tags %}#5B6D3D{% else %}#f8fafc{% endif %}; color:{% if post and tag in post.tags %}#fff{% else %}#475569{% endif %}; transition:all .15s; user-select:none;">{{ tag.nome }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <input type="text" name="novas_tags" placeholder="Adicionar novas tags (separadas por vírgula)...">
+    </div>
+    <script>
+    function toggleTagChip(cb) {
+      const chip = cb.nextElementSibling;
+      if (cb.checked) { chip.style.background='#5B6D3D'; chip.style.color='#fff'; chip.style.borderColor='#5B6D3D'; }
+      else { chip.style.background='#f8fafc'; chip.style.color='#475569'; chip.style.borderColor='#e2e8f0'; }
+    }
+    </script>
+
+    <!-- SEO -->
+    <div style="margin-bottom:1.2rem;">
+      <div class="editor-section-title" style="margin-bottom:.75rem; cursor:pointer; user-select:none;" onclick="toggleSEO()">
+        SEO &amp; Meta ▾
+      </div>
+      <div id="seoSection" style="display:none;">
+        <div class="editor-field">
+          <label>Slug (URL)</label>
+          <input type="text" name="slug" id="slugInput" placeholder="gerado-automaticamente-do-titulo"
+                 value="{{ post.slug if post else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Meta Título</label>
+          <input type="text" name="meta_titulo" placeholder="Título para mecanismos de busca (60 chars)"
+                 value="{{ post.meta_titulo if post else '' }}" maxlength="200">
+        </div>
+        <div class="editor-field">
+          <label>Meta Descrição</label>
+          <textarea name="meta_descricao" rows="2" placeholder="Descrição para mecanismos de busca (160 chars)" maxlength="300">{{ post.meta_descricao if post else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="editor-actions">
+      <button type="submit" class="editor-btn editor-btn-primary" onclick="setStatus('rascunho')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:.3rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar Rascunho
+      </button>
+      <button type="submit" class="editor-btn editor-btn-accent" onclick="setStatus('publicado')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:.3rem;"><polyline points="20 6 9 17 4 12"/></svg>
+        Publicar
+      </button>
+      {% if post %}
+      <a href="{{ url_for('blog.post', slug=post.slug) }}" target="_blank" class="editor-btn editor-btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:.3rem;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Pré-visualizar
+      </a>
+      {% endif %}
+      <a href="{{ url_for('blog.admin') }}" class="editor-btn editor-btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+<script>
+// Initialize Quill
+const quill = new Quill('#quillEditor', {
+  theme: 'snow',
+  modules: {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      [{ 'align': [] }],
+      ['blockquote', 'code-block'],
+      ['link', 'image'],
+      ['clean']
+    ]
+  }
+});
+
+// Update stats on change
+quill.on('text-change', updateStats);
+updateStats();
+
+function updateStats() {
+  const text = quill.getText().trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  document.getElementById('wordCount').textContent = words;
+  document.getElementById('readTime').textContent = Math.max(1, Math.ceil(words / 200));
+}
+
+// On form submit, copy Quill HTML to hidden field
+document.getElementById('editorForm').addEventListener('submit', () => {
+  document.getElementById('conteudoHidden').value = quill.root.innerHTML;
+});
+
+// Auto-generate slug from title
+const tituloInput = document.getElementById('tituloInput');
+const slugInput = document.getElementById('slugInput');
+
+tituloInput.addEventListener('input', () => {
+  if (!slugInput.dataset.manual) {
+    slugInput.value = slugify(tituloInput.value);
+  }
+  // Auto-save to localStorage
+  autoSave();
+});
+slugInput.addEventListener('input', () => { slugInput.dataset.manual = '1'; });
+
+function slugify(text) {
+  return text.toLowerCase()
+    .replace(/[àáâãä]/g, 'a').replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c').replace(/[ñ]/g, 'n')
+    .replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
+}
+
+// Capa preview
+function previewCapa(input) {
+  const preview = document.getElementById('capaPreview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.classList.add('show');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// Toggle SEO section
+function toggleSEO() {
+  const sec = document.getElementById('seoSection');
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+}
+
+// Set status before submit
+function setStatus(s) {
+  document.getElementById('statusSelect').value = s;
+}
+
+// Auto-save to localStorage
+const DRAFT_KEY = 'blog_draft_{{ post.id if post else "new" }}';
+
+function autoSave() {
+  const draft = {
+    titulo: document.getElementById('tituloInput').value,
+    resumo: document.getElementById('resumoInput').value,
+    conteudo: quill.root.innerHTML,
+    ts: new Date().toISOString()
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  const el = document.getElementById('autoSaveStatus');
+  el.textContent = 'Rascunho salvo localmente';
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+// Auto-save every 30 seconds
+setInterval(() => {
+  document.getElementById('conteudoHidden').value = quill.root.innerHTML;
+  autoSave();
+}, 30000);
+
+quill.on('text-change', () => {
+  clearTimeout(window._autoSaveTimer);
+  window._autoSaveTimer = setTimeout(autoSave, 3000);
+});
+
+// Restore draft if exists (only for new posts)
+{% if not post %}
+const savedDraft = localStorage.getItem(DRAFT_KEY);
+if (savedDraft) {
+  try {
+    const draft = JSON.parse(savedDraft);
+    if (draft.titulo && !document.getElementById('tituloInput').value) {
+      if (confirm(`Encontramos um rascunho salvo em ${new Date(draft.ts).toLocaleString()}. Restaurar?`)) {
+        document.getElementById('tituloInput').value = draft.titulo;
+        document.getElementById('resumoInput').value = draft.resumo || '';
+        quill.root.innerHTML = draft.conteudo || '';
+        updateStats();
+      }
+    }
+  } catch(e) {}
+}
+{% endif %}
+</script>
+
+{% endblock %}
