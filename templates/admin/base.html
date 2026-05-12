@@ -245,6 +245,17 @@
     }
   </style>
 
+  {% if site_config %}
+  <style>
+    :root {
+      --blog-primary:  {{ site_config.blog_primary  or '#5B6D3D' }};
+      --blog-accent:   {{ site_config.blog_accent   or '#932E50' }};
+      --blog-bg:       {{ site_config.blog_bg       or '#f8fafc' }};
+      --blog-card-bg:  {{ site_config.blog_card_bg  or '#ffffff' }};
+      --blog-text:     {{ site_config.blog_text     or '#1e293b' }};
+    }
+  </style>
+  {% endif %}
   {% block styles %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}">
   {% if site_config and site_config.auth_bg_color1 and not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}

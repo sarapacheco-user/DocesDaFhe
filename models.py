@@ -345,6 +345,12 @@ class SiteConfig(db.Model):
     flash_info      = db.Column(db.String(20), default='#ffffff')
     new_badge_days  = db.Column(db.Integer, default=7)
     new_badge_ativo = db.Column(db.Boolean, default=True)
+    # Blog colors
+    blog_primary    = db.Column(db.String(20), default='#5B6D3D')
+    blog_accent     = db.Column(db.String(20), default='#932E50')
+    blog_bg         = db.Column(db.String(20), default='#f8fafc')
+    blog_card_bg    = db.Column(db.String(20), default='#ffffff')
+    blog_text       = db.Column(db.String(20), default='#1e293b')
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):

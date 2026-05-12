@@ -1820,6 +1820,11 @@ def admin_design():
         config.flash_info       = request.form.get('flash_info',   '#ffffff')
         config.new_badge_days   = int(request.form.get('new_badge_days', 7) or 7)
         config.new_badge_ativo  = request.form.get('new_badge_ativo') == '1'
+        config.blog_primary     = request.form.get('blog_primary',  '#5B6D3D')
+        config.blog_accent      = request.form.get('blog_accent',   '#932E50')
+        config.blog_bg          = request.form.get('blog_bg',       '#f8fafc')
+        config.blog_card_bg     = request.form.get('blog_card_bg',  '#ffffff')
+        config.blog_text        = request.form.get('blog_text',     '#1e293b')
         config.auth_bg_color1   = request.form.get('auth_bg_color1', '#e8eed8')
         config.auth_bg_color2   = request.form.get('auth_bg_color2', '#8fa05a')
 
