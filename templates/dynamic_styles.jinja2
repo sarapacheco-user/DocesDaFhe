@@ -9,6 +9,18 @@
   --color-bg:              {{ config.color_bg }};
   --color-text:            {{ config.color_text }};
   --color-text-light:      {{ config.color_text_light }};
+  --auth-bg-color1:        {{ config.auth_bg_color1 or '#e8eed8' }};
+  --auth-bg-color2:        {{ config.auth_bg_color2 or '#8fa05a' }};
+  --color-primary-tint:    {{ config.color_primary | tint(0.82) }};
+  --color-primary-medium:  {{ config.color_primary | tint(0.38) }};
+  --sidebar-bg:            {{ config.color_secondary }};
+  --sidebar-hover:         rgba(255,255,255,.12);
+  --sidebar-active:        rgba(255,255,255,.20);
+  --blog-primary:          {{ config.blog_primary  or config.color_primary  or '#5B6D3D' }};
+  --blog-accent:           {{ config.blog_accent   or config.color_dark     or '#932E50' }};
+  --blog-bg:               {{ config.blog_bg       or '#f8fafc' }};
+  --blog-card-bg:          {{ config.blog_card_bg  or '#ffffff' }};
+  --blog-text:             {{ config.blog_text     or '#1e293b' }};
 {% if config.card_shadow == 'none' %}
   --shadow-sm: none; --shadow-md: none; --shadow-lg: none;
 {% elif config.card_shadow == 'soft' %}

@@ -101,7 +101,7 @@ html body button.btn-secondary {
 html body .btn-secondary:hover,
 html body a.btn-secondary:hover,
 html body button.btn-secondary:hover {
-  background-color: #eef2e6 !important;
+  background-color: var(--color-primary-tint) !important;
   color: var(--color-primary) !important;
   transform: translateY(-2px) !important;
 }
@@ -301,7 +301,7 @@ html body .evento-titulo h2 {
 
 .btn-deletar {
   background: #fce4ec;
-  color: #932E50;
+  color: var(--color-dark);
   border: 1.5px solid #f48fb1;
 }
 

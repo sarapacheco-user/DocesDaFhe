@@ -10,7 +10,7 @@
 <div class="blog-admin-wrap">
 
   <div class="admin-page-header">
-    <h1 class="admin-page-title">Blog — Painel Admin</h1>
+    <h1 class="admin-page-title">Métricas do Blog</h1>
     <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
       <a href="{{ url_for('blog.admin_categorias') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Gerenciar Categorias</a>
       <a href="{{ url_for('blog.sobre') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Página Sobre</a>
@@ -53,9 +53,19 @@
   <!-- Chart -->
   {% if top_posts_views %}
   <div class="admin-table-wrap" style="padding: 1.5rem; margin-bottom: 1.5rem;">
-    <h2 style="font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; margin:0 0 1.2rem; color:var(--blog-text);">Posts Mais Visualizados</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin-bottom:1.2rem;">
+      <h2 style="font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; margin:0; color:var(--blog-text);">Posts Mais Visualizados</h2>
+      <div id="chartPeriodBtns" style="display:flex; gap:.4rem;">
+        <button onclick="filtrarGrafico(7,this)"   style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--blog-border); background:#f8fafc; font-size:.78rem; font-weight:700; cursor:pointer; color:var(--blog-muted); transition:all .15s;">7 dias</button>
+        <button onclick="filtrarGrafico(30,this)"  style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--blog-border); background:#f8fafc; font-size:.78rem; font-weight:700; cursor:pointer; color:var(--blog-muted); transition:all .15s;">30 dias</button>
+        <button onclick="filtrarGrafico(90,this)"  style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--blog-border); background:#f8fafc; font-size:.78rem; font-weight:700; cursor:pointer; color:var(--blog-muted); transition:all .15s;">3 meses</button>
+        <button onclick="filtrarGrafico(0,this)"   style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--color-primary); background:var(--color-primary); font-size:.78rem; font-weight:700; cursor:pointer; color:#fff; transition:all .15s;">Tudo</button>
+      </div>
+    </div>
+    <div id="chartEmpty" style="display:none; text-align:center; padding:2rem; color:var(--blog-muted); font-size:.88rem;">Nenhum post publicado neste período.</div>
     <canvas id="viewsChart" height="80"></canvas>
   </div>
+  <script type="application/json" id="postsChartData">{{ posts_chart_json | safe }}</script>
   {% endif %}
 
   <!-- Filter bar -->
@@ -105,7 +115,7 @@
           </td>
           <td>
             {% if p.categoria %}
-            <span class="blog-card-cat" style="background: {{ p.categoria.cor }}; font-size:.7rem;">{{ p.categoria.nome }}</span>
+            <span class="blog-card-cat cat-cor-badge" data-cor="{{ p.categoria.cor }}" style="font-size:.7rem;">{{ p.categoria.nome }}</span>
             {% else %}
             <span style="color:var(--blog-muted); font-size:.82rem;">—</span>
             {% endif %}
@@ -124,7 +134,7 @@
                   {% if p.status == 'publicado' %}Despublicar{% else %}Publicar{% endif %}
                 </button>
               </form>
-              <button class="action-btn action-btn-delete" onclick="confirmarExcluir({{ p.id }}, '{{ p.titulo | replace("'", "\\'") }}')">Excluir</button>
+              <button class="action-btn action-btn-delete" data-id="{{ p.id }}" data-titulo="{{ p.titulo | e }}" onclick="confirmarExcluir(this)">Excluir</button>
             </div>
           </td>
         </tr>
@@ -178,7 +188,9 @@
 </div>
 
 <script>
-function confirmarExcluir(id, titulo) {
+function confirmarExcluir(btn) {
+  const id     = btn.dataset.id;
+  const titulo = btn.dataset.titulo;
   document.getElementById('deleteModalText').textContent = `Tem certeza que deseja excluir "${titulo}"? Esta ação não pode ser desfeita.`;
   document.getElementById('deleteForm').action = `/blog/admin/${id}/excluir`;
   document.getElementById('deleteModal').classList.add('open');
@@ -190,31 +202,81 @@ document.getElementById('deleteModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModal();
 });
 
-{% if top_posts_views %}
-const ctx = document.getElementById('viewsChart').getContext('2d');
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: [{% for p in top_posts_views %}'{{ p.titulo[:30] | replace("'", "\\'") }}'{% if not loop.last %},{% endif %}{% endfor %}],
-    datasets: [{
-      label: 'Visualizações',
-      data: [{% for p in top_posts_views %}{{ p.visualizacoes }}{% if not loop.last %},{% endif %}{% endfor %}],
-      backgroundColor: 'rgba(91,109,61,0.7)',
-      borderColor: '#5B6D3D',
-      borderWidth: 1.5,
-      borderRadius: 8,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' } },
-      x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 11 } } }
+const _chartDataEl = document.getElementById('postsChartData');
+if (_chartDataEl) {
+  const _allPostsData = JSON.parse(_chartDataEl.textContent);
+  const _ctx = document.getElementById('viewsChart').getContext('2d');
+  let _chart = null;
+
+  window.filtrarGrafico = function(dias, btn) {
+    document.querySelectorAll('#chartPeriodBtns button').forEach(function(b) {
+      b.style.background = '#f8fafc';
+      b.style.color = '#64748b';
+      b.style.borderColor = '#e2e8f0';
+    });
+    btn.style.background = 'var(--color-primary)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--color-primary)';
+
+    let filtered = _allPostsData;
+    if (dias > 0) {
+      const limite = new Date();
+      limite.setDate(limite.getDate() - dias);
+      const limiteStr = limite.toISOString().slice(0, 10);
+      filtered = _allPostsData.filter(function(p) { return p.data >= limiteStr; });
     }
-  }
+    filtered = filtered.slice().sort(function(a, b) { return b.views - a.views; }).slice(0, 7);
+
+    const empty  = document.getElementById('chartEmpty');
+    const canvas = document.getElementById('viewsChart');
+
+    if (filtered.length === 0) {
+      empty.style.display = 'block';
+      canvas.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const labels = filtered.map(function(p) { return p.titulo; });
+    const data   = filtered.map(function(p) { return p.views; });
+
+    if (_chart) {
+      _chart.data.labels = labels;
+      _chart.data.datasets[0].data = data;
+      _chart.update();
+    } else {
+      _chart = new Chart(_ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Visualizações',
+            data: data,
+            backgroundColor: 'rgba(91,109,61,0.7)',
+            borderColor: 'var(--color-primary)',
+            borderWidth: 1.5,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' } },
+            x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+  };
+
+  filtrarGrafico(0, document.querySelectorAll('#chartPeriodBtns button')[3]);
+}
+
+document.querySelectorAll('.cat-cor-badge').forEach(function(el) {
+  el.style.background = el.dataset.cor;
 });
-{% endif %}
 </script>
 
 {% endblock %}

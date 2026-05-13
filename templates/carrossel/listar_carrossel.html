@@ -28,13 +28,13 @@
   .carrossel-card-body h4 {
     font-family: 'Playfair Display', serif;
     font-size: .95rem;
-    color: #5B6D3D;
+    color: var(--color-primary);
     margin-bottom: .2rem;
   }
 
   .carrossel-card-body p {
     font-size: .78rem;
-    color: #6B6B6B;
+    color: var(--color-text-light);
     margin-bottom: .6rem;
   }
 
@@ -52,7 +52,7 @@
     padding: .3rem .5rem;
     font-family: 'Nunito', sans-serif;
     font-size: .85rem;
-    background: #FAF9F6;
+    background: var(--color-bg);
     text-align: center;
   }
 
@@ -72,7 +72,7 @@
 
   .btn-delete-inline {
     background: none !important; border: none !important;
-    cursor: pointer !important; color: #932E50 !important;
+    cursor: pointer !important; color: var(--color-dark) !important;
     font-weight: 700 !important; font-size: .82rem !important;
     font-family: 'Nunito', sans-serif !important; padding: 0 !important;
   }
@@ -93,7 +93,7 @@
 </div>
 
 {% if itens %}
-<p style="margin: 0 2rem 1rem; color:#6B6B6B; font-size:.9rem;">
+<p style="margin: 0 2rem 1rem; color:var(--color-text-light); font-size:.9rem;">
   {{ itens|length }} imagem(ns) cadastrada(s)
 </p>
 <div class="carrossel-grid">
@@ -107,7 +107,7 @@
       <div class="carrossel-card-actions" style="flex-direction: column; align-items: flex-start;">
 
         <form method="POST" action="{{ url_for('carrossel_ordem', id=item.id) }}" class="ordem-form">
-          <label style="font-size:.75rem; font-weight:700; color:#6B6B6B;">Ordem:</label>
+          <label style="font-size:.75rem; font-weight:700; color:var(--color-text-light);">Ordem:</label>
           <input type="number" name="ordem" value="{{ item.ordem }}" min="0">
           <button type="submit" class="btn-primary"
                   style="padding:.3rem .7rem; font-size:.75rem; margin:0; border-radius:12px;">✓</button>
@@ -130,7 +130,7 @@
   {% endfor %}
 </div>
 {% else %}
-  <p style="margin: 0 2rem; color:#6B6B6B;">Nenhuma imagem no carrossel ainda.</p>
+  <p style="margin: 0 2rem; color:var(--color-text-light);">Nenhuma imagem no carrossel ainda.</p>
 {% endif %}
 
 {% endblock %}

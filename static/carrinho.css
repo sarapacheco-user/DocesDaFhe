@@ -253,7 +253,7 @@ nav a:hover { color: var(--color-accent); }
   border-radius: 50%; transition: background .2s;
 }
 
-.carrinho-qty-form button:hover { background: #e8eed8; }
+.carrinho-qty-form button:hover { background: var(--color-primary-tint); }
 
 .carrinho-qty-form span {
   font-weight: 700; font-size: .95rem;

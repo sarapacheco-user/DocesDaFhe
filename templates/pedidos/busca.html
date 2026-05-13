@@ -12,7 +12,7 @@
   .cart-badge {
     position: absolute;
     top: -8px; right: -8px;
-    background: #932E50;
+    background: var(--color-dark);
     color: #fff;
     font-size: .68rem; font-weight: 800;
     width: 18px; height: 18px;
@@ -53,14 +53,14 @@
 
   .kit-card-busca h3 {
     font-family: 'Playfair Display', serif;
-    font-size: 1rem; color: #2B2B2B; margin-bottom: .3rem;
+    font-size: 1rem; color: var(--color-text); margin-bottom: .3rem;
   }
 
-  .kit-card-busca p { font-size: .82rem; color: #6B6B6B; }
+  .kit-card-busca p { font-size: .82rem; color: var(--color-text-light); }
 
   .kit-card-busca .kit-preco {
     font-size: 1.05rem; font-weight: 700;
-    color: #5B6D3D; margin-top: .4rem;
+    color: var(--color-primary); margin-top: .4rem;
   }
 </style>
 {% endblock %}
@@ -134,7 +134,7 @@
 
 {% set total = produtos|length + especiais|length + kits|length %}
 {% if total == 0 %}
-  <div style="max-width:900px; margin:2rem auto; padding:0 1rem; color:#6B6B6B;">
+  <div style="max-width:900px; margin:2rem auto; padding:0 1rem; color:var(--color-text-light);">
     <p>Nenhum resultado encontrado para "<strong>{{ termo }}</strong>". Tente outro termo!</p>
   </div>
 {% endif %}

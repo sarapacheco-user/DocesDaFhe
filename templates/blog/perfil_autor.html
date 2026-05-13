@@ -8,7 +8,7 @@
 {% block content %}
 
 <!-- Banner -->
-<div style="position:relative; height:220px; overflow:hidden; background:linear-gradient(135deg,#5B6D3D,#3d4f28);">
+<div style="position:relative; height:220px; overflow:hidden; background:linear-gradient(135deg,var(--color-primary),#3d4f28);">
   {% if perfil and perfil.banner_url %}
   <img src="{{ url_for('static', filename=perfil.banner_url) }}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="">
   {% endif %}
@@ -24,11 +24,11 @@
         {% if perfil and perfil.avatar_url %}
         <img src="{{ url_for('static', filename=perfil.avatar_url) }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);" alt="{{ autor.name }}">
         {% else %}
-        <div style="width:110px;height:110px;border-radius:50%;background:#5B6D3D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);">{{ (autor.name or autor.email)[0].upper() }}</div>
+        <div style="width:110px;height:110px;border-radius:50%;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);">{{ (autor.name or autor.email)[0].upper() }}</div>
         {% endif %}
       </div>
       {% if current_user.is_authenticated and current_user.id == autor.id %}
-      <a href="{{ url_for('blog.editar_perfil') }}" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:700;color:#5B6D3D;background:#fff;margin-top:.3rem;">
+      <a href="{{ url_for('blog.editar_perfil') }}" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:700;color:var(--color-primary);background:#fff;margin-top:.3rem;">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Editar Perfil
       </a>
@@ -38,7 +38,7 @@
     <!-- Nome e informações -->
     <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#1e293b;margin:0 0 .2rem;">{{ autor.name or autor.email.split('@')[0] }}</h1>
     {% if perfil and perfil.profissao %}
-    <p style="font-size:.88rem;font-weight:700;color:#5B6D3D;margin:0 0 .3rem;">{{ perfil.profissao }}</p>
+    <p style="font-size:.88rem;font-weight:700;color:var(--color-primary);margin:0 0 .3rem;">{{ perfil.profissao }}</p>
     {% endif %}
     {% if perfil and perfil.username %}
     <p style="font-size:.85rem;color:#64748b;margin:0 0 .5rem;">@{{ perfil.username }}</p>

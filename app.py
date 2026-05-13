@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette
 import bcrypt
 import re
 import requests
@@ -55,6 +55,19 @@ def darken_hex(hex_color, factor=0.82):
         return f"#{hex_color}"
 
 
+def tint_hex(hex_color, amount=0.80):
+    """Mix color with white. amount=0 → original, amount=1 → white."""
+    try:
+        hex_color = hex_color.lstrip('#')
+        r, g, b = (int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        r = int(r + (255 - r) * amount)
+        g = int(g + (255 - g) * amount)
+        b = int(b + (255 - b) * amount)
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:
+        return f"#{hex_color}"
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -78,13 +91,24 @@ login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 db.init_app(app)
 app.jinja_env.filters['darken'] = darken_hex
+app.jinja_env.filters['tint']   = tint_hex
 from datetime import datetime as _dt
 app.jinja_env.globals['now'] = _dt.utcnow
 
-_MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+_MESES_PT       = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+_MESES_ABREV_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+
 def data_pt(dt, fmt='%d de {mes} de %Y'):
     return dt.strftime(fmt.replace('{mes}', _MESES_PT[dt.month - 1]))
-app.jinja_env.filters['data_pt'] = data_pt
+
+def mes_pt(dt):
+    return _MESES_ABREV_PT[dt.month - 1]
+
+app.jinja_env.filters['data_pt']   = data_pt
+app.jinja_env.filters['mes_pt']    = mes_pt
+
+import json as _json_mod
+app.jinja_env.filters['from_json'] = _json_mod.loads
 
 from blog_routes import blog_bp
 app.register_blueprint(blog_bp)
@@ -1855,7 +1879,47 @@ def admin_design():
         flash('Design salvo com sucesso!', 'success')
         return redirect(url_for('admin_design'))
 
-    return render_template('admin/design.html', config=config)
+    palettes = DesignPalette.query.order_by(DesignPalette.created_at.desc()).all()
+    return render_template('admin/design.html', config=config, palettes=palettes)
+
+
+_PALETTE_FIELDS = [
+    'color_primary', 'color_secondary', 'color_accent', 'color_dark',
+    'color_bg', 'color_text', 'color_text_light',
+    'auth_bg_color1', 'auth_bg_color2',
+    'flash_success', 'flash_error', 'flash_info',
+    'blog_primary', 'blog_accent', 'blog_bg', 'blog_card_bg', 'blog_text',
+]
+
+
+@app.route('/admin/design/paleta/salvar', methods=['POST'])
+@login_required
+@admin_required
+def admin_paleta_salvar():
+    import json as _json
+    nome = request.form.get('nome', '').strip()
+    if not nome:
+        flash('Informe um nome para a paleta.', 'error')
+        return redirect(url_for('admin_design') + '#tab-paletas')
+    config = SiteConfig.query.first()
+    cores = {f: getattr(config, f, '') for f in _PALETTE_FIELDS}
+    paleta = DesignPalette(nome=nome, cores=_json.dumps(cores))
+    db.session.add(paleta)
+    db.session.commit()
+    flash(f'Paleta "{nome}" salva com sucesso!', 'success')
+    return redirect(url_for('admin_design') + '#tab-paletas')
+
+
+@app.route('/admin/design/paleta/<int:id>/excluir', methods=['POST'])
+@login_required
+@admin_required
+def admin_paleta_excluir(id):
+    paleta = DesignPalette.query.get_or_404(id)
+    db.session.delete(paleta)
+    db.session.commit()
+    flash('Paleta excluída.', 'success')
+    return redirect(url_for('admin_design') + '#tab-paletas')
+
 
 
 # ══════════════════════════════════════════════

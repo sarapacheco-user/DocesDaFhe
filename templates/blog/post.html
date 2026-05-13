@@ -21,13 +21,13 @@
 <div class="blog-wrap" style="max-width: 1100px;">
   <!-- Breadcrumb -->
   <div style="display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin-top:1.5rem;">
-    <a href="{{ url_for('blog.index') }}" style="display:inline-flex; align-items:center; gap:.3rem; background:#f1f5f9; color:#5B6D3D; font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+    <a href="{{ url_for('blog.index') }}" style="display:inline-flex; align-items:center; gap:.3rem; background:#f1f5f9; color:var(--color-primary); font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
       <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       Blog
     </a>
     {% if post.categoria %}
     <span style="color:#cbd5e1; font-size:.8rem;">›</span>
-    <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" style="display:inline-flex; align-items:center; background:#f1f5f9; color:#5B6D3D; font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+    <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" style="display:inline-flex; align-items:center; background:#f1f5f9; color:var(--color-primary); font-size:.78rem; font-weight:700; padding:.3rem .85rem; border-radius:20px; text-decoration:none; border:1px solid #e2e8f0; transition:background .15s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
       {{ post.categoria.nome }}
     </a>
     {% endif %}

@@ -3,13 +3,8 @@
    ═══════════════════════════════════════════════════════ */
 
 :root {
-  --blog-primary:   #5B6D3D;
-  --blog-accent:    #932E50;
-  --blog-text:      #1e293b;
   --blog-muted:     #64748b;
   --blog-border:    #e2e8f0;
-  --blog-card-bg:   #ffffff;
-  --blog-bg:        #f8fafc;
   --blog-radius:    16px;
   --blog-shadow:    0 4px 20px rgba(0,0,0,.08);
   --blog-shadow-lg: 0 8px 32px rgba(0,0,0,.12);
@@ -38,7 +33,7 @@
 /* ── Hero Section ──────────────────────────────────────── */
 
 .blog-hero {
-  background: linear-gradient(135deg, #3d4f28 0%, var(--blog-primary) 50%, #5a3a1a 100%);
+  background: linear-gradient(135deg, var(--blog-primary) 0%, var(--blog-primary) 50%, var(--blog-primary) 100%);
   padding: 5.5rem 1.2rem 4rem;
   text-align: center;
   color: #fff;
@@ -1242,7 +1237,7 @@
 
 .autor-banner {
   height: 240px;
-  background: linear-gradient(135deg, var(--blog-primary) 0%, #3d4f28 100%);
+  background: linear-gradient(135deg, var(--blog-primary) 0%, var(--blog-primary) 100%);
   position: relative;
   border-radius: 0 0 var(--blog-radius) var(--blog-radius);
   overflow: hidden;

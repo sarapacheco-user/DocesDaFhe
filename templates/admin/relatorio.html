@@ -14,7 +14,7 @@
   .rel-header { display: flex; align-items: flex-start; justify-content: space-between;
     flex-wrap: wrap; gap: 1rem; margin-bottom: 1.8rem; }
   .rel-header-title { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
-  .rel-header-title span { color: #5B6D3D; }
+  .rel-header-title span { color: var(--color-primary); }
   .rel-header-sub { font-size: .82rem; color: #94a3b8; margin-top: .2rem; }
 
   /* ── FILTERS ── */
@@ -32,7 +32,7 @@
     background: #fff; outline: none; transition: border-color .18s;
     height: 38px;
   }
-  .rel-filters input:focus, .rel-filters select:focus { border-color: #5B6D3D; }
+  .rel-filters input:focus, .rel-filters select:focus { border-color: var(--color-primary); }
   .rel-divider { width: 1px; background: #e8ecf0; align-self: stretch; margin: 0 .2rem; }
   .rel-btn-group { display: flex; gap: .45rem; align-items: flex-end; }
   .rel-shortcuts { display: flex; gap: .45rem; align-items: flex-end; margin-left: auto; }
@@ -63,15 +63,15 @@
   }
 
   .rel-card.vendas   { border-top-color: #8b5cf6; }
-  .rel-card.faturado { border-top-color: #5B6D3D; }
+  .rel-card.faturado { border-top-color: var(--color-primary); }
   .rel-card.cancel   { border-top-color: #ef4444; }
   .rel-card.itens-v  { border-top-color: #f59e0b; }
   .rel-card-icon.vendas   { background: #f5f3ff; color: #8b5cf6; }
-  .rel-card-icon.faturado { background: #f0fdf4; color: #5B6D3D; }
+  .rel-card-icon.faturado { background: #f0fdf4; color: var(--color-primary); }
   .rel-card-icon.cancel   { background: #fef2f2; color: #ef4444; }
   .rel-card-icon.itens-v  { background: #fefce8; color: #ca8a04; }
   .rel-card.vendas .rel-card-value   { color: #8b5cf6; }
-  .rel-card.faturado .rel-card-value { color: #5B6D3D; }
+  .rel-card.faturado .rel-card-value { color: var(--color-primary); }
   .rel-card.cancel .rel-card-value   { color: #ef4444; }
   .rel-card.itens-v .rel-card-value  { color: #ca8a04; }
   .rel-card {
@@ -105,7 +105,7 @@
     font-size: .88rem; font-weight: 800; color: #1e293b;
     display: flex; align-items: center; gap: .6rem;
   }
-  .rel-section-title svg { color: #5B6D3D; }
+  .rel-section-title svg { color: var(--color-primary); }
   .rel-section-count { font-size: .78rem; color: #94a3b8; font-weight: 600;
     background: #f1f5f9; padding: .2rem .6rem; border-radius: 20px; }
 
@@ -189,12 +189,12 @@
   /* ── BUTTONS ── */
   .btn-rel-primary {
     display: inline-flex; align-items: center; gap: .4rem;
-    padding: .52rem 1.1rem; background: #5B6D3D; color: #fff;
+    padding: .52rem 1.1rem; background: var(--color-primary); color: #fff;
     border: none; border-radius: 9px; font-family: 'Nunito', sans-serif;
     font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .15s;
     text-decoration: none; height: 38px;
   }
-  .btn-rel-primary:hover { background: #4a5932; }
+  .btn-rel-primary:hover { background: var(--color-hover-primary); }
   .btn-rel-outline {
     display: inline-flex; align-items: center; gap: .4rem;
     padding: .52rem 1.1rem; background: #fff; color: #475569;
@@ -202,7 +202,7 @@
     font-size: .85rem; font-weight: 700; cursor: pointer; transition: all .15s;
     text-decoration: none; height: 38px;
   }
-  .btn-rel-outline:hover { border-color: #5B6D3D; color: #5B6D3D; }
+  .btn-rel-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
   .btn-rel-sm {
     padding: .38rem .85rem; font-size: .78rem; height: 32px;
     display: inline-flex; align-items: center; gap: .3rem;
@@ -622,7 +622,7 @@
       <tfoot>
         <tr>
           <td colspan="5" style="font-weight:800;">Total faturado (confirmados + entregues)</td>
-          <td style="text-align:right; font-weight:800; color:#5B6D3D;">
+          <td style="text-align:right; font-weight:800; color:var(--color-primary);">
             R$ {{ "%.2f"|format(venda_stats.faturado) }}
           </td>
           <td></td>
@@ -1124,7 +1124,7 @@ async function exportarPDF() {
   const labels = {{ grafico_motivos | tojson }};
   const dados  = {{ grafico_quantidades | tojson }};
   const cores  = [
-    '#5B6D3D','#D67155','#F3B651','#932E50','#3b82f6',
+    'var(--color-primary)','var(--color-secondary)','var(--color-accent)','var(--color-dark)','#3b82f6',
     '#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'
   ];
 

@@ -4,7 +4,7 @@
   .cp-page { padding: 1.8rem 1.6rem; max-width: 1100px; margin: 0 auto; }
   .cp-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800;
               color: #1e293b; margin-bottom: 1.4rem; }
-  .cp-title span { color: #5B6D3D; }
+  .cp-title span { color: var(--color-primary); }
 
   /* STATS */
   .cp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -39,13 +39,13 @@
     background: #fff; outline: none; transition: border-color .15s;
   }
   .cp-config-form .fg input[type="text"]:focus,
-  .cp-config-form .fg textarea:focus { border-color: #5B6D3D; }
+  .cp-config-form .fg textarea:focus { border-color: var(--color-primary); }
   .cp-config-form .fg textarea { resize: vertical; min-height: 60px; }
   .cp-config-form .fg-full { grid-column: 1 / -1; }
-  .btn-cfg { padding: .55rem 1.2rem; background: #5B6D3D; color: #fff;
+  .btn-cfg { padding: .55rem 1.2rem; background: var(--color-primary); color: #fff;
              border: none; border-radius: 8px; font-size: .82rem; font-weight: 700;
              cursor: pointer; white-space: nowrap; transition: background .15s; }
-  .btn-cfg:hover { background: #4a5932; }
+  .btn-cfg:hover { background: var(--color-hover-primary); }
 
   /* color pickers */
   .color-row { display: flex; align-items: center; gap: .5rem; }
@@ -60,7 +60,7 @@
     width: 90px; padding: .4rem .6rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
     font-size: .82rem; font-family: monospace; outline: none; transition: border-color .15s;
   }
-  .color-hex:focus { border-color: #5B6D3D; }
+  .color-hex:focus { border-color: var(--color-primary); }
   .corp-preview-strip {
     height: 36px; border-radius: 10px; border: 1.5px solid #e2e8f0;
     transition: background .2s; margin-top: .6rem;
@@ -103,7 +103,7 @@
   .btn-save      { padding: .28rem .7rem; border-radius: 7px; background: var(--color-primary);
                    color: #fff; border: none; font-size: .76rem; font-weight: 700; cursor: pointer;
                    transition: background .15s; }
-  .btn-save:hover { background: #4a5932; }
+  .btn-save:hover { background: var(--color-hover-primary); }
 
   .det-btn { background: none; border: none; color: var(--color-primary); cursor: pointer;
              font-size: .78rem; font-weight: 700; text-decoration: underline; padding: 0; }
@@ -123,7 +123,7 @@
     <div class="cp-title" style="margin-bottom:0;">Pedidos <span>Corporativos</span></div>
     <a href="{{ url_for('corporativo') }}" target="_blank"
        style="display:inline-flex; align-items:center; gap:.4rem; padding:.5rem 1rem; background:#fff; color:#475569; border:1.5px solid #e2e8f0; border-radius:9px; font-size:.83rem; font-weight:700; text-decoration:none;"
-       onmouseover="this.style.borderColor='#5B6D3D';this.style.color='#5B6D3D'"
+       onmouseover="this.style.borderColor='var(--color-primary)';this.style.color='var(--color-primary)'"
        onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -215,12 +215,12 @@
         <div class="fg">
           <label>Cor de destaque (botões, prazo, badge)</label>
           <div class="color-row">
-            <div class="color-swatch" id="sw_destaque" style="background:{{ config.cor_destaque or '#5B6D3D' }}">
-              <input type="color" id="cp_destaque" value="{{ config.cor_destaque or '#5B6D3D' }}"
+            <div class="color-swatch" id="sw_destaque" style="background:{{ config.cor_destaque or 'var(--color-primary)' }}">
+              <input type="color" id="cp_destaque" value="{{ config.cor_destaque or 'var(--color-primary)' }}"
                      oninput="syncCorp('destaque', this.value)">
             </div>
             <input type="text" class="color-hex" id="hex_destaque" name="cor_destaque"
-                   value="{{ config.cor_destaque or '#5B6D3D' }}" maxlength="7"
+                   value="{{ config.cor_destaque or 'var(--color-primary)' }}" maxlength="7"
                    oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) syncCorp('destaque', this.value)">
           </div>
         </div>
@@ -232,7 +232,7 @@
             Linha Corporativa
           </div>
           <div id="corp_preview_destaque"
-               style="margin-top:.4rem; height:28px; border-radius:8px; transition:background .2s; background:{{ config.cor_destaque or '#5B6D3D' }}">
+               style="margin-top:.4rem; height:28px; border-radius:8px; transition:background .2s; background:{{ config.cor_destaque or 'var(--color-primary)' }}">
           </div>
         </div>
 
@@ -324,7 +324,7 @@
                 <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
                      style="max-height:60px;max-width:160px;border-radius:6px;border:1px solid #e2e8f0;margin-top:.3rem;">
                 <a href="{{ url_for('static', filename=p.logo_url) }}" target="_blank"
-                   style="display:block;font-size:.73rem;color:#5B6D3D;margin-top:.2rem;">Abrir em tamanho completo</a>
+                   style="display:block;font-size:.73rem;color:var(--color-primary);margin-top:.2rem;">Abrir em tamanho completo</a>
               </div>
               {% endif %}
               {% if p.personalizacao %}

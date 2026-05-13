@@ -21,7 +21,7 @@
     display: flex;
     gap: 1.2rem;
     align-items: flex-start;
-    border-left: 5px solid var(--cor, #5B6D3D);
+    border-left: 5px solid var(--cor, var(--color-primary));
   }
 
   .agenda-card.passado { opacity: .5; }
@@ -48,7 +48,7 @@
   }
   .btn-agenda-del:hover { background: #fef2f2; }
   .btn-agenda-edit {
-    background: none; border: 1.5px solid #e2e8f0; color: #5B6D3D;
+    background: none; border: 1.5px solid #e2e8f0; color: var(--color-primary);
     border-radius: 7px; padding: .3rem .7rem; font-size: .78rem; font-weight: 700; cursor: pointer;
   }
   .btn-agenda-edit:hover { background: #f8fafc; }
@@ -71,11 +71,11 @@
     font-size: .88rem; color: #1e293b; background: #f8fafc; box-sizing: border-box;
   }
   .agenda-form-group input:focus,
-  .agenda-form-group textarea:focus { outline: none; border-color: #5B6D3D; background: #fff; }
+  .agenda-form-group textarea:focus { outline: none; border-color: var(--color-primary); background: #fff; }
   .agenda-form-group textarea { resize: vertical; min-height: 70px; }
   .agenda-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
   .btn-agenda-salvar {
-    width: 100%; padding: .7rem; background: #5B6D3D; color: #fff;
+    width: 100%; padding: .7rem; background: var(--color-primary); color: #fff;
     border: none; border-radius: 10px; font-weight: 700; font-size: .9rem; cursor: pointer;
     margin-top: .5rem;
   }
@@ -119,7 +119,7 @@
         <div class="agenda-card {% if ev.passou %}passado{% endif %}" style="--cor: {{ ev.cor }}">
           <div class="agenda-data-box">
             <div class="agenda-data-dia">{{ ev.data_inicio.strftime('%d') }}</div>
-            <div class="agenda-data-mes">{{ ev.data_inicio.strftime('%b') }}</div>
+            <div class="agenda-data-mes">{{ ev.data_inicio | mes_pt }}</div>
           </div>
           <div class="agenda-info">
             <p class="agenda-titulo">{{ ev.titulo }}{% if ev.passou %} <span style="font-size:.7rem; color:#94a3b8; font-weight:400;">(encerrado)</span>{% endif %}</p>
@@ -184,7 +184,7 @@
         </div>
         <div class="agenda-form-group">
           <label>Cor</label>
-          <input type="color" name="cor" value="#5B6D3D" style="height:38px; cursor:pointer;">
+          <input type="color" name="cor" value="var(--color-primary)" style="height:38px; cursor:pointer;">
         </div>
         <button type="submit" class="btn-agenda-salvar">Adicionar à Agenda</button>
       </form>

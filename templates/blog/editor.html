@@ -93,7 +93,7 @@
           <input type="checkbox" name="tags" value="{{ tag.id }}"
                  {% if post and tag in post.tags %}checked{% endif %}
                  style="display:none;" onchange="toggleTagChip(this)">
-          <span style="display:inline-block; padding:.3rem .8rem; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid #e2e8f0; background:{% if post and tag in post.tags %}#5B6D3D{% else %}#f8fafc{% endif %}; color:{% if post and tag in post.tags %}#fff{% else %}#475569{% endif %}; transition:all .15s; user-select:none;">{{ tag.nome }}</span>
+          <span style="display:inline-block; padding:.3rem .8rem; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid #e2e8f0; background:{% if post and tag in post.tags %}var(--color-primary){% else %}#f8fafc{% endif %}; color:{% if post and tag in post.tags %}#fff{% else %}#475569{% endif %}; transition:all .15s; user-select:none;">{{ tag.nome }}</span>
         </label>
         {% endfor %}
       </div>
@@ -103,7 +103,7 @@
     <script>
     function toggleTagChip(cb) {
       const chip = cb.nextElementSibling;
-      if (cb.checked) { chip.style.background='#5B6D3D'; chip.style.color='#fff'; chip.style.borderColor='#5B6D3D'; }
+      if (cb.checked) { chip.style.background='var(--color-primary)'; chip.style.color='#fff'; chip.style.borderColor='var(--color-primary)'; }
       else { chip.style.background='#f8fafc'; chip.style.color='#475569'; chip.style.borderColor='#e2e8f0'; }
     }
     </script>

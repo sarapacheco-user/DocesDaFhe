@@ -12,7 +12,7 @@
   .ev-field textarea { resize: vertical; min-height: 80px; }
   .ev-field .hint { font-size: .75rem; color: #94a3b8; margin-top: .3rem; }
   .ev-agend { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.1rem; }
-  .ev-agend-title { font-size: .8rem; font-weight: 800; color: #5B6D3D; margin-bottom: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  .ev-agend-title { font-size: .8rem; font-weight: 800; color: var(--color-primary); margin-bottom: .8rem; text-transform: uppercase; letter-spacing: .05em; }
   .ev-agend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
   .ev-dt-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
   .ev-dt-sub label { font-size: .75rem; font-weight: 600; color: #64748b; margin-bottom: .3rem; }
@@ -23,7 +23,7 @@
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; cursor: pointer; inset: 0; background: #cbd5e1; border-radius: 24px; transition: .2s; }
   .slider:before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
-  input:checked + .slider { background: #5B6D3D; }
+  input:checked + .slider { background: var(--color-primary); }
   input:checked + .slider:before { transform: translateX(20px); }
   .ev-actions { display: flex; gap: .8rem; justify-content: flex-end; padding-top: .4rem; }
   .ev-btn-submit { background: var(--color-primary); color: #fff; border: none; border-radius: 24px; padding: .6rem 1.4rem; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: .92rem; cursor: pointer; transition: background .2s; }

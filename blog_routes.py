@@ -426,11 +426,23 @@ def admin():
     total_curtidas = BlogCurtida.query.count()
     total_comentarios = BlogComentario.query.count()
 
-    # last 7 days views by post (simplified: just top posts)
+    # top posts for chart — all published, sorted by views
     top_posts_views = (BlogPost.query
                        .filter_by(status='publicado')
                        .order_by(BlogPost.visualizacoes.desc())
                        .limit(7).all())
+
+    # all published posts as JSON for client-side chart filtering
+    import json as _json
+    posts_chart_json = _json.dumps([
+        {
+            'titulo': p.titulo[:35],
+            'views': p.visualizacoes,
+            'data': p.created_at.strftime('%Y-%m-%d')
+        }
+        for p in BlogPost.query.filter_by(status='publicado')
+                         .order_by(BlogPost.created_at.desc()).all()
+    ])
 
     return render_template('blog/admin.html',
                            posts=posts, q=q, status_filtro=status_filtro,
@@ -438,7 +450,8 @@ def admin():
                            rascunhos=rascunhos, total_views=total_views,
                            total_curtidas=total_curtidas,
                            total_comentarios=total_comentarios,
-                           top_posts_views=top_posts_views)
+                           top_posts_views=top_posts_views,
+                           posts_chart_json=posts_chart_json)
 
 
 @blog_bp.route('/admin/novo', methods=['GET', 'POST'])

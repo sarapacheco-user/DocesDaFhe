@@ -34,7 +34,7 @@
 
 body {
   font-family: 'Nunito', sans-serif;
-  background: linear-gradient(135deg, #e8eed8 0%, #c5d49a 50%, #8fa05a 100%) !important;
+  background: linear-gradient(135deg, var(--auth-bg-color1, #e8eed8) 0%, var(--auth-bg-color2, #8fa05a) 100%) !important;
   min-height: 100vh;
   display: flex !important;
   flex-direction: column;

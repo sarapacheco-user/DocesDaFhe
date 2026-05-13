@@ -10,14 +10,14 @@
   }
   .cart-badge {
     position: absolute; top: -8px; right: -8px;
-    background: #932E50; color: #fff;
+    background: var(--color-dark); color: #fff;
     font-size: .68rem; font-weight: 800;
     width: 18px; height: 18px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
   }
 
   .mk-hero {
-    background: linear-gradient(135deg, #5B6D3D 0%, #8fa05a 60%, #F3B651 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 60%, var(--color-accent) 100%);
     padding: 2.5rem 1.5rem 2rem;
     text-align: center;
     color: #fff;
@@ -37,7 +37,7 @@
   .mk-categoria-titulo {
     font-family: 'Playfair Display', serif;
     font-size: 1.2rem;
-    color: #5B6D3D;
+    color: var(--color-primary);
     margin: 1.8rem 0 .8rem;
     padding-bottom: .3rem;
     border-bottom: 2px solid #E5E5E5;
@@ -60,20 +60,20 @@
   }
   .mk-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.1); }
   .mk-card.selecionado {
-    border-color: #5B6D3D;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(91,109,61,.25);
   }
 
   .mk-card-img {
     width: 100%; aspect-ratio: 4/3;
-    object-fit: cover; background: #FAF9F6;
+    object-fit: cover; background: var(--color-bg);
     display: flex; align-items: center; justify-content: center; font-size: 3rem;
   }
   .mk-card-img img { width: 100%; height: 100%; object-fit: cover; }
 
   .mk-card-body { padding: .75rem .85rem .5rem; flex: 1; }
-  .mk-card-body h3 { font-size: .93rem; color: #2B2B2B; margin-bottom: .15rem; }
-  .mk-card-body .mk-price { font-size: .95rem; font-weight: 700; color: #5B6D3D; }
+  .mk-card-body h3 { font-size: .93rem; color: var(--color-text); margin-bottom: .15rem; }
+  .mk-card-body .mk-price { font-size: .95rem; font-weight: 700; color: var(--color-primary); }
 
   .mk-card-footer {
     padding: .5rem .85rem .75rem;
@@ -93,7 +93,7 @@
   }
   .mk-qty-wrap button {
     background: none; border: none; cursor: pointer;
-    font-size: 1.1rem; color: #5B6D3D; line-height: 1;
+    font-size: 1.1rem; color: var(--color-primary); line-height: 1;
     padding: 0 .15rem;
   }
   .mk-qty-wrap span { min-width: 1.5rem; text-align: center; font-weight: 700; }
@@ -108,7 +108,7 @@
     margin-left: auto;
   }
   .mk-card.selecionado .mk-badge-check {
-    background: #5B6D3D; border-color: #5B6D3D; color: #fff;
+    background: var(--color-primary); border-color: var(--color-primary); color: #fff;
   }
 
   .mk-barra-fixa {
@@ -122,16 +122,16 @@
     box-shadow: 0 -4px 16px rgba(0,0,0,.1);
   }
   .mk-barra-fixa .mk-resumo {
-    font-size: .95rem; color: #2B2B2B;
+    font-size: .95rem; color: var(--color-text);
   }
-  .mk-barra-fixa .mk-resumo strong { color: #5B6D3D; font-size: 1.1rem; }
+  .mk-barra-fixa .mk-resumo strong { color: var(--color-primary); font-size: 1.1rem; }
   .mk-btn-add {
-    background: #5B6D3D; color: #fff;
+    background: var(--color-primary); color: #fff;
     border: none; border-radius: 10px;
     padding: .7rem 1.6rem; font-size: 1rem; font-weight: 700;
     cursor: pointer; transition: background .2s;
   }
-  .mk-btn-add:hover { background: #4a5a30; }
+  .mk-btn-add:hover { background: var(--color-hover-primary); }
   .mk-btn-add:disabled { background: #aaa; cursor: not-allowed; }
 
   .mk-vazio {

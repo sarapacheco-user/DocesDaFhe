@@ -10,8 +10,8 @@
     font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 700;
     cursor: pointer; transition: all .15s;
   }
-  .btn-pag:hover { border-color: #5B6D3D; color: #5B6D3D; background: #f0fdf4; }
-  .btn-pag.ativo { border-color: #5B6D3D; background: #f0fdf4; color: #5B6D3D; }
+  .btn-pag:hover { border-color: var(--color-primary); color: var(--color-primary); background: #f0fdf4; }
+  .btn-pag.ativo { border-color: var(--color-primary); background: #f0fdf4; color: var(--color-primary); }
 </style>
 {% endblock %}
 
@@ -118,7 +118,7 @@
           <h3>{{ item.nome }}</h3>
           <p class="carrinho-preco-unit">R$ {{ "%.2f"|format(item.preco_unit) }} /un</p>
           {% if item.notas_corp %}
-          <div style="margin-top:.4rem;padding:.5rem .7rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.78rem;color:#166534;white-space:pre-line;">{{ item.notas_corp }}</div>
+          <div style="margin-top:.4rem;padding:.5rem .7rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.78rem;color:#166534;white-space:pre-line;">{{ item.notas_corp }}</div>
           {% endif %}
 
           <!-- QUANTIDADE -->
@@ -266,39 +266,39 @@
     <div id="step1">
       <div style="font-size:2.6rem; margin-bottom:.6rem;">🛍️</div>
       <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem;
-                 color:#2B2B2B; margin-bottom:.4rem;">Como deseja receber?</h3>
-      <p style="font-size:.88rem; color:#6B6B6B; margin-bottom:1.6rem;">
+                 color:var(--color-text); margin-bottom:.4rem;">Como deseja receber?</h3>
+      <p style="font-size:.88rem; color:var(--color-text-light); margin-bottom:1.6rem;">
         Escolha a forma de entrega do seu pedido.
       </p>
 
       <div style="display:flex; gap:1rem; margin-bottom:1.4rem;">
         <!-- Buscar -->
         <button onclick="irStepBuscar()"
-                style="flex:1; background:#fdf8f0; border:2px solid #F3B651;
+                style="flex:1; background:#fdf8f0; border:2px solid var(--color-accent);
                        border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
                        transition:background .2s, transform .15s;"
                 onmouseover="this.style.background='#fef0d0'"
                 onmouseout="this.style.background='#fdf8f0'">
           <div style="font-size:2rem; margin-bottom:.4rem;">🚶</div>
           <div style="font-family:'Nunito',sans-serif; font-weight:800;
-                      font-size:.95rem; color:#2B2B2B;">Retirar</div>
+                      font-size:.95rem; color:var(--color-text);">Retirar</div>
         </button>
 
         <!-- Entregar -->
         <button onclick="irStepEntrega()"
-                style="flex:1; background:#f0f8f2; border:2px solid #5B6D3D;
+                style="flex:1; background:#f0f8f2; border:2px solid var(--color-primary);
                        border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
                        transition:background .2s, transform .15s;"
                 onmouseover="this.style.background='#dff0e3'"
                 onmouseout="this.style.background='#f0f8f2'">
           <div style="font-size:2rem; margin-bottom:.4rem;">🚗</div>
           <div style="font-family:'Nunito',sans-serif; font-weight:800;
-                      font-size:.95rem; color:#2B2B2B;">Entrega</div>
+                      font-size:.95rem; color:var(--color-text);">Entrega</div>
         </button>
       </div>
 
       <button onclick="fecharModalEntrega()"
-              style="background:none; border:none; color:#6B6B6B; font-size:.88rem;
+              style="background:none; border:none; color:var(--color-text-light); font-size:.88rem;
                      cursor:pointer; text-decoration:underline; font-family:'Nunito',sans-serif;">
         Cancelar
       </button>
@@ -308,18 +308,18 @@
     <div id="stepBuscar" style="display:none;">
       <div style="font-size:2.8rem; margin-bottom:.8rem;">🛵⚠️</div>
       <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
-                 color:#932E50; margin-bottom:.8rem;">Atenção sobre a entrega!</h3>
-      <p style="font-size:.92rem; color:#2B2B2B; line-height:1.7; margin-bottom:.8rem;">
+                 color:var(--color-dark); margin-bottom:.8rem;">Atenção sobre a entrega!</h3>
+      <p style="font-size:.92rem; color:var(--color-text); line-height:1.7; margin-bottom:.8rem;">
         Os métodos via Uber / 99 Moto <strong>não são confiáveis</strong> para transporte de doces.
       </p>
-      <p style="font-size:.88rem; color:#932E50; font-weight:700;
+      <p style="font-size:.88rem; color:var(--color-dark); font-weight:700;
                 background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
                 margin-bottom:1.2rem;">
         ⚠️ Não garantimos a integridade do produto durante o transporte!
       </p>
 
       <!-- pagamento buscar -->
-      <p style="font-size:.88rem; font-weight:800; color:#2B2B2B; margin-bottom:.6rem;">
+      <p style="font-size:.88rem; font-weight:800; color:var(--color-text); margin-bottom:.6rem;">
         💳 Forma de pagamento
       </p>
       <div style="display:flex; gap:.6rem; margin-bottom:1.2rem;" id="pgBuscar">
@@ -327,13 +327,13 @@
         <button type="button" class="btn-pag" data-valor="Cartão"  onclick="selecionarPag(this,'buscar')">Cartão</button>
         <button type="button" class="btn-pag" data-valor="Dinheiro" onclick="selecionarPag(this,'buscar')">Dinheiro</button>
       </div>
-      <div id="erroPagBuscar" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+      <div id="erroPagBuscar" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
         Selecione a forma de pagamento.
       </div>
 
       <div style="display:flex; gap:1rem; justify-content:center;">
         <button onclick="voltarStep1()"
-                style="background:transparent; border:2px solid #5B6D3D; color:#5B6D3D;
+                style="background:transparent; border:2px solid var(--color-primary); color:var(--color-primary);
                        border-radius:24px; padding:.65rem 1.4rem;
                        font-family:'Nunito',sans-serif; font-size:.9rem;
                        font-weight:700; cursor:pointer;">
@@ -353,8 +353,8 @@
     <div id="stepEntrega" style="display:none;">
       <div style="font-size:2.6rem; margin-bottom:.6rem;">🚚📍</div>
       <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
-                 color:#2B2B2B; margin-bottom:.5rem;">Endereço de entrega</h3>
-      <p style="font-size:.85rem; color:#6B6B6B; margin-bottom:1rem;">
+                 color:var(--color-text); margin-bottom:.5rem;">Endereço de entrega</h3>
+      <p style="font-size:.85rem; color:var(--color-text-light); margin-bottom:1rem;">
         Informe o endereço completo para a entrega.
       </p>
 
@@ -363,34 +363,34 @@
         <input id="endCep" placeholder="CEP (ex: 01310-100)" maxlength="9"
                oninput="mascaraCep(this)"
                style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px;
-                      font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B;
+                      font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text);
                       outline:none; width:100%; box-sizing:border-box;"
-               onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+               onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
         <span id="cepLoading" style="display:none; position:absolute; right:.8rem; top:50%;
-              transform:translateY(-50%); font-size:.78rem; color:#6B6B6B;">buscando…</span>
+              transform:translateY(-50%); font-size:.78rem; color:var(--color-text-light);">buscando…</span>
       </div>
-      <div id="cepErro" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+      <div id="cepErro" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
         CEP não encontrado. Preencha o endereço manualmente.
       </div>
 
       <!-- Rua + Número -->
       <div style="display:grid; grid-template-columns:1fr 90px; gap:.6rem; margin-bottom:.6rem;">
-        <input id="endRua" placeholder="Rua / Avenida" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
-        <input id="endNumero" placeholder="Nº" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endRua" placeholder="Rua / Avenida" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endNumero" placeholder="Nº" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
       </div>
 
       <!-- Bairro + Cidade -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:1rem;">
-        <input id="endBairro" placeholder="Bairro" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
-        <input id="endCidade" placeholder="Cidade" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:#2B2B2B; outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='#5B6D3D'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endBairro" placeholder="Bairro" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endCidade" placeholder="Cidade" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
       </div>
 
-      <div id="erroEndereco" style="display:none; font-size:.82rem; color:#932E50; margin-bottom:.8rem;">
+      <div id="erroEndereco" style="display:none; font-size:.82rem; color:var(--color-dark); margin-bottom:.8rem;">
         Por favor, preencha pelo menos Rua, Número e Bairro.
       </div>
 
       <!-- pagamento entrega -->
-      <p style="font-size:.88rem; font-weight:800; color:#2B2B2B; margin-bottom:.6rem;">
+      <p style="font-size:.88rem; font-weight:800; color:var(--color-text); margin-bottom:.6rem;">
         💳 Forma de pagamento
       </p>
       <div style="display:flex; gap:.6rem; margin-bottom:.8rem;" id="pgEntrega">
@@ -398,13 +398,13 @@
         <button type="button" class="btn-pag" data-valor="Cartão"   onclick="selecionarPag(this,'entrega')">Cartão</button>
         <button type="button" class="btn-pag" data-valor="Dinheiro"  onclick="selecionarPag(this,'entrega')">Dinheiro</button>
       </div>
-      <div id="erroPagEntrega" style="display:none; font-size:.78rem; color:#932E50; margin-bottom:.6rem;">
+      <div id="erroPagEntrega" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
         Selecione a forma de pagamento.
       </div>
 
       <div style="display:flex; gap:1rem; justify-content:center;">
         <button onclick="voltarStep1()"
-                style="background:transparent; border:2px solid #5B6D3D; color:#5B6D3D;
+                style="background:transparent; border:2px solid var(--color-primary); color:var(--color-primary);
                        border-radius:24px; padding:.65rem 1.4rem;
                        font-family:'Nunito',sans-serif; font-size:.9rem;
                        font-weight:700; cursor:pointer;">

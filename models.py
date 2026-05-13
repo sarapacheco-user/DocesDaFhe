@@ -604,6 +604,17 @@ class UserPerfil(db.Model):
         return f"<UserPerfil user={self.user_id}>"
 
 
+class DesignPalette(db.Model):
+    __tablename__ = 'design_palettes'
+    id         = db.Column(db.Integer, primary_key=True)
+    nome       = db.Column(db.String(100), nullable=False)
+    cores      = db.Column(db.Text, nullable=False)  # JSON blob of color fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<DesignPalette {self.nome}>"
+
+
 class AgendaEvento(db.Model):
     __tablename__ = 'agenda_eventos'
     id          = db.Column(db.Integer, primary_key=True)

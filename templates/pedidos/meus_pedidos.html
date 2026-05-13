@@ -245,7 +245,7 @@
             <span>R$ {{ "%.2f"|format(it.subtotal) }}</span>
           </div>
           {% if it.notas_corp %}
-          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;white-space:pre-line;width:100%;box-sizing:border-box;">{{ it.notas_corp }}</div>
+          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.76rem;color:#166534;white-space:pre-line;width:100%;box-sizing:border-box;">{{ it.notas_corp }}</div>
           {% endif %}
         </div>
         {% endfor %}
@@ -279,7 +279,7 @@
       <div id="listaCorp">
       {% for p in pedidos_corp %}
       {% set deletavel_corp = p.status in ('concluido', 'cancelado') %}
-      <div class="mp-card {% if deletavel_corp %}selecionavel{% endif %}" style="border-left:4px solid #5B6D3D;"
+      <div class="mp-card {% if deletavel_corp %}selecionavel{% endif %}" style="border-left:4px solid var(--color-primary);"
            data-deletavel="{{ 'sim' if deletavel_corp else 'nao' }}"
            onclick="toggleCard(this)">
         <div class="mp-card-header">
@@ -320,7 +320,7 @@
             <div style="font-size:.76rem;color:#475569;">Sabor: <strong>{{ p.sabor }}</strong></div>
             {% endif %}
             {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
-            <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
+            <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
               {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}
               {% if p.modelo_tag %}<div>Modelo de tag: {{ p.modelo_tag }}</div>{% endif %}
               {% if p.frase_tag %}<div>Frase na tag: {{ p.frase_tag }}</div>{% endif %}

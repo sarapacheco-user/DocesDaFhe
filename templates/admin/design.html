@@ -18,8 +18,8 @@
       <h2>Personalizar Design</h2>
       <div class="dp-header-btns">
         <button type="submit" name="action" value="save" class="dp-btn-save">Salvar</button>
-        <button type="submit" name="action" value="reset" class="dp-btn-reset"
-                onclick="return confirm('Resetar design para o padrão?')">Resetar</button>
+        <button type="button" class="dp-btn-reset"
+                onclick="if(confirm('Resetar design para o padrão?')){document.getElementById('formReset').submit();}">Resetar</button>
       </div>
     </div>
 
@@ -31,6 +31,7 @@
       <button type="button" class="dp-tab" onclick="switchTab(this,'componentes')">Componentes</button>
       <button type="button" class="dp-tab" onclick="switchTab(this,'animacoes')">Animações</button>
       <button type="button" class="dp-tab" onclick="switchTab(this,'identidade')">Identidade</button>
+      <button type="button" class="dp-tab" id="tab-paletas-btn" onclick="switchTab(this,'paletas')">Paletas</button>
     </div>
 
     <div class="dp-panels">
@@ -99,10 +100,10 @@
             <div class="dp-color-row">
               <input type="color" class="dp-color-input" id="cp_{{ field }}"
                      value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
-                     oninput="syncAuthBg()">
+                     oninput="syncAuthBgFromPicker('{{ field }}', this.value)">
               <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
                      value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
-                     maxlength="7" oninput="syncAuthBg()">
+                     maxlength="7" oninput="syncAuthBgFromHex('{{ field }}', this.value)">
             </div>
           </div>
           {% endfor %}
@@ -392,12 +393,12 @@
                        {% if config.new_badge_ativo is none or config.new_badge_ativo %}checked{% endif %}
                        style="opacity:0; width:0; height:0;"
                        onchange="document.getElementById('badge_dias_row').style.opacity=this.checked?'1':'.4';">
-                <span id="badge_toggle_track" style="position:absolute; inset:0; border-radius:24px; background:{% if config.new_badge_ativo is none or config.new_badge_ativo %}#5B6D3D{% else %}#cbd5e1{% endif %}; transition:background .2s;"></span>
-                <span id="badge_toggle_knob" style="position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.2); transition:transform .2s; transform:{% if config.new_badge_ativo is none or config.new_badge_ativo %}translateX(20px){% else %}translateX(0){% endif %};"></span>
+                <span id="badge_toggle_track" style="position:absolute; inset:0; border-radius:24px; background:#cbd5e1; transition:background .2s;"></span>
+                <span id="badge_toggle_knob" style="position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.2); transition:transform .2s; transform:translateX(0);"></span>
               </label>
             </div>
             <!-- Controle de dias -->
-            <div id="badge_dias_row" style="display:flex; align-items:center; gap:.8rem; opacity:{% if config.new_badge_ativo is none or config.new_badge_ativo %}1{% else %}.4{% endif %};">
+            <div id="badge_dias_row" style="display:flex; align-items:center; gap:.8rem; opacity:1;">
               <span style="font-size:.82rem; color:#64748b; font-weight:600; white-space:nowrap;">Duração (dias):</span>
               <input type="number" name="new_badge_days" id="inp_badge_days"
                      min="1" max="365" value="{{ config.new_badge_days or 7 }}"
@@ -407,12 +408,16 @@
           </div>
         </div>
         <script>
-        document.getElementById('chk_badge_ativo').addEventListener('change', function() {
-          const on = this.checked;
-          document.getElementById('badge_toggle_track').style.background = on ? '#5B6D3D' : '#cbd5e1';
-          document.getElementById('badge_toggle_knob').style.transform = on ? 'translateX(20px)' : 'translateX(0)';
-          document.getElementById('badge_dias_row').style.opacity = on ? '1' : '.4';
-        });
+        (function() {
+          function applyBadgeState(on) {
+            document.getElementById('badge_toggle_track').style.background = on ? '#5B6D3D' : '#cbd5e1';
+            document.getElementById('badge_toggle_knob').style.transform   = on ? 'translateX(20px)' : 'translateX(0)';
+            document.getElementById('badge_dias_row').style.opacity         = on ? '1' : '.4';
+          }
+          var chk = document.getElementById('chk_badge_ativo');
+          applyBadgeState(chk.checked);
+          chk.addEventListener('change', function() { applyBadgeState(this.checked); });
+        })();
         </script>
 
         <div class="dp-group">
@@ -575,6 +580,74 @@
             <div class="pvw-swatch" id="sw_color_bg"        style="background:var(--color-bg);"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ── PALETAS ── -->
+      <div class="dp-panel" id="panel-paletas">
+
+        <!-- Save current palette -->
+        <div class="dp-group">
+          <div class="dp-group-title">Salvar paleta atual</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.9rem;">
+            Capture as cores configuradas agora e dê um nome para reutilizá-las depois.
+          </p>
+          <div style="display:flex; gap:.6rem; align-items:center;">
+            <input type="text" id="paletaNomeInput" placeholder="Ex: Tema Natal, Cores de Verão..."
+                   style="flex:1; padding:.5rem .8rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.85rem; color:#1e293b; background:#f8fafc; outline:none;">
+            <button type="button" onclick="submitSalvarPaleta()"
+                    style="padding:.5rem 1rem; background:#5B6D3D; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+              Salvar paleta
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved palettes list -->
+        <div class="dp-group">
+          <div class="dp-group-title">Paletas salvas</div>
+          {% if palettes %}
+          <div style="display:flex; flex-direction:column; gap:.8rem;">
+            {% for p in palettes %}
+            {% set cores = p.cores | from_json %}
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:.9rem 1rem;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.6rem;">
+                <span style="font-size:.88rem; font-weight:700; color:#1e293b;">{{ p.nome }}</span>
+                <span style="font-size:.72rem; color:#94a3b8;">{{ p.created_at.strftime('%d/%m/%Y') }}</span>
+              </div>
+              <!-- Color swatches -->
+              <div style="display:flex; gap:.3rem; flex-wrap:wrap; margin-bottom:.7rem;">
+                {% for field in ['color_primary','color_secondary','color_accent','color_dark','color_bg','color_text'] %}
+                <div title="{{ field }}" data-bg="{{ cores.get(field,'#ccc') }}"
+                     class="paleta-swatch"
+                     style="width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1);"></div>
+                {% endfor %}
+              </div>
+              <!-- Actions -->
+              <div style="display:flex; gap:.5rem;">
+                <button type="button"
+                        data-cores="{{ p.cores | e }}"
+                        onclick="aplicarPaleta(JSON.parse(this.dataset.cores))"
+                        style="flex:1; padding:.4rem; background:#5B6D3D; color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
+                  Aplicar
+                </button>
+                <button type="button"
+                        data-id="{{ p.id }}" data-nome="{{ p.nome | e }}"
+                        onclick="submitExcluirPaleta(this.dataset.id, this.dataset.nome)"
+                        style="padding:.4rem .8rem; background:none; border:1.5px solid #fca5a5; color:#ef4444; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
+                  Excluir
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center; padding:2rem 1rem; color:#94a3b8; font-size:.85rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="display:block; margin:0 auto .6rem; opacity:.4;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Nenhuma paleta salva ainda.<br>
+            Configure as cores e salve acima.
+          </div>
+          {% endif %}
+        </div>
+
       </div>
 
     </div><!-- /dp-panels -->
@@ -751,6 +824,15 @@
 </div>
 </form>
 
+<!-- Forms auxiliares fora do form principal para evitar aninhamento -->
+<form id="formReset" method="POST" action="{{ url_for('admin_design') }}" style="display:none;">
+  <input type="hidden" name="action" value="reset">
+</form>
+<form id="formSalvarPaleta" method="POST" action="{{ url_for('admin_paleta_salvar') }}" style="display:none;">
+  <input type="hidden" name="nome" id="formPaletaNome">
+</form>
+<form id="formExcluirPaleta" method="POST" action="" style="display:none;"></form>
+
 <script>
 // ── Tab switching ──
 function switchTab(el, name) {
@@ -761,13 +843,25 @@ function switchTab(el, name) {
 }
 
 // ── Color sync ──
-function syncAuthBg() {
-  var c1 = document.getElementById('cp_auth_bg_color1').value;
-  var c2 = document.getElementById('cp_auth_bg_color2').value;
-  document.getElementById('hex_auth_bg_color1').value = c1;
-  document.getElementById('hex_auth_bg_color2').value = c2;
+function _authBgPreview(c1, c2) {
   document.getElementById('auth-bg-preview').style.background =
     'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+}
+function syncAuthBgFromPicker(field, value) {
+  document.getElementById('hex_' + field).value = value;
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
+}
+function syncAuthBgFromHex(field, value) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+    document.getElementById('cp_' + field).value = value;
+  }
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
 }
 
 function syncColor(field, value) {
@@ -1129,6 +1223,61 @@ function setDevice(device, btn) {
   if (device !== 'desktop') frame.classList.add(device);
 }
 
+// ── Palette form helpers ──
+function submitSalvarPaleta() {
+  var nome = document.getElementById('paletaNomeInput').value.trim();
+  if (!nome) {
+    alert('Informe um nome para a paleta.');
+    document.getElementById('paletaNomeInput').focus();
+    return;
+  }
+  document.getElementById('formPaletaNome').value = nome;
+  document.getElementById('formSalvarPaleta').submit();
+}
+
+function submitExcluirPaleta(id, nome) {
+  if (!confirm('Excluir a paleta "' + nome + '"?')) return;
+  var f = document.getElementById('formExcluirPaleta');
+  f.action = '/admin/design/paleta/' + id + '/excluir';
+  f.submit();
+}
+
+// ── Apply saved palette ──
+function aplicarPaleta(cores) {
+  var colorFields = [
+    'color_primary', 'color_secondary', 'color_accent', 'color_dark',
+    'color_bg', 'color_text', 'color_text_light',
+    'auth_bg_color1', 'auth_bg_color2',
+    'flash_success', 'flash_error', 'flash_info',
+    'blog_primary', 'blog_accent', 'blog_bg', 'blog_card_bg', 'blog_text',
+  ];
+  colorFields.forEach(function(field) {
+    var val = cores[field];
+    if (!val) return;
+    var cp  = document.getElementById('cp_'  + field);
+    var hex = document.getElementById('hex_' + field);
+    if (cp)  cp.value  = val;
+    if (hex) hex.value = val;
+    if (['color_primary','color_secondary','color_accent','color_dark',
+         'color_bg','color_text','color_text_light'].indexOf(field) !== -1) {
+      applyColor(field, val);
+    } else if (['blog_primary','blog_accent','blog_bg','blog_card_bg','blog_text'].indexOf(field) !== -1) {
+      applyBlogColor(field, val);
+    } else if (field === 'auth_bg_color1' || field === 'auth_bg_color2') {
+      _authBgPreview(
+        document.getElementById('hex_auth_bg_color1').value,
+        document.getElementById('hex_auth_bg_color2').value
+      );
+    } else {
+      applyColor(field, val);
+    }
+  });
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
+}
+
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
   const g = id => document.getElementById(id);
@@ -1168,6 +1317,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (demoCard) {
     const hs = g('hid_anim_hover_style');
     demoCard.addEventListener('mouseenter', () => previewHover(hs ? hs.value : 'lift'));
+  }
+
+  // palette swatches — apply background from data-bg
+  document.querySelectorAll('.paleta-swatch').forEach(function(el) {
+    el.style.background = el.dataset.bg || '#ccc';
+  });
+
+  // auto-activate tab from URL hash
+  if (window.location.hash === '#tab-paletas') {
+    const btn = g('tab-paletas-btn');
+    if (btn) btn.click();
   }
 
   checkContrast();

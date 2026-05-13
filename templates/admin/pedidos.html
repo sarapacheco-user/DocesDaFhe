@@ -4,7 +4,7 @@
   .pd-page { padding: 1.8rem 1.6rem; max-width: 1100px; margin: 0 auto; }
   .pd-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800;
               color: #1e293b; margin-bottom: 1.4rem; }
-  .pd-title span { color: #5B6D3D; }
+  .pd-title span { color: var(--color-primary); }
 
   /* ── STATS ── */
   .pd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -56,7 +56,7 @@
   .btn-save { padding: .3rem .8rem; border-radius: 8px; background: var(--color-primary);
               color: #fff; border: none; font-size: .78rem; font-weight: 700; cursor: pointer;
               transition: background .15s; }
-  .btn-save:hover { background: #4a5932; }
+  .btn-save:hover { background: var(--color-hover-primary); }
 
   /* itens toggle */
   .itens-toggle { background: none; border: none; color: var(--color-primary); cursor: pointer;
@@ -75,7 +75,7 @@
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.4rem; flex-wrap:wrap; gap:.8rem;">
     <div class="pd-title" style="margin-bottom:0;">Controle de <span>Vendas</span></div>
     <a href="{{ url_for('relatorio_estoque') }}" style="display:inline-flex; align-items:center; gap:.4rem; padding:.52rem 1.1rem; background:#fff; color:#475569; border:1.5px solid #e2e8f0; border-radius:9px; font-size:.85rem; font-weight:700; text-decoration:none; transition:all .15s;"
-       onmouseover="this.style.borderColor='#5B6D3D';this.style.color='#5B6D3D'"
+       onmouseover="this.style.borderColor='var(--color-primary)';this.style.color='var(--color-primary)'"
        onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Relatório
@@ -177,7 +177,7 @@
               {% for it in p.itens %}
               <div>• {{ it.nome }} x{{ it.quantidade }} — R$ {{ "%.2f"|format(it.subtotal) }}</div>
               {% if it.notas_corp %}
-              <div style="margin:.2rem 0 .2rem 1rem;padding:.3rem .5rem;background:#f0fdf4;border-left:3px solid #5B6D3D;border-radius:4px;font-size:.75rem;color:#166534;white-space:pre-line;">{{ it.notas_corp }}</div>
+              <div style="margin:.2rem 0 .2rem 1rem;padding:.3rem .5rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:4px;font-size:.75rem;color:#166534;white-space:pre-line;">{{ it.notas_corp }}</div>
               {% endif %}
               {% endfor %}
               {% if brinde.item %}
