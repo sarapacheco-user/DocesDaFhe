@@ -127,8 +127,8 @@
 </div>
 <div style="position:relative; max-width:960px; margin:0 auto 2.5rem; padding:0 3.5rem;">
   {% if agenda_proximos|length > 3 %}
-  <button onclick="agendaPage(-1)" class="cards-btn prev" style="left:0;">&#8249;</button>
-  <button onclick="agendaPage(1)"  class="cards-btn next" style="right:0;">&#8250;</button>
+  <button onclick="agendaPage(-1)" class="cards-btn prev">&#8249;</button>
+  <button onclick="agendaPage(1)"  class="cards-btn next">&#8250;</button>
   {% endif %}
   <div id="agendaGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
     {% for ev in agenda_proximos %}
@@ -152,14 +152,24 @@
 </div>
 <script>
 (function(){
-  const cards = document.querySelectorAll('.agenda-ev-card');
+  const cards   = document.querySelectorAll('.agenda-ev-card');
   const visible = 3;
-  const total = cards.length;
+  const total   = cards.length;
   let start = 0;
+  const agendaWrap = document.getElementById('agendaGrid') && document.getElementById('agendaGrid').closest('[style*="position:relative"]');
+  const prevBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.prev');
+  const nextBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.next');
+
+  function setBtn(btn, show) {
+    if (!btn) return;
+    btn.style.opacity = show ? '1' : '0';
+    btn.style.pointerEvents = show ? 'auto' : 'none';
+  }
+
   function render() {
     cards.forEach((c, i) => c.style.display = (i >= start && i < start + visible) ? 'block' : 'none');
-    document.querySelectorAll('.cards-btn.prev').forEach(b => b.style.opacity = start === 0 ? '.3' : '1');
-    document.querySelectorAll('.cards-btn.next').forEach(b => b.style.opacity = start + visible >= total ? '.3' : '1');
+    setBtn(prevBtn, start > 0);
+    setBtn(nextBtn, start + visible < total);
   }
   window.agendaPage = function(dir) {
     start = Math.max(0, Math.min(start + dir, total - visible));
@@ -457,24 +467,44 @@
   // ── CARROSSEL DE CARDS (avança 1 por vez, mostra 3) ──
   const trackOffsets = {};
 
+  function _updateCardsBtns(track, offset, maxOffset) {
+    const wrap = track.closest('.cards-carrossel-wrap');
+    if (!wrap) return;
+    const prev = wrap.querySelector('.cards-btn.prev');
+    const next = wrap.querySelector('.cards-btn.next');
+    if (prev) { prev.style.opacity = offset > 0 ? '1' : '0'; prev.style.pointerEvents = offset > 0 ? 'auto' : 'none'; }
+    if (next) { next.style.opacity = offset < maxOffset ? '1' : '0'; next.style.pointerEvents = offset < maxOffset ? 'auto' : 'none'; }
+  }
+
   function moverCards(trackId, dir) {
     const track = document.getElementById(trackId);
     if (!track) return;
 
-    const cards       = track.querySelectorAll('.card');
-    const totalCards  = cards.length;
-    if (totalCards <= 3) return; // menos de 3 não precisa de carrossel
+    const cards      = track.querySelectorAll('.card');
+    const totalCards = cards.length;
+    if (totalCards <= 3) return;
 
-    const cardWidth   = track.querySelector('.card').offsetWidth + 16; // 16 = gap
-    const maxOffset   = (totalCards - 3) * cardWidth;
+    const cardWidth  = track.querySelector('.card').offsetWidth + 16;
+    const maxOffset  = (totalCards - 3) * cardWidth;
 
     if (!trackOffsets[trackId]) trackOffsets[trackId] = 0;
-
     trackOffsets[trackId] += dir * cardWidth;
     trackOffsets[trackId]  = Math.max(0, Math.min(trackOffsets[trackId], maxOffset));
 
     track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
+    _updateCardsBtns(track, trackOffsets[trackId], maxOffset);
   }
+
+  // Inicializa botões de todos os carrosséis de cards
+  document.querySelectorAll('.cards-carrossel-wrap').forEach(wrap => {
+    const track = wrap.querySelector('.cards-track');
+    if (!track) return;
+    const cards = track.querySelectorAll('.card');
+    if (cards.length <= 3) return;
+    const cardWidth = cards[0].offsetWidth + 16;
+    const maxOffset = (cards.length - 3) * cardWidth;
+    _updateCardsBtns(track, 0, maxOffset);
+  });
 
   // ── QTY ── ✅ função corrigida
   function changeQty(id, delta) {

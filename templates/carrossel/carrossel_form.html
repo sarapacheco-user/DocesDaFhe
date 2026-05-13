@@ -96,8 +96,8 @@
 
     <div class="upload-field">
       <label>Imagem *</label>
-      <input type="file" name="imagem" accept="image/*" required
-             onchange="previewImagem(this)">
+      <input type="file" name="imagem" id="imagemInput" accept="image/*" required
+             onchange="adminOpenCropper(this, 'previewImg')">
     </div>
 
     <div class="upload-field">
@@ -122,20 +122,5 @@
   </form>
 </div>
 
-<script>
-  function previewImagem(input) {
-    const img   = document.getElementById('previewImg');
-    const texto = document.getElementById('previewTexto');
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        img.src = e.target.result;
-        img.style.display = 'block';
-        texto.style.display = 'none';
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
-</script>
 
 {% endblock %}

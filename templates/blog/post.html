@@ -57,7 +57,7 @@
           <span class="blog-card-dot">&bull;</span>
           <span class="post-meta-item">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {{ post.created_at.strftime('%d de %B de %Y') }}
+            {{ post.created_at | data_pt }}
           </span>
           <span class="blog-card-dot">&bull;</span>
           <span class="post-meta-item">
@@ -213,44 +213,53 @@
 
       <!-- Posts relacionados -->
       {% if relacionados %}
-      <div style="margin-top: 3rem;">
+      <div style="margin-top:3rem;">
         <h2 class="comments-title">Você também pode gostar</h2>
         <div style="position:relative;">
-          <button class="cards-btn prev" onclick="relNav(-1)" style="left:-1.5rem;">&#8249;</button>
-          <button class="cards-btn next" onclick="relNav(1)"  style="right:-1.5rem;">&#8250;</button>
-          <div id="relGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;">
+          <!-- Seta esquerda -->
+          <button id="relPrev" onclick="relScroll(-1)" style="position:absolute;left:-18px;top:50%;transform:translateY(-50%);z-index:2;width:36px;height:36px;border-radius:50%;border:none;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--blog-text);font-size:1.2rem;transition:box-shadow .15s;opacity:0;pointer-events:none;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.22)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.15)'">&#8249;</button>
+          <!-- Seta direita -->
+          <button id="relNext" onclick="relScroll(1)"  style="position:absolute;right:-18px;top:50%;transform:translateY(-50%);z-index:2;width:36px;height:36px;border-radius:50%;border:none;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--blog-text);font-size:1.2rem;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.22)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.15)'">&#8250;</button>
+
+          <div id="relStrip" style="display:flex;gap:1rem;overflow-x:auto;scroll-behavior:smooth;padding-bottom:.75rem;scrollbar-width:none;">
             {% for p in relacionados %}
-            <article class="blog-card rel-card" style="display:none;">
+            <a href="{{ url_for('blog.post', slug=p.slug) }}" style="flex:0 0 220px;text-decoration:none;color:inherit;background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)';" onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(0,0,0,.07)';">
               {% if p.capa_url %}
-              <a href="{{ url_for('blog.post', slug=p.slug) }}">
-                <img class="blog-card-img" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy">
-              </a>
+              <img src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy" style="width:100%;height:140px;object-fit:cover;display:block;">
               {% else %}
-              <div class="blog-card-img-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <div style="width:100%;height:140px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               </div>
               {% endif %}
-              <div class="blog-card-body">
-                <a href="{{ url_for('blog.post', slug=p.slug) }}" class="blog-card-title" style="font-size:.95rem;">{{ p.titulo }}</a>
-                <div class="blog-card-meta">{{ p.created_at.strftime('%d/%m/%Y') }} &bull; {{ p.tempo_leitura }} min</div>
+              <div style="padding:.75rem .85rem .9rem;flex:1;display:flex;flex-direction:column;gap:.4rem;">
+                {% if p.categoria %}
+                <span style="font-size:.68rem;font-weight:700;color:{{ p.categoria.cor }};text-transform:uppercase;letter-spacing:.04em;">{{ p.categoria.nome }}</span>
+                {% endif %}
+                <span style="font-size:.88rem;font-weight:700;color:var(--blog-text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ p.titulo }}</span>
+                <span style="font-size:.75rem;color:var(--blog-muted);margin-top:auto;">{{ p.created_at.strftime('%d/%m/%Y') }} &bull; {{ p.tempo_leitura }} min</span>
               </div>
-            </article>
+            </a>
             {% endfor %}
           </div>
         </div>
       </div>
+      <style>#relStrip::-webkit-scrollbar{display:none;}</style>
       <script>
-      (function(){
-        const cards = document.querySelectorAll('.rel-card');
-        const per = 3;
-        let page = 0;
-        const total = Math.ceil(cards.length / per);
-        function render() {
-          cards.forEach((c,i) => c.style.display = (i>=page*per && i<(page+1)*per) ? 'flex' : 'none');
-        }
-        window.relNav = function(dir){ page=(page+dir+total)%total; render(); };
-        render();
-      })();
+        (function(){
+          const strip = document.getElementById('relStrip');
+          const prev  = document.getElementById('relPrev');
+          const next  = document.getElementById('relNext');
+          function updateArrows() {
+            prev.style.opacity = strip.scrollLeft > 10 ? '1' : '0';
+            prev.style.pointerEvents = strip.scrollLeft > 10 ? 'auto' : 'none';
+            const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 10;
+            next.style.opacity = atEnd ? '0' : '1';
+            next.style.pointerEvents = atEnd ? 'none' : 'auto';
+          }
+          strip.addEventListener('scroll', updateArrows);
+          updateArrows();
+          window.relScroll = function(dir){ strip.scrollBy({ left: dir * 470, behavior: 'smooth' }); };
+        })();
       </script>
       {% endif %}
     </div>

@@ -101,7 +101,7 @@
 
     <div class="upload-field">
       <label>Nova imagem (opcional — deixe vazio para manter a atual)</label>
-      <input type="file" name="imagem" accept="image/*" onchange="trocarPreview(this)">
+      <input type="file" name="imagem" accept="image/*" onchange="adminOpenCropper(this, 'previewImg')">
     </div>
 
     <div class="upload-field">
@@ -126,17 +126,5 @@
   </form>
 </div>
 
-<script>
-  function trocarPreview(input) {
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById('previewImg').src = e.target.result;
-        document.querySelector('.preview-label').textContent = 'Nova imagem selecionada';
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
-</script>
 
 {% endblock %}

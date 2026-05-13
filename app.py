@@ -81,6 +81,11 @@ app.jinja_env.filters['darken'] = darken_hex
 from datetime import datetime as _dt
 app.jinja_env.globals['now'] = _dt.utcnow
 
+_MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+def data_pt(dt, fmt='%d de {mes} de %Y'):
+    return dt.strftime(fmt.replace('{mes}', _MESES_PT[dt.month - 1]))
+app.jinja_env.filters['data_pt'] = data_pt
+
 from blog_routes import blog_bp
 app.register_blueprint(blog_bp)
 

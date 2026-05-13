@@ -82,7 +82,7 @@
               {% endif %}
 
               <input type="file" class="form-control" id="arquivo" name="arquivo"
-                     accept="image/*" onchange="previewImagem(this)">
+                     accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
               <div id="previewWrap" style="margin-top:.6rem; display:none;">
                 <img id="previewImg" src="" alt="preview"
                      style="height:80px; border-radius:8px; border:1.5px solid var(--card-border);">
@@ -110,15 +110,4 @@
   </div>
 </div>
 
-<script>
-  function previewImagem(input) {
-    const wrap = document.getElementById('previewWrap');
-    const img  = document.getElementById('previewImg');
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
-</script>
 {% endblock %}

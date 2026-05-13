@@ -55,7 +55,7 @@
       <!-- Capa -->
       <div class="editor-field">
         <label for="capaInput">Imagem de Capa</label>
-        <input type="file" name="capa" id="capaInput" accept="image/*" onchange="previewCapa(this)">
+        <input type="file" name="capa" id="capaInput" accept="image/*" onchange="adminOpenCropper(this, 'capaPreview')">
         {% if post and post.capa_url %}
         <img id="capaPreview" class="editor-capa-preview show" src="{{ url_for('static', filename=post.capa_url) }}" alt="Capa atual">
         <p style="font-size:.75rem; color:var(--blog-muted); margin-top:.3rem;">Capa atual. Selecione nova imagem para substituir.</p>
@@ -206,19 +206,6 @@ function slugify(text) {
     .replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o')
     .replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c').replace(/[ñ]/g, 'n')
     .replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
-}
-
-// Capa preview
-function previewCapa(input) {
-  const preview = document.getElementById('capaPreview');
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.classList.add('show');
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
 }
 
 // Toggle SEO section

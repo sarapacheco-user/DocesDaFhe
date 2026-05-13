@@ -157,21 +157,18 @@ def post(slug):
                    .order_by(BlogComentario.created_at.asc())
                    .all())
 
-    # related posts
-    relacionados = (BlogPost.query
+    # related posts — mesma categoria primeiro, depois os demais
+    da_categoria = (BlogPost.query
                     .filter(BlogPost.status == 'publicado',
                             BlogPost.id != p.id,
                             BlogPost.categoria_id == p.categoria_id)
-                    .order_by(BlogPost.created_at.desc())
-                    .limit(3).all())
-    if len(relacionados) < 3:
-        extras = (BlogPost.query
-                  .filter(BlogPost.status == 'publicado',
-                          BlogPost.id != p.id,
-                          BlogPost.id.notin_([r.id for r in relacionados]))
-                  .order_by(BlogPost.visualizacoes.desc())
-                  .limit(3 - len(relacionados)).all())
-        relacionados += extras
+                    .order_by(BlogPost.created_at.desc()).all())
+    outros = (BlogPost.query
+              .filter(BlogPost.status == 'publicado',
+                      BlogPost.id != p.id,
+                      BlogPost.id.notin_([r.id for r in da_categoria]))
+              .order_by(BlogPost.visualizacoes.desc()).all())
+    relacionados = da_categoria + outros
 
     total_curtidas = BlogCurtida.query.filter_by(post_id=p.id).count()
     ja_curtiu = False

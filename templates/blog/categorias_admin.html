@@ -66,10 +66,10 @@
           </div>
 
           <div class="editor-field">
-            <label for="catCor">Cor do badge</label>
+            <label for="catCorText">Cor do badge</label>
             <div style="display:flex; align-items:center; gap:.75rem;">
-              <input type="color" name="cor" id="catCor" value="#5B6D3D" style="width:48px; height:38px; border:1.5px solid var(--blog-border); border-radius:8px; padding:2px; cursor:pointer;">
-              <span id="catCorText" style="font-size:.85rem; color:var(--blog-muted);">#5B6D3D</span>
+              <input type="color" name="cor" id="catCor" value="#5B6D3D" style="width:48px; height:38px; border:1.5px solid var(--blog-border); border-radius:8px; padding:2px; cursor:pointer; flex-shrink:0;">
+              <input type="text" id="catCorText" value="#5B6D3D" maxlength="7" placeholder="#000000" style="font-size:.85rem; width:100px; border:1.5px solid var(--blog-border); border-radius:8px; padding:.35rem .6rem; font-family:monospace; color:var(--blog-text);">
             </div>
           </div>
 
@@ -95,8 +95,25 @@
 </div>
 
 <script>
-document.getElementById('catCor').addEventListener('input', function() {
-  document.getElementById('catCorText').textContent = this.value;
+const catCor = document.getElementById('catCor');
+const catCorText = document.getElementById('catCorText');
+
+catCor.addEventListener('input', function() {
+  catCorText.value = this.value.toUpperCase();
+});
+
+catCorText.addEventListener('input', function() {
+  const val = this.value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    catCor.value = val;
+  }
+});
+
+catCorText.addEventListener('blur', function() {
+  const val = this.value.trim();
+  if (!/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    this.value = catCor.value.toUpperCase();
+  }
 });
 </script>
 
