@@ -60,9 +60,35 @@
     content: ''; flex: 1; height: 1px; background: #e2e8f0; margin-left: .4rem;
   }
 
+  /* ── LAYOUT SIDEBAR ── */
+  .corp-layout { max-width: 1180px; margin: 0 auto; padding: 2rem 1.4rem 2rem;
+                 display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+  @media (max-width: 768px) { .corp-layout { grid-template-columns: 1fr; } .corp-sidebar { display: none; } .corp-sidebar.open { display: block; } }
+
+  .corp-sidebar { position: sticky; top: 1rem; }
+  .cat-filter-box { background: #fff; border-radius: 12px; border: 1.5px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
+  .cat-filter-title { background: var(--color-primary); color: #fff; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: .65rem 1rem; }
+  .cat-filter-body { padding: .8rem 1rem; }
+  .cat-filter-option { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; cursor: pointer; font-size: .88rem; color: #334155; font-weight: 500; transition: color .15s; }
+  .cat-filter-option:hover { color: var(--color-primary); }
+  .cat-filter-option input[type="radio"] { accent-color: var(--color-primary); width: 15px; height: 15px; cursor: pointer; }
+  .cat-filter-option.active-opt { color: var(--color-primary); font-weight: 700; }
+  .btn-limpar-filtros { width: 100%; padding: .5rem; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; border-radius: 9px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .15s; }
+  .btn-limpar-filtros:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  .corp-main-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin-bottom: 1rem; }
+  .corp-main-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .corp-main-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+  .cat-count { font-size: .82rem; color: #94a3b8; margin-top: .15rem; }
+  .cat-sort-wrap { display: flex; align-items: center; gap: .6rem; }
+  .cat-sort-label { font-size: .82rem; color: #64748b; font-weight: 600; white-space: nowrap; }
+  .cat-sort-select { padding: .45rem .9rem; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: .85rem; color: #334155; font-weight: 600; background: #fff; cursor: pointer; outline: none; }
+  .cat-sort-select:focus { border-color: var(--color-primary); }
+
   /* ── PRODUCT GRID ── */
-  .corp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-               gap: 1.2rem; max-width: 900px; margin: 0 auto 2rem; padding: 0 1rem; }
+  .corp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  @media (max-width: 900px) { .corp-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .corp-grid { grid-template-columns: 1fr; } }
 
   .corp-card {
     background: #fff; border-radius: 16px;
@@ -220,35 +246,63 @@
 </div>
 {% endif %}
 
-<!-- PRODUTOS -->
-{% if produtos %}
-<div class="corp-section-title">Produtos disponíveis para personalização</div>
-<div class="corp-grid">
-  {% for produto in produtos %}
-  <div class="corp-card">
-    <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
-      <div class="corp-card-img">
-        {% if produto.image_url %}
-          <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
-        {% else %}🍰{% endif %}
+<!-- PRODUTOS + SIDEBAR -->
+<div class="corp-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="corp-sidebar" id="corpSidebar">
+    <div class="cat-filter-box">
+      <div class="cat-filter-title">Ordenar por</div>
+      <div class="cat-filter-body">
+        <label class="cat-filter-option active-opt"><input type="radio" name="ordenar" value="relevancia" checked onchange="ordenar(this.value)"> Relevância</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="menor_preco" onchange="ordenar(this.value)"> Menor Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="maior_preco" onchange="ordenar(this.value)"> Maior Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="az" onchange="ordenar(this.value)"> A – Z</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="za" onchange="ordenar(this.value)"> Z – A</label>
       </div>
-      <div class="corp-card-body">
-        <h3>{{ produto.name }}</h3>
-        <div class="corp-card-price">A partir de R$ {{ "%.2f"|format(produto.price) }}</div>
+    </div>
+    <button class="btn-limpar-filtros" onclick="limparTudo()">↺ Limpar filtros</button>
+  </aside>
+
+  <!-- MAIN -->
+  <div>
+    <div class="corp-main-header">
+      <div>
+        <h2 class="corp-main-title">Produtos para Personalização</h2>
+        <div class="cat-count" id="corpCount">{{ produtos | length }} produto(s)</div>
       </div>
-    </a>
-    <a href="{{ url_for('corporativo_personalizar', produto_id=produto.id) }}"
-       class="btn-personalizar">
-      Personalizar este produto
-    </a>
+    </div>
+
+    {% if produtos %}
+    <div class="corp-grid" id="corpGrid">
+      {% for produto in produtos %}
+      <div class="corp-card corp-item"
+           data-nome="{{ produto.name | lower }}"
+           data-preco="{{ produto.price }}">
+        <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+          <div class="corp-card-img">
+            {% if produto.image_url %}<img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">{% else %}🍰{% endif %}
+          </div>
+          <div class="corp-card-body">
+            <h3>{{ produto.name }}</h3>
+            <div class="corp-card-price">A partir de R$ {{ "%.2f"|format(produto.price) }}</div>
+          </div>
+        </a>
+        <a href="{{ url_for('corporativo_personalizar', produto_id=produto.id) }}" class="btn-personalizar">
+          Personalizar este produto
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:3rem 1rem;color:#94a3b8;font-size:.95rem;">
+      <div style="font-size:3rem;margin-bottom:.5rem;">🏢</div>
+      Nenhum produto corporativo cadastrado ainda.
+    </div>
+    {% endif %}
   </div>
-  {% endfor %}
+
 </div>
-{% else %}
-<div style="text-align:center;padding:2rem 1rem;color:#64748b;font-size:.95rem;">
-  Nenhum produto corporativo cadastrado ainda.
-</div>
-{% endif %}
 
 <!-- SOLICITAR PERSONALIZADO -->
 <div class="corp-solicitar-card">
@@ -291,8 +345,33 @@
 
 <script>
   function buscarGlobal() {
-    const termo = document.getElementById('searchInput').value.trim();
-    if (termo) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    var t = document.getElementById('searchInput').value.trim();
+    if (t) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(t);
+  }
+
+  var ordemAtual = 'relevancia';
+
+  function ordenar(valor) {
+    ordemAtual = valor;
+    document.querySelectorAll('input[name="ordenar"]').forEach(r => {
+      r.checked = r.value === valor;
+      r.closest('.cat-filter-option').classList.toggle('active-opt', r.checked);
+    });
+    var grid  = document.getElementById('corpGrid');
+    if (!grid) return;
+    var cards = Array.from(grid.querySelectorAll('.corp-item'));
+    cards.sort(function(a, b) {
+      if (valor === 'menor_preco') return parseFloat(a.dataset.preco) - parseFloat(b.dataset.preco);
+      if (valor === 'maior_preco') return parseFloat(b.dataset.preco) - parseFloat(a.dataset.preco);
+      if (valor === 'az') return a.dataset.nome.localeCompare(b.dataset.nome);
+      if (valor === 'za') return b.dataset.nome.localeCompare(a.dataset.nome);
+      return 0;
+    });
+    cards.forEach(c => grid.appendChild(c));
+  }
+
+  function limparTudo() {
+    ordenar('relevancia');
   }
 </script>
 {% endblock %}
