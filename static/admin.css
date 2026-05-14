@@ -340,12 +340,22 @@ html body .card:hover {
   box-shadow: var(--shadow-lg) !important;
 }
 
-html body .card img {
+html body .card img:not(.kit-thumb) {
   width: 100% !important;
   height: 200px !important;
   object-fit: cover !important;
   max-width: unset !important;
   max-height: 200px !important;
+  display: block !important;
+}
+html body .card img.kit-thumb {
+  width: 120px !important;
+  height: 120px !important;
+  max-height: 120px !important;
+  min-height: unset !important;
+  object-fit: cover !important;
+  border-radius: 10px !important;
+  border: 2px solid var(--color-primary) !important;
   display: block !important;
 }
 

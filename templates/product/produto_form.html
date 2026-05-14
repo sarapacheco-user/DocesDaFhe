@@ -68,6 +68,9 @@
               <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
             </div>
 
+            <!-- campo oculto recebe base64 do recortador (fallback Safari/mobile) -->
+            <input type="hidden" name="imagem_b64" id="imgB64Produto">
+
             <!-- ✅ Upload dentro do mesmo form -->
             <div class="mb-3">
               <label for="arquivo" class="form-label">Imagem do Produto</label>

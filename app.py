@@ -83,6 +83,25 @@ def salvar_imagem_produto(arquivo):
     return f"uploads/produtos/{filename}"
 
 
+def salvar_imagem_produto_b64(data_url):
+    """Salva imagem a partir de base64 dataURL (fallback para Safari/mobile)."""
+    import base64, re
+    m = re.match(r'data:(image/[\w+]+);base64,(.+)', data_url, re.DOTALL)
+    if not m:
+        return None
+    mime_type, b64data = m.groups()
+    ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}
+    ext = ext_map.get(mime_type, 'jpg')
+    filename = f"{int(time.time())}_crop.{ext}"
+    filepath = os.path.join(UPLOAD_FOLDER_PRODUTOS, filename)
+    try:
+        with open(filepath, 'wb') as f:
+            f.write(base64.b64decode(b64data))
+        return f"uploads/produtos/{filename}"
+    except Exception:
+        return None
+
+
 # ── LOGIN MANAGER ──
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -457,7 +476,11 @@ def create_product():
         qtd_min = max(1, int(request.form.get('quantidade_minima', 1) or 1))
         qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
         qtd_max = int(qtd_max_raw) if qtd_max_raw else None
-        image_url = salvar_imagem_produto(arquivo)
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
+        if imagem_b64:
+            image_url = salvar_imagem_produto_b64(imagem_b64)
+        else:
+            image_url = salvar_imagem_produto(arquivo)
         product = Product(name=name, description=description,
                           price=price, category=category, image_url=image_url,
                           quantidade_minima=qtd_min, quantidade_maxima=qtd_max)
@@ -489,7 +512,11 @@ def edit_product(id):
         product.quantidade_minima = max(1, int(request.form.get('quantidade_minima', 1) or 1))
         qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
         product.quantidade_maxima = int(qtd_max_raw) if qtd_max_raw else None
-        nova_imagem = salvar_imagem_produto(arquivo)
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
+        if imagem_b64:
+            nova_imagem = salvar_imagem_produto_b64(imagem_b64)
+        else:
+            nova_imagem = salvar_imagem_produto(arquivo)
         if nova_imagem:
             product.image_url = nova_imagem
         db.session.commit()
@@ -558,7 +585,18 @@ def create_kit():
             flash("O nome do kit é obrigatório.", 'error')
             return redirect(url_for('create_kit'))
         image_url = None
-        if arquivo and arquivo.filename != '':
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
+        if imagem_b64:
+            import base64, re as _re
+            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', imagem_b64, _re.DOTALL)
+            if m:
+                mime_type, b64data = m.groups()
+                ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime_type,'jpg')
+                fname = f"{int(time.time())}_crop.{ext}"
+                with open(os.path.join(UPLOAD_FOLDER_KITS, fname), 'wb') as f:
+                    f.write(base64.b64decode(b64data))
+                image_url = f"uploads/kits/{fname}"
+        elif arquivo and arquivo.filename != '':
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
             if ext in ALLOWED_EXTENSIONS:
                 filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
@@ -584,8 +622,19 @@ def edit_kit(kit_id):
     if request.method == 'POST':
         kit.name        = request.form.get('name', '').strip()
         kit.description = request.form.get('description', '').strip()
-        arquivo         = request.files.get('arquivo')
-        if arquivo and arquivo.filename != '':
+        arquivo    = request.files.get('arquivo')
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
+        if imagem_b64:
+            import base64, re as _re
+            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', imagem_b64, _re.DOTALL)
+            if m:
+                mime_type, b64data = m.groups()
+                ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime_type,'jpg')
+                fname = f"{int(time.time())}_crop.{ext}"
+                with open(os.path.join(UPLOAD_FOLDER_KITS, fname), 'wb') as f:
+                    f.write(base64.b64decode(b64data))
+                kit.image_url = f"uploads/kits/{fname}"
+        elif arquivo and arquivo.filename != '':
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
             if ext in ALLOWED_EXTENSIONS:
                 filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
@@ -629,18 +678,18 @@ def edit_kit_products(kit_id):
     if not user_can_edit_kit(kit):
         flash("Você não tem permissão para modificar este kit.", "error")
         return redirect(url_for('list_kits'))
-    all_products = Product.query.order_by(Product.name).all()
+    all_products = Product.query.filter(Product.category != 'corporativos').order_by(Product.name).all()
     kit_products = {kp.product_id: kp for kp in kit.products}
     if request.method == 'POST':
         product_ids   = request.form.getlist('product_id')
-        quantities    = request.form.getlist('quantity')
         submitted_ids = set(int(pid) for pid in product_ids)
-        for kp in kit.products:
+        for kp in list(kit.products):
             if kp.product_id not in submitted_ids:
                 db.session.delete(kp)
-        for pid, qty in zip(product_ids, quantities):
-            pid = int(pid)
-            qty = int(qty) if qty.isdigit() and int(qty) > 0 else 1
+        for pid_str in product_ids:
+            pid = int(pid_str)
+            qty_raw = request.form.get(f'qty_{pid}', '1')
+            qty = int(qty_raw) if qty_raw.isdigit() and int(qty_raw) > 0 else 1
             existing = KitProduct.query.get((kit_id, pid))
             if existing:
                 existing.quantity = qty

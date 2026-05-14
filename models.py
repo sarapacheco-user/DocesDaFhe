@@ -34,7 +34,7 @@ class User(db.Model, UserMixin):
 class Product(db.Model):
     __tablename__ = "products"
     id          = db.Column(db.Integer, primary_key=True)
-    name        = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    name        = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.String(800), nullable=False)
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
