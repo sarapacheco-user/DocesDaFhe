@@ -406,6 +406,30 @@ class Brinde(db.Model):
         return f"<Brinde {self.produto_nome} a partir de R${self.valor_minimo}>"
 
 
+class Promocao(db.Model):
+    __tablename__ = "promocoes"
+    id           = db.Column(db.Integer, primary_key=True)
+    nome         = db.Column(db.String(200), nullable=False)
+    descricao    = db.Column(db.String(500), default='')
+    tipo         = db.Column(db.String(20), nullable=False)   # 'percentual' ou 'fixo'
+    valor        = db.Column(db.Numeric(10, 2), nullable=False)
+    valor_minimo = db.Column(db.Numeric(10, 2), default=0)
+    ativo            = db.Column(db.Boolean, default=True)
+    mostrar_na_faixa = db.Column(db.Boolean, default=False)
+    criado_em        = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def desconto_para(self, total):
+        """Retorna o valor do desconto para um total dado."""
+        if float(self.valor_minimo) > total:
+            return 0.0
+        if self.tipo == 'percentual':
+            return round(float(total) * float(self.valor) / 100, 2)
+        return min(float(self.valor), float(total))
+
+    def __repr__(self):
+        return f"<Promocao {self.nome}>"
+
+
 class Avaliacao(db.Model):
     __tablename__ = "avaliacoes"
     id          = db.Column(db.Integer, primary_key=True)

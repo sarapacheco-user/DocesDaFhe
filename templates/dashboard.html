@@ -67,6 +67,96 @@
   <a href="{{ url_for('blog.index') }}">Blog</a>
 </nav>
 
+<!-- FAIXA DE PROMOÇÕES -->
+{% if promocoes_loja %}
+<div class="promo-bar" id="promoBar">
+  <div class="promo-bar-track" id="promoBarTrack">
+    {% for p in promocoes_loja %}
+    <span class="promo-bar-item">
+      <span class="promo-bar-tag">🏷️ PROMO</span>
+      <strong>{{ p.nome }}</strong>
+      —
+      {% if p.tipo == 'percentual' %}
+        {{ "%.0f"|format(p.valor) }}% de desconto
+      {% else %}
+        R$ {{ "%.2f"|format(p.valor) }} de desconto
+      {% endif %}
+      {% if p.valor_minimo and p.valor_minimo > 0 %}
+        em pedidos acima de R$ {{ "%.2f"|format(p.valor_minimo) }}
+      {% endif %}
+      {% if p.descricao %} · {{ p.descricao }}{% endif %}
+    </span>
+    {% if not loop.last %}<span class="promo-bar-sep">✦</span>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+<style>
+.promo-bar {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-hover-primary) 100%);
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  z-index: 10;
+}
+.promo-bar-track {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: .55rem 3rem .55rem 1.4rem;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  animation: promoScroll 30s linear infinite;
+}
+.promo-bar-track::-webkit-scrollbar { display: none; }
+@keyframes promoScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.promo-bar-track:hover { animation-play-state: paused; }
+.promo-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .85rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.promo-bar-item strong { font-weight: 800; }
+.promo-bar-tag {
+  background: rgba(255,255,255,.22);
+  border-radius: 20px;
+  padding: .12rem .6rem;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.promo-bar-sep {
+  color: rgba(255,255,255,.45);
+  font-size: .85rem;
+  flex-shrink: 0;
+  padding: 0 .5rem;
+}
+</style>
+<script>
+/* duplicar itens para scroll infinito contínuo */
+(function() {
+  var track = document.getElementById('promoBarTrack');
+  if (track) {
+    var clone = track.innerHTML;
+    track.innerHTML += clone;
+  }
+})();
+</script>
+{% endif %}
+
 <!-- CARROSSEL -->
 <div class="carrossel-wrap">
   <button class="carousel-btn prev" onclick="moverCarrossel(-1)">&#8249;</button>

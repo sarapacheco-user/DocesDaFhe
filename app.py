@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette
 import bcrypt
 import re
 import requests
@@ -410,6 +410,8 @@ def dashboard():
                         .filter(AgendaEvento.data_inicio >= dt.now())\
                         .order_by(AgendaEvento.data_inicio).limit(5).all()
 
+    promocoes_loja = Promocao.query.filter_by(ativo=True, mostrar_na_faixa=True).order_by(Promocao.valor_minimo).all()
+
     return render_template('dashboard.html',
                            user=current_user,
                            produtos=produtos,
@@ -420,7 +422,8 @@ def dashboard():
                            fav_p=fav_p, fav_k=fav_k, fav_e=fav_e,
                            medias_p=medias_p, medias_k=medias_k,
                            posts_recentes=posts_recentes,
-                           agenda_proximos=agenda_proximos)
+                           agenda_proximos=agenda_proximos,
+                           promocoes_loja=promocoes_loja)
 
 
 # ─────────────────────────────────────
@@ -1052,6 +1055,7 @@ WHATSAPP_NUMBER = '5511967630831'
 @app.route('/carrinho')
 @login_required
 def carrinho():
+    from flask import session as flask_session
     itens            = CarrinhoItem.query.filter_by(user_id=current_user.id).all()
     total            = sum(item.subtotal for item in itens)
     quantidade_total = sum(item.quantidade for item in itens)
@@ -1060,9 +1064,37 @@ def carrinho():
                     .filter(Brinde.valor_minimo <= total)
                     .order_by(Brinde.valor_minimo.desc())
                     .first())
+    # todas promoções ativas — cliente escolhe uma
+    todas_promocoes = Promocao.query.filter_by(ativo=True).order_by(Promocao.valor_minimo).all()
+    # verificar se a promoção salva na sessão ainda é válida
+    promocao_aplicada = None
+    desconto = 0.0
+    pid = flask_session.get('promocao_id')
+    if pid:
+        p = Promocao.query.get(pid)
+        if p and p.ativo and float(p.valor_minimo) <= total:
+            desconto = p.desconto_para(total)
+            promocao_aplicada = p
+        else:
+            flask_session.pop('promocao_id', None)
+    total_final = round(total - desconto, 2)
     return render_template('pedidos/carrinho.html', itens=itens,
                            total=total, quantidade_total=quantidade_total,
-                           brinde=brinde)
+                           brinde=brinde, todas_promocoes=todas_promocoes,
+                           promocao=promocao_aplicada,
+                           desconto=desconto, total_final=total_final)
+
+
+@app.route('/carrinho/aplicar-promocao', methods=['POST'])
+@login_required
+def aplicar_promocao():
+    from flask import session as flask_session
+    pid = request.form.get('promocao_id', type=int)
+    if pid:
+        flask_session['promocao_id'] = pid
+    else:
+        flask_session.pop('promocao_id', None)
+    return redirect(url_for('carrinho'))
 
 
 @app.route('/carrinho/adicionar', methods=['POST'])
@@ -1160,8 +1192,10 @@ def atualizar_carrinho(item_id):
 @app.route('/carrinho/esvaziar', methods=['POST'])
 @login_required
 def esvaziar_carrinho():
+    from flask import session as flask_session
     CarrinhoItem.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
+    flask_session.pop('promocao_id', None)
     flash('Carrinho esvaziado.', 'info')
     return redirect(url_for('carrinho'))
 
@@ -1223,7 +1257,23 @@ def finalizar_pedido():
                 for d in detalhes:
                     linhas.append(f'  • {d}')
 
-    linhas.append(f'\n*Total: R$ {total:.2f}*')
+    # ── PROMOÇÃO DE DESCONTO (escolhida pelo cliente) ──
+    from flask import session as flask_session
+    promocao_aplicada = None
+    desconto = 0.0
+    pid = flask_session.get('promocao_id')
+    if pid:
+        p = Promocao.query.get(pid)
+        if p and p.ativo and float(p.valor_minimo) <= total:
+            desconto = p.desconto_para(total)
+            promocao_aplicada = p
+    total_final = round(total - desconto, 2)
+    flask_session.pop('promocao_id', None)
+
+    linhas.append(f'\n*Subtotal: R$ {total:.2f}*')
+    if promocao_aplicada:
+        linhas.append(f'*Promoção "{promocao_aplicada.nome}": -R$ {desconto:.2f}*')
+    linhas.append(f'*Total: R$ {total_final:.2f}*')
 
     # ── LEMBRANCINHA ──
     brinde = (Brinde.query
@@ -1233,14 +1283,14 @@ def finalizar_pedido():
                     .first())
     if brinde:
         linhas.append('')
-        linhas.append(f'*Brinde:* {brinde.quantidade_brinde}x {brinde.produto_nome} (brinde em pedidos acima de R$ {float(brinde.valor_minimo):.2f})')
+        linhas.append(f'*Brinde:* {brinde.quantidade_brinde}x {brinde.produto_nome} (pedidos acima de R$ {float(brinde.valor_minimo):.2f})')
 
     # ── SALVAR PEDIDO ──
     pedido = Pedido(
         user_id  = current_user.id,
         tipo     = tipo,
         endereco = endereco if tipo == 'entrega' else None,
-        total    = total,
+        total    = total_final,
         status   = 'pendente',
     )
     db.session.add(pedido)
@@ -1975,45 +2025,86 @@ def deletar_avaliacao(id):
 #  LEMBRANCINHAS
 # ══════════════════════════════════════════════
 
-@app.route('/admin/brindes', methods=['GET', 'POST'])
+@app.route('/admin/brindes')
 @login_required
 @admin_required
 def admin_brindes():
+    return redirect(url_for('admin_promocoes'))
+
+
+@app.route('/admin/promocoes', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_promocoes():
     if request.method == 'POST':
-        acao = request.form.get('acao')
+        acao     = request.form.get('acao')
+        secao    = request.form.get('secao', 'brinde')
 
-        if acao == 'criar':
-            try:
-                valor_min = float(request.form['valor_minimo'])
-                qtd_brind = int(request.form.get('quantidade_brinde', 1))
-                nome      = request.form['produto_nome'].strip()
-                if not nome or valor_min <= 0 or qtd_brind < 1:
-                    raise ValueError
-                l = Brinde(valor_minimo=valor_min,
-                                 produto_nome=nome,
-                                 quantidade_brinde=qtd_brind)
-                db.session.add(l)
+        if secao == 'brinde':
+            if acao == 'criar':
+                try:
+                    valor_min = float(request.form['valor_minimo'])
+                    qtd_brind = int(request.form.get('quantidade_brinde', 1))
+                    nome      = request.form['produto_nome'].strip()
+                    if not nome or valor_min <= 0 or qtd_brind < 1:
+                        raise ValueError
+                    db.session.add(Brinde(valor_minimo=valor_min,
+                                         produto_nome=nome,
+                                         quantidade_brinde=qtd_brind))
+                    db.session.commit()
+                    flash('Brinde criado com sucesso!', 'success')
+                except (ValueError, KeyError):
+                    flash('Preencha todos os campos corretamente.', 'error')
+            elif acao == 'toggle':
+                l = Brinde.query.get_or_404(int(request.form['id']))
+                l.ativo = not l.ativo
                 db.session.commit()
-                flash('Brinde criado com sucesso!', 'success')
-            except (ValueError, KeyError):
-                flash('Preencha todos os campos corretamente.', 'error')
+                flash('Status atualizado.', 'success')
+            elif acao == 'deletar':
+                l = Brinde.query.get_or_404(int(request.form['id']))
+                db.session.delete(l)
+                db.session.commit()
+                flash('Brinde removido.', 'info')
 
-        elif acao == 'toggle':
-            l = Brinde.query.get_or_404(int(request.form['id']))
-            l.ativo = not l.ativo
-            db.session.commit()
-            flash('Status atualizado.', 'success')
+        elif secao == 'promocao':
+            if acao == 'criar':
+                try:
+                    nome      = request.form['nome'].strip()
+                    descricao = request.form.get('descricao', '').strip()
+                    tipo      = request.form['tipo']
+                    valor     = float(request.form['valor'])
+                    valor_min = float(request.form.get('valor_minimo', 0) or 0)
+                    if not nome or valor <= 0 or tipo not in ('percentual', 'fixo'):
+                        raise ValueError
+                    if tipo == 'percentual' and valor > 100:
+                        raise ValueError
+                    db.session.add(Promocao(nome=nome, descricao=descricao,
+                                            tipo=tipo, valor=valor,
+                                            valor_minimo=valor_min))
+                    db.session.commit()
+                    flash('Promoção criada com sucesso!', 'success')
+                except (ValueError, KeyError):
+                    flash('Preencha todos os campos corretamente.', 'error')
+            elif acao == 'toggle':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                p.ativo = not p.ativo
+                db.session.commit()
+                flash('Status atualizado.', 'success')
+            elif acao == 'toggle_faixa':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                p.mostrar_na_faixa = not p.mostrar_na_faixa
+                db.session.commit()
+            elif acao == 'deletar':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                db.session.delete(p)
+                db.session.commit()
+                flash('Promoção removida.', 'info')
 
-        elif acao == 'deletar':
-            l = Brinde.query.get_or_404(int(request.form['id']))
-            db.session.delete(l)
-            db.session.commit()
-            flash('Brinde removido.', 'info')
+        return redirect(url_for('admin_promocoes'))
 
-        return redirect(url_for('admin_brindes'))
-
-    itens = Brinde.query.order_by(Brinde.valor_minimo).all()
-    return render_template('admin/brindes.html', brindes=itens)
+    brindes   = Brinde.query.order_by(Brinde.valor_minimo).all()
+    promocoes = Promocao.query.order_by(Promocao.valor_minimo).all()
+    return render_template('admin/promocoes.html', brindes=brindes, promocoes=promocoes)
 
 
 # ─────────────────────────────────────
