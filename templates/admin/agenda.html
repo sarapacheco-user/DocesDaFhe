@@ -96,6 +96,30 @@
 </style>
 {% endblock %}
 
+{% macro card_evento(ev, opaco=False) %}
+<div class="agenda-card{% if opaco %} passado{% endif %}" style="--cor: {{ ev.cor }}">
+  <div class="agenda-data-box">
+    <div class="agenda-data-dia">{{ ev.data_inicio.strftime('%d') }}</div>
+    <div class="agenda-data-mes">{{ ev.data_inicio | mes_pt }}</div>
+  </div>
+  <div class="agenda-info">
+    <p class="agenda-titulo">{{ ev.titulo }}{% if opaco %} <span style="font-size:.7rem; color:#94a3b8; font-weight:400;">(encerrado)</span>{% endif %}</p>
+    <div class="agenda-meta">
+      <span>{{ ev.data_inicio.strftime('%d/%m/%Y %H:%M') }}</span>
+      {% if ev.data_fim %}<span>até {{ ev.data_fim.strftime('%d/%m/%Y %H:%M') }}</span>{% endif %}
+      {% if ev.local %}<span>📍 {{ ev.local }}</span>{% endif %}
+    </div>
+    {% if ev.descricao %}<p class="agenda-desc">{{ ev.descricao }}</p>{% endif %}
+  </div>
+  <div class="agenda-acoes">
+    <button class="btn-agenda-edit" onclick="abrirEdicao({{ ev.id }}, '{{ ev.titulo|replace("'","\\'")|e }}', '{{ ev.descricao|replace("'","\\'")|e if ev.descricao else '' }}', '{{ ev.local|replace("'","\\'")|e if ev.local else '' }}', '{{ ev.data_inicio.strftime('%Y-%m-%d') }}', '{{ ev.data_inicio.strftime('%H:%M') }}', '{{ ev.data_fim.strftime('%Y-%m-%d') if ev.data_fim else '' }}', '{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}', '{{ ev.cor }}')">Editar</button>
+    <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" onsubmit="return confirm('Remover este evento?')">
+      <button type="submit" class="btn-agenda-del">Excluir</button>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+
 {% block content %}
 <div class="agenda-wrap">
 
@@ -114,36 +138,34 @@
 
     <!-- Lista de eventos -->
     <div class="agenda-lista">
-      {% if eventos %}
-        {% for ev in eventos %}
-        <div class="agenda-card {% if ev.passou %}passado{% endif %}" style="--cor: {{ ev.cor }}">
-          <div class="agenda-data-box">
-            <div class="agenda-data-dia">{{ ev.data_inicio.strftime('%d') }}</div>
-            <div class="agenda-data-mes">{{ ev.data_inicio | mes_pt }}</div>
-          </div>
-          <div class="agenda-info">
-            <p class="agenda-titulo">{{ ev.titulo }}{% if ev.passou %} <span style="font-size:.7rem; color:#94a3b8; font-weight:400;">(encerrado)</span>{% endif %}</p>
-            <div class="agenda-meta">
-              <span>{{ ev.data_inicio.strftime('%d/%m/%Y %H:%M') }}</span>
-              {% if ev.data_fim %}<span>até {{ ev.data_fim.strftime('%d/%m/%Y %H:%M') }}</span>{% endif %}
-              {% if ev.local %}<span>📍 {{ ev.local }}</span>{% endif %}
-            </div>
-            {% if ev.descricao %}<p class="agenda-desc">{{ ev.descricao }}</p>{% endif %}
-          </div>
-          <div class="agenda-acoes">
-            <button class="btn-agenda-edit" onclick="abrirEdicao({{ ev.id }}, '{{ ev.titulo|replace("'","\\'")|e }}', '{{ ev.descricao|replace("'","\\'")|e if ev.descricao else '' }}', '{{ ev.local|replace("'","\\'")|e if ev.local else '' }}', '{{ ev.data_inicio.strftime('%Y-%m-%d') }}', '{{ ev.data_inicio.strftime('%H:%M') }}', '{{ ev.data_fim.strftime('%Y-%m-%d') if ev.data_fim else '' }}', '{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}', '{{ ev.cor }}')">Editar</button>
-            <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" onsubmit="return confirm('Remover este evento?')">
-              <button type="submit" class="btn-agenda-del">Excluir</button>
-            </form>
-          </div>
-        </div>
+
+      <!-- Próximos -->
+      <div class="secao-label" style="font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#5B6D3D; margin-bottom:.6rem; display:flex; align-items:center; gap:.5rem;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#5B6D3D;display:inline-block;"></span>
+        Próximos eventos ({{ proximos|length }})
+      </div>
+
+      {% if proximos %}
+        {% for ev in proximos %}
+          {{ card_evento(ev) }}
         {% endfor %}
       {% else %}
-      <div class="agenda-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <p style="margin:.8rem 0 0; font-size:.9rem;">Nenhum evento cadastrado ainda.</p>
+      <div class="agenda-vazio" style="padding:1.5rem;">
+        <p style="margin:0; font-size:.88rem; color:#94a3b8;">Nenhum evento futuro cadastrado.</p>
       </div>
       {% endif %}
+
+      <!-- Passados arquivados -->
+      {% if passados %}
+      <div class="secao-label" style="font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#94a3b8; margin: 1.6rem 0 .6rem; display:flex; align-items:center; gap:.5rem;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>
+        Arquivados — apagados automaticamente após {{ dias_arquivar }} dias ({{ passados|length }})
+      </div>
+      {% for ev in passados %}
+        {{ card_evento(ev, opaco=True) }}
+      {% endfor %}
+      {% endif %}
+
     </div>
 
     <!-- Formulário novo evento -->
@@ -186,8 +208,27 @@
           <label>Cor</label>
           <input type="color" name="cor" value="var(--color-primary)" style="height:38px; cursor:pointer;">
         </div>
+        <input type="hidden" name="acao" value="novo_evento">
         <button type="submit" class="btn-agenda-salvar">Adicionar à Agenda</button>
       </form>
+
+      <!-- Configuração de auto-limpeza -->
+      <div style="margin-top:1.4rem; border-top:1.5px solid #f1f5f9; padding-top:1.2rem;">
+        <p style="font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; margin:0 0 .8rem;">Auto-limpeza de eventos</p>
+        <form method="POST" action="{{ url_for('admin_agenda') }}" style="display:flex; gap:.6rem; align-items:flex-end;">
+          <input type="hidden" name="acao" value="salvar_config">
+          <div style="flex:1;">
+            <label style="font-size:.78rem; font-weight:700; color:#475569; display:block; margin-bottom:.3rem;">Apagar passados após</label>
+            <div style="display:flex; align-items:center; gap:.4rem;">
+              <input type="number" name="agenda_dias_arquivar" value="{{ dias_arquivar }}" min="1" max="365"
+                     style="width:70px; padding:.4rem .5rem; border:1.5px solid #e2e8f0; border-radius:7px; font-size:.85rem; text-align:center;">
+              <span style="font-size:.82rem; color:#64748b;">dias</span>
+            </div>
+          </div>
+          <button type="submit" style="padding:.45rem .9rem; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.78rem; font-weight:700; color:#475569; cursor:pointer; white-space:nowrap;">Salvar</button>
+        </form>
+        <p style="font-size:.72rem; color:#94a3b8; margin:.5rem 0 0;">Atual: {{ dias_arquivar }} dias após o encerramento</p>
+      </div>
     </div>
 
   </div>

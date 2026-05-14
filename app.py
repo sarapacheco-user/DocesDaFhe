@@ -102,6 +102,24 @@ def salvar_imagem_produto_b64(data_url):
         return None
 
 
+def salvar_imagem_especial_b64(data_url):
+    import base64, re
+    m = re.match(r'data:(image/[\w+]+);base64,(.+)', data_url, re.DOTALL)
+    if not m:
+        return None
+    mime_type, b64data = m.groups()
+    ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}
+    ext = ext_map.get(mime_type, 'jpg')
+    filename = f"{int(time.time())}_crop.{ext}"
+    filepath = os.path.join(UPLOAD_FOLDER_ESPECIAIS, filename)
+    try:
+        with open(filepath, 'wb') as f:
+            f.write(base64.b64decode(b64data))
+        return f"uploads/especiais/{filename}"
+    except Exception:
+        return None
+
+
 # ── LOGIN MANAGER ──
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -997,8 +1015,11 @@ def criar_produto_especial(evento_id):
             flash('Preço inválido.', 'error')
             return redirect(url_for('criar_produto_especial', evento_id=evento_id))
 
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
         image_url = None
-        if arquivo and arquivo.filename != '':
+        if imagem_b64:
+            image_url = salvar_imagem_especial_b64(imagem_b64)
+        elif arquivo and arquivo.filename != '':
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
             if ext in ALLOWED_EXTENSIONS:
                 filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
@@ -1049,7 +1070,12 @@ def editar_produto_especial(id):
             flash('Preço inválido.', 'error')
             return redirect(url_for('editar_produto_especial', id=id))
 
-        if arquivo and arquivo.filename != '':
+        imagem_b64 = request.form.get('imagem_b64', '').strip()
+        if imagem_b64:
+            nova = salvar_imagem_especial_b64(imagem_b64)
+            if nova:
+                produto.image_url = nova
+        elif arquivo and arquivo.filename != '':
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
             if ext in ALLOWED_EXTENSIONS:
                 filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
@@ -2358,8 +2384,21 @@ def admin_corporativo_status(id):
 def admin_agenda():
     if not current_user.is_admin:
         return redirect(url_for('dashboard'))
+    from datetime import datetime as dt
+    config = SiteConfig.query.first()
+
     if request.method == 'POST':
-        from datetime import datetime as dt
+        acao = request.form.get('acao', 'novo_evento')
+
+        # ── salvar configuração de dias ──
+        if acao == 'salvar_config':
+            dias = request.form.get('agenda_dias_arquivar', 30, type=int)
+            config.agenda_dias_arquivar = max(1, dias)
+            db.session.commit()
+            flash(f'Configuração salva: eventos serão apagados após {config.agenda_dias_arquivar} dias.', 'success')
+            return redirect(url_for('admin_agenda'))
+
+        # ── novo evento ──
         titulo    = request.form.get('titulo', '').strip()
         descricao = request.form.get('descricao', '').strip()
         local     = request.form.get('local', '').strip()
@@ -2377,9 +2416,31 @@ def admin_agenda():
             db.session.commit()
             flash('Evento adicionado!', 'success')
         return redirect(url_for('admin_agenda'))
-    from datetime import datetime as dt
-    eventos = AgendaEvento.query.order_by(AgendaEvento.data_inicio).all()
-    return render_template('admin/agenda.html', eventos=eventos, hoje=dt.now())
+
+    # ── auto-limpeza: apaga eventos passados há mais de X dias ──
+    dias_arquivar = (config.agenda_dias_arquivar or 30) if config else 30
+    limite        = dt.now() - timedelta(days=dias_arquivar)
+    expirados = AgendaEvento.query.filter(
+        db.func.coalesce(AgendaEvento.data_fim, AgendaEvento.data_inicio) < limite
+    ).all()
+    if expirados:
+        for ev in expirados:
+            db.session.delete(ev)
+        db.session.commit()
+
+    # ── separa próximos e passados (ainda dentro do prazo) ──
+    agora    = dt.now()
+    proximos = AgendaEvento.query.filter(
+        db.func.coalesce(AgendaEvento.data_fim, AgendaEvento.data_inicio) >= agora
+    ).order_by(AgendaEvento.data_inicio).all()
+    passados = AgendaEvento.query.filter(
+        db.func.coalesce(AgendaEvento.data_fim, AgendaEvento.data_inicio) < agora
+    ).order_by(AgendaEvento.data_inicio.desc()).all()
+
+    return render_template('admin/agenda.html',
+                           proximos=proximos, passados=passados,
+                           hoje=agora, config=config,
+                           dias_arquivar=dias_arquivar)
 
 
 @app.route('/admin/agenda/<int:id>/excluir', methods=['POST'])

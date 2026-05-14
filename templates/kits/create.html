@@ -38,7 +38,9 @@
               <input type="file" class="form-control" id="arquivo" name="arquivo"
                      accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
               <div id="previewWrap" class="preview-kit-wrap">
-                <img id="previewImg" src="" alt="preview" class="kit-thumb">
+                <div style="width:200px; height:200px; border-radius:10px; overflow:hidden; border:2px solid var(--color-primary, #5B6D3D);">
+                  <img id="previewImg" src="" alt="preview">
+                </div>
                 <p class="preview-kit-label">Nova imagem selecionada</p>
               </div>
             </div>

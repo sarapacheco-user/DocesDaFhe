@@ -351,6 +351,7 @@ class SiteConfig(db.Model):
     blog_bg         = db.Column(db.String(20), default='#f8fafc')
     blog_card_bg    = db.Column(db.String(20), default='#ffffff')
     blog_text       = db.Column(db.String(20), default='#1e293b')
+    agenda_dias_arquivar = db.Column(db.Integer, default=30)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):

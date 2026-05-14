@@ -753,23 +753,50 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 <script>
   var _cropInst = null, _cropInput = null, _cropImgId = null, _cropWrapId = null, _cropName = 'imagem.jpg';
+  var _cropB64FieldId = null, _cropCurrentBoxId = null;
+
+  function _abrirModalCropper(src) {
+    document.getElementById('adminCropImg').src = src;
+    document.getElementById('adminCropModal').classList.add('open');
+    if (_cropInst) { _cropInst.destroy(); _cropInst = null; }
+    _cropInst = new Cropper(document.getElementById('adminCropImg'), {
+      viewMode:1, autoCropArea:1, movable:true, zoomable:true, rotatable:true, background:true, responsive:true
+    });
+    document.querySelectorAll('.admin-crop-ratio-btn').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.admin-crop-ratio-btn')[0].classList.add('active');
+  }
 
   function adminOpenCropper(input, imgElId, wrapElId) {
     if (!input.files || !input.files[0]) return;
     _cropInput = input; _cropImgId = imgElId; _cropWrapId = wrapElId || null;
-    _cropName  = input.files[0].name;
+    _cropB64FieldId = null; _cropCurrentBoxId = null;
+    _cropName = input.files[0].name;
     var reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('adminCropImg').src = e.target.result;
-      document.getElementById('adminCropModal').classList.add('open');
-      if (_cropInst) { _cropInst.destroy(); _cropInst = null; }
-      _cropInst = new Cropper(document.getElementById('adminCropImg'), {
-        viewMode:1, autoCropArea:1, movable:true, zoomable:true, rotatable:true, background:true, responsive:true
-      });
-      document.querySelectorAll('.admin-crop-ratio-btn').forEach(function(b){b.classList.remove('active');});
-      document.querySelectorAll('.admin-crop-ratio-btn')[0].classList.add('active');
-    };
+    reader.onload = function(e) { _abrirModalCropper(e.target.result); };
     reader.readAsDataURL(input.files[0]);
+  }
+
+  /* Abre o cropper a partir de uma imagem já existente (sem precisar re-uplodar o arquivo) */
+  function abrirCropperImg(src, b64FieldId, currentBoxId) {
+    _cropInput = null; _cropImgId = null; _cropWrapId = null;
+    _cropB64FieldId = b64FieldId; _cropCurrentBoxId = currentBoxId;
+    _cropName = 'imagem.jpg';
+    /* carrega via canvas para evitar restrição CORS de src estático */
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      try {
+        _abrirModalCropper(c.toDataURL('image/jpeg', 0.95));
+      } catch(e) {
+        /* se CORS bloquear, tenta direto (funciona para mesmo domínio) */
+        _abrirModalCropper(src);
+      }
+    };
+    img.onerror = function() { _abrirModalCropper(src); };
+    img.src = src + '?t=' + Date.now();
   }
 
   function adminCancelCrop() {
@@ -782,25 +809,76 @@
     var ext = _cropName.split('.').pop().toLowerCase();
     var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
     canvas.toBlob(function(blob) {
-      var file = new File([blob], _cropName, {type: mime});
-      /* tenta DataTransfer (Chrome/Edge/Firefox) */
-      try {
-        var dt = new DataTransfer(); dt.items.add(file);
-        _cropInput.files = dt.files;
-      } catch(e) {}
       var dataUrl = canvas.toDataURL(mime);
-      /* fallback universal: grava base64 em campo oculto imagem_b64 se existir no form */
-      if (_cropInput && _cropInput.form) {
-        var b64Field = _cropInput.form.querySelector('input[name="imagem_b64"]');
-        if (b64Field) b64Field.value = dataUrl;
+
+      if (_cropInput) {
+        /* modo upload normal: tenta DataTransfer (Chrome/Edge/Firefox) */
+        var file = new File([blob], _cropName, {type: mime});
+        try {
+          var dt = new DataTransfer(); dt.items.add(file);
+          _cropInput.files = dt.files;
+        } catch(e) {}
+        /* fallback: grava base64 em campo oculto imagem_b64 do mesmo form */
+        if (_cropInput.form) {
+          var b64Field = _cropInput.form.querySelector('input[name="imagem_b64"]');
+          if (b64Field) b64Field.value = dataUrl;
+        }
       }
+
+      /* modo imagem-existente: grava no campo b64 identificado por ID */
+      if (_cropB64FieldId) {
+        var b64El = document.getElementById(_cropB64FieldId);
+        if (b64El) b64El.value = dataUrl;
+      }
+
+      /* atualiza preview da imagem atual no formulário */
+      if (_cropCurrentBoxId) {
+        var box = document.getElementById(_cropCurrentBoxId);
+        if (box) {
+          var img = box.querySelector('img');
+          if (img) img.src = dataUrl;
+          var overlay = box.querySelector('.crop-overlay');
+          if (overlay) overlay.style.display = 'flex';
+        }
+      }
+
       if (_cropImgId) {
         var imgEl = document.getElementById(_cropImgId);
         if (imgEl) {
           imgEl.src = dataUrl;
           imgEl.style.display = 'block';
           imgEl.classList.add('show');
-          imgEl.parentElement.querySelectorAll('span').forEach(function(s){s.style.display='none';});
+          /* esconde labels mas preserva o overlay span */
+          imgEl.parentElement.querySelectorAll('span').forEach(function(s){
+            if (!s.closest('.crop-overlay')) s.style.display = 'none';
+          });
+          /* torna o preview clicável para re-ajuste */
+          var innerBox = imgEl.parentElement;
+          if (!innerBox.classList.contains('img-crop-box')) {
+            innerBox.classList.add('img-crop-box');
+            innerBox.style.cursor = 'pointer';
+            var ov = document.createElement('div');
+            ov.className = 'crop-overlay';
+            ov.innerHTML = '<span>Ajustar imagem</span>';
+            innerBox.appendChild(ov);
+          }
+          /* resolve o ID do campo b64 para usar no re-ajuste */
+          var b64IdCapturado = _cropB64FieldId;
+          if (!b64IdCapturado && _cropInput && _cropInput.form) {
+            var b64Fld = _cropInput.form.querySelector('input[name="imagem_b64"]');
+            if (b64Fld && b64Fld.id) b64IdCapturado = b64Fld.id;
+          }
+          var capImgId = _cropImgId, capWrapId = _cropWrapId, capB64Id = b64IdCapturado;
+          innerBox.onclick = function() {
+            var src = document.getElementById(capImgId).src;
+            _cropInput = null;
+            _cropImgId = capImgId;
+            _cropWrapId = capWrapId;
+            _cropB64FieldId = capB64Id;
+            _cropCurrentBoxId = null;
+            _cropName = 'imagem.jpg';
+            _abrirModalCropper(src);
+          };
         }
       }
       if (_cropWrapId) {

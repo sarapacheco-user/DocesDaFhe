@@ -14,8 +14,8 @@
         </div>
 
         <div class="card-body">
-          <!-- ✅ UM SÓ form com enctype -->
           <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="imagem_b64" id="imgB64Especial">
 
             <div class="mb-3">
               <label class="form-label">Nome *</label>
@@ -66,10 +66,11 @@
               <label for="arquivo" class="form-label">Imagem (opcional)</label>
               <input type="file" class="form-control" id="arquivo" name="arquivo"
                      accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
-              <div id="previewWrap" style="margin-top:.6rem; display:none;">
-                <img id="previewImg" src="" alt="preview"
-                     style="height:80px; border-radius:8px; border:1.5px solid var(--card-border);">
-                <p style="font-size:.78rem; color:var(--text-mid); margin-top:.3rem;">Preview</p>
+              <div id="previewWrap" style="margin-top:.7rem; display:none;">
+                <div style="width:200px; height:200px; border-radius:10px; overflow:hidden; border:2px solid var(--color-primary, #5B6D3D);">
+                  <img id="previewImg" src="" alt="preview">
+                </div>
+                <p style="font-size:.74rem; color:#64748b; margin-top:.4rem;">Nova imagem selecionada</p>
               </div>
             </div>
 
