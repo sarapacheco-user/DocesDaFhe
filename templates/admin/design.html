@@ -120,14 +120,17 @@
 
         <div class="dp-group">
           <div class="dp-group-title">Cores das mensagens</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.8rem;">
+            Fundo do popup que aparece após ações do sistema (salvar, erro, aviso).
+          </p>
           {% set flash_colors = [
-            ('flash_success', 'Sucesso', '#d4edda'),
-            ('flash_error',   'Erro',    '#f8d7da'),
-            ('flash_info',    'Info',    '#d1ecf1'),
+            ('flash_success', 'Confirmação', '#d4edda', 'Pedido feito, item salvo, senha alterada'),
+            ('flash_error',   'Erro',        '#f8d7da', 'Falha no login, campo inválido, sem estoque'),
+            ('flash_info',    'Informação',  '#d1ecf1', 'Aviso neutro, dica, notificação geral'),
           ] %}
-          {% for field, label, default in flash_colors %}
+          {% for field, label, default, hint in flash_colors %}
           <div class="dp-field">
-            <label class="dp-label">{{ label }}</label>
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
             <div class="dp-color-row">
               <input type="color" class="dp-color-input" id="cp_{{ field }}"
                      value="{{ config[field] or default }}"

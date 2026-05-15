@@ -214,9 +214,9 @@
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 1rem;
     }
-    .flash-modal-success .flash-modal-icon { background: #dcfce7; color: #16a34a; }
-    .flash-modal-error   .flash-modal-icon { background: #fee2e2; color: #dc2626; }
-    .flash-modal-info    .flash-modal-icon { background: #e0f2fe; color: #0284c7; }
+    .flash-modal-success .flash-modal-icon { background: var(--color-primary-tint); color: var(--color-primary); }
+    .flash-modal-error   .flash-modal-icon { background: #fee2e2; color: var(--color-dark); }
+    .flash-modal-info    .flash-modal-icon { background: var(--color-primary-tint); color: var(--color-primary); }
     .flash-modal-warning .flash-modal-icon { background: #fef9c3; color: #ca8a04; }
 
     @keyframes popIn {
@@ -241,7 +241,7 @@
       cursor: pointer; transition: background .18s, transform .12s;
     }
     .flash-btn-ok:hover {
-      background: #4a5932; transform: translateY(-1px);
+      background: var(--color-hover-primary); transform: translateY(-1px);
     }
   </style>
 
@@ -894,6 +894,12 @@
     document.querySelectorAll('.admin-crop-ratio-btn').forEach(function(b){b.classList.remove('active');});
     btn.classList.add('active');
   }
+</script>
+<script>
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('.user-menu');
+    if (menu && !menu.contains(e.target)) menu.classList.remove('open');
+  });
 </script>
 </body>
 </html>

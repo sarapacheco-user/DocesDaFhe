@@ -139,7 +139,7 @@
       <div class="secao-label">✅ Incluídos no kit ({{ incluidos|length }})</div>
       {% for product in incluidos %}
         {% set kp = kit_products.get(product.id) %}
-        <label class="prod-row ativo" onclick="toggleRow(event, {{ product.id }})">
+        <label class="prod-row ativo" data-id="{{ product.id }}" onclick="toggleRow(event, +this.dataset.id)">
           <input type="checkbox" class="custom-cb" name="product_id"
                  id="cb_{{ product.id }}" value="{{ product.id }}" checked>
           <div class="cb-box">
@@ -164,7 +164,7 @@
     {% if disponiveis %}
       <div class="secao-label">Disponíveis para adicionar ({{ disponiveis|length }})</div>
       {% for product in disponiveis %}
-        <label class="prod-row" onclick="toggleRow(event, {{ product.id }})">
+        <label class="prod-row" data-id="{{ product.id }}" onclick="toggleRow(event, +this.dataset.id)">
           <input type="checkbox" class="custom-cb" name="product_id"
                  id="cb_{{ product.id }}" value="{{ product.id }}">
           <div class="cb-box">

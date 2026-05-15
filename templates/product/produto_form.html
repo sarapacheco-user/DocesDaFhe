@@ -76,8 +76,9 @@
               <label for="arquivo" class="form-label">Imagem do Produto</label>
               {% if product and product.image_url %}
                 <div id="imgBoxProduto" class="img-crop-box"
+                     data-src="{{ url_for('static', filename=product.image_url) }}"
                      style="width:200px; height:200px; border:2px solid var(--color-primary, #5B6D3D); margin-bottom:.5rem;"
-                     onclick="abrirCropperImg('{{ url_for('static', filename=product.image_url) }}', 'imgB64Produto', 'imgBoxProduto')">
+                     onclick="abrirCropperImg(this.dataset.src,'imgB64Produto','imgBoxProduto')">
                   <img src="{{ url_for('static', filename=product.image_url) }}" alt="Imagem atual" style="width:100%;height:100%;object-fit:cover;">
                   <div class="crop-overlay"><span>Ajustar imagem</span></div>
                 </div>

@@ -215,10 +215,10 @@
         <div class="cat-price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }}</div>
 
         <div class="cat-card-footer">
-          <div class="cat-qty" id="qty-kit-{{ kit.id }}">
-            <button onclick="changeKitQty({{ kit.id }}, -1)">−</button>
+          <div class="cat-qty" id="qty-kit-{{ kit.id }}" data-id="{{ kit.id }}">
+            <button onclick="changeKitQty(+this.closest('[data-id]').dataset.id, -1)">−</button>
             <span>1</span>
-            <button onclick="changeKitQty({{ kit.id }}, 1)">+</button>
+            <button onclick="changeKitQty(+this.closest('[data-id]').dataset.id, 1)">+</button>
           </div>
         </div>
 

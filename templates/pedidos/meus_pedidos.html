@@ -255,7 +255,8 @@
         <div>
           {% if p.status == 'pendente' %}
           <button type="button" class="btn-cancelar"
-                  onclick="cancelarPedido({{ p.id }}, event)">Cancelar pedido</button>
+                  data-id="{{ p.id }}"
+                  onclick="cancelarPedido(+this.dataset.id, event)">Cancelar pedido</button>
           {% endif %}
         </div>
         <div class="mp-total">Total: R$ {{ "%.2f"|format(p.total) }}</div>

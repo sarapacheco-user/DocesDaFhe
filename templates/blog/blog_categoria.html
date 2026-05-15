@@ -8,7 +8,7 @@
 {% block content %}
 
 <!-- Category Header -->
-<div class="cat-header" style="background: {{ categoria.cor }};">
+<div class="cat-header" data-cor="{{ categoria.cor }}">
   <div style="display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.75rem;">
     <a href="{{ url_for('blog.index') }}" style="display:inline-flex; align-items:center; gap:.35rem; background:rgba(255,255,255,.18); color:#fff; font-size:.8rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; text-decoration:none; border:1px solid rgba(255,255,255,.25); backdrop-filter:blur(4px); transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.18)'">
       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -133,4 +133,8 @@
   </div>
 </div>
 
+<script>
+  var h = document.querySelector('.cat-header[data-cor]');
+  if (h) h.style.background = h.dataset.cor;
+</script>
 {% endblock %}

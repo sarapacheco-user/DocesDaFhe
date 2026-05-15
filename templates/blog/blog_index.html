@@ -41,10 +41,10 @@
   <!-- Categorias nav strip -->
   {% if categorias %}
   <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1.8rem;">
-    <a href="{{ url_for('blog.index') }}" class="blog-card-cat" style="background: {% if not cat_slug %}var(--blog-accent){% else %}var(--blog-primary){% endif %}; text-decoration:none;">Todos</a>
+    <a href="{{ url_for('blog.index') }}" class="blog-card-cat {% if not cat_slug %}blog-cat-ativo{% endif %}" style="text-decoration:none;">Todos</a>
     {% for cat in categorias %}
-    <a href="{{ url_for('blog.index', categoria=cat.slug) }}" class="blog-card-cat"
-       style="background: {% if cat_slug == cat.slug %}var(--blog-accent){% else %}{{ cat.cor }}{% endif %}; text-decoration:none;">
+    <a href="{{ url_for('blog.index', categoria=cat.slug) }}" class="blog-card-cat {% if cat_slug == cat.slug %}blog-cat-ativo{% endif %}"
+       data-cor="{{ cat.cor }}" style="text-decoration:none;">
       {{ cat.nome }}
     </a>
     {% endfor %}
@@ -97,7 +97,7 @@
 
           <div class="blog-card-body">
             {% if post.categoria %}
-            <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="blog-card-cat" style="background: {{ post.categoria.cor }}; text-decoration:none;">{{ post.categoria.nome }}</a>
+            <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="blog-card-cat" data-cor="{{ post.categoria.cor }}" style="text-decoration:none;">{{ post.categoria.nome }}</a>
             {% endif %}
 
             <a href="{{ url_for('blog.post', slug=post.slug) }}" class="blog-card-title">{{ post.titulo }}</a>
@@ -125,11 +125,11 @@
               <div class="blog-card-actions">
                 {% if current_user.is_authenticated %}
                 <button class="blog-like-btn {% if post.id in curtidas_user %}ativo{% endif %}"
-                        data-id="{{ post.id }}" onclick="curtirPost({{ post.id }}, this)">
+                        data-id="{{ post.id }}" onclick="curtirPost(+this.dataset.id, this)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="{% if post.id in curtidas_user %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </button>
                 <button class="blog-save-btn {% if post.id in salvos_user %}ativo{% endif %}"
-                        data-id="{{ post.id }}" onclick="salvarPost({{ post.id }}, this)">
+                        data-id="{{ post.id }}" onclick="salvarPost(+this.dataset.id, this)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="{% if post.id in salvos_user %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                 </button>
                 {% endif %}
@@ -245,6 +245,11 @@
 </div>
 
 <script>
+// Aplica cor de categoria nos badges com data-cor (inactive state)
+document.querySelectorAll('.blog-card-cat[data-cor]').forEach(function(el) {
+  if (!el.classList.contains('blog-cat-ativo')) el.style.background = el.dataset.cor;
+});
+
 function buscarGlobal() {
   const q = document.getElementById('searchInput').value.trim();
   if (q) window.location.href = '/busca?q=' + encodeURIComponent(q);

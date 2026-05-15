@@ -787,7 +787,52 @@
 
 </div>
 
+<!-- DATA CONTAINERS: all server-side values moved out of JS scope -->
+<div id="relData"
+  data-ini="{{ data_ini|replace('-', '/') }}"
+  data-fim="{{ data_fim|replace('-', '/') }}"
+  data-total-entradas="{{ total_entradas }}"
+  data-total-saidas="{{ total_saidas }}"
+  data-movs-length="{{ movs|length }}"
+  data-venda-total="{{ venda_stats.total }}"
+  data-venda-pendente="{{ venda_stats.pendente }}"
+  data-venda-confirmado="{{ venda_stats.confirmado }}"
+  data-venda-entregue="{{ venda_stats.entregue }}"
+  data-venda-cancelado="{{ venda_stats.cancelado }}"
+  data-venda-faturado="{{ '%.2f'|format(venda_stats.faturado) }}"
+  data-color-primary="{{ site_config.color_primary if site_config and site_config.color_primary else '#5B6D3D' }}"
+  data-color-secondary="{{ site_config.color_secondary if site_config and site_config.color_secondary else '#D67155' }}"
+  style="display:none"></div>
+<script id="relMotivos" type="text/template">{{ grafico_motivos | tojson if grafico_motivos else '[]' }}</script>
+<script id="relQuantidades" type="text/template">{{ grafico_quantidades | tojson if grafico_motivos else '[]' }}</script>
+<script id="relItens" type="text/template">[{% for item in itens %}{"nome":{{ item.nome | tojson }},"tipo":"{{ item.tipo | capitalize }}","entradas":{{ item.entradas }},"saidas":{{ item.saidas }},"saldo":{{ item.saldo }},"total_movs":{{ item.total_movs }}}{% if not loop.last %},{% endif %}{% endfor %}]</script>
+<script id="relPedidos" type="text/template">[{% for p in pedidos_periodo %}{"id":{{ p.id }},"data":"{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}","cliente":{{ (p.user.name or p.user.email) | tojson }},"tipo":"{{ 'Entrega' if p.tipo == 'entrega' else 'Retirar' }}","total":"R$ {{ '%.2f'|format(p.total) }}","status":"{{ p.status | capitalize }}"}{% if not loop.last %},{% endif %}{% endfor %}]</script>
+<script id="relCorp" type="text/template">[{% for p in corp_pedidos %}{"id":{{ p.id }},"data":"{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}","nome":{{ p.nome | tojson }},"telefone":"{{ p.telefone }}","tipo":"{{ 'Personalizar' if p.tipo == 'personalizar' else 'Solicitar' }}","descricao":{{ ((p.produto_nome or "") + (" — " + p.personalizacao[:50] if p.personalizacao else "")) | tojson }},"quantidade":"{{ p.quantidade or '' }}","status":"{{ p.status.replace('_', ' ') | capitalize }}"}{% if not loop.last %},{% endif %}{% endfor %}]</script>
+
 <script>
+var _d            = document.getElementById('relData').dataset;
+var _ini          = _d.ini;
+var _fim          = _d.fim;
+var _totalEntradas  = +_d.totalEntradas;
+var _totalSaidas    = +_d.totalSaidas;
+var _movsLength     = +_d.movsLength;
+var _vendaTotal     = +_d.vendaTotal;
+var _vendaPendente  = +_d.vendaPendente;
+var _vendaConfirmado= +_d.vendaConfirmado;
+var _vendaEntregue  = +_d.vendaEntregue;
+var _vendaCancelado = +_d.vendaCancelado;
+var _vendaFaturado  = _d.vendaFaturado;
+var _motivos     = JSON.parse(document.getElementById('relMotivos').textContent);
+var _quantidades = JSON.parse(document.getElementById('relQuantidades').textContent);
+var _itens   = JSON.parse(document.getElementById('relItens').textContent);
+var _pedidos = JSON.parse(document.getElementById('relPedidos').textContent);
+var _corp    = JSON.parse(document.getElementById('relCorp').textContent);
+
+function hexToRgb(hex) {
+  var h = hex.replace('#', '');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
 async function exportarPDF() {
   const btn = document.querySelector('[onclick="exportarPDF()"]');
   btn.textContent = 'Gerando…'; btn.disabled = true;
@@ -801,24 +846,20 @@ async function exportarPDF() {
     const hoje = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit', month: 'long', year: 'numeric'
     });
-    const periodo = '{{ data_ini|replace("-","/") }} a {{ data_fim|replace("-","/") }}';
+    const periodo = _ini + ' a ' + _fim;
 
-    // paleta
-    const VERDE   = [91, 109, 61];
-    const ACCENT  = [214, 113, 85];
+    const VERDE   = hexToRgb(_d.colorPrimary);
+    const ACCENT  = hexToRgb(_d.colorSecondary);
     const DARK    = [30, 41, 59];
     const MUTED   = [100, 116, 139];
     const BGCARD  = [248, 250, 252];
     const BORDER  = [229, 231, 235];
 
-    // ── CABEÇALHO ──
     doc.setFillColor(...VERDE);
     doc.rect(0, 0, W, 36, 'F');
-    // faixa accent na base do header
     doc.setFillColor(...ACCENT);
     doc.rect(0, 33, W, 3, 'F');
 
-    // logo / nome
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
@@ -828,7 +869,6 @@ async function exportarPDF() {
     doc.setTextColor(200, 215, 180);
     doc.text('Doces da Fhê', 14, 22);
 
-    // data e período alinhados à direita
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
@@ -842,30 +882,24 @@ async function exportarPDF() {
 
     let y = 46;
 
-    // ── CARDS ──
     const cards = [
-      { label: 'Total de Entradas', valor: '{{ total_entradas }} un', cor: [22, 163, 74],  bg: [240, 253, 244] },
-      { label: 'Total de Saídas',   valor: '{{ total_saidas }} un',   cor: [220, 38, 38],  bg: [254, 242, 242] },
-      { label: 'Movimentações',     valor: '{{ movs|length }}',        cor: [59, 130, 246], bg: [239, 246, 255] },
+      { label: 'Total de Entradas', valor: _totalEntradas + ' un', cor: [22, 163, 74],  bg: [240, 253, 244] },
+      { label: 'Total de Saídas',   valor: _totalSaidas   + ' un', cor: [220, 38, 38],  bg: [254, 242, 242] },
+      { label: 'Movimentações',     valor: String(_movsLength),     cor: [59, 130, 246], bg: [239, 246, 255] },
     ];
     const cw = (W - 32) / 3;
     cards.forEach((c, i) => {
       const x = 14 + i * (cw + 5);
-      // sombra simulada
       doc.setFillColor(220, 225, 230);
       doc.roundedRect(x + 1, y + 1, cw, 22, 4, 4, 'F');
-      // card
       doc.setFillColor(...c.bg);
       doc.roundedRect(x, y, cw, 22, 4, 4, 'F');
-      // borda superior colorida
       doc.setFillColor(...c.cor);
       doc.roundedRect(x, y, cw, 3, 2, 2, 'F');
-      // label
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(...MUTED);
       doc.text(c.label.toUpperCase(), x + 5, y + 10);
-      // valor
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor(...c.cor);
@@ -874,7 +908,6 @@ async function exportarPDF() {
 
     y += 32;
 
-    // ── DIVISOR COM TÍTULO ──
     function secao(titulo, yPos) {
       doc.setFillColor(...VERDE);
       doc.rect(14, yPos, 3, 6, 'F');
@@ -888,91 +921,88 @@ async function exportarPDF() {
       return yPos + 12;
     }
 
-    // ── GRÁFICOS LADO A LADO ──
     const halfW = (W - 33) / 2;
 
     function renderPizzaPdf(canvasId, titulo, labelsArr, dadosArr, coresArr, xOff, yPos) {
       const canvas = document.getElementById(canvasId);
       if (!canvas) return yPos;
 
+      const visItems = labelsArr.filter((_, i) => dadosArr[i] > 0).length;
+      const itemStep = visItems > 7 ? 8 : 9;
+      const boxH = Math.max(78, 18 + visItems * itemStep);
+
       doc.setFillColor(...BGCARD);
-      doc.roundedRect(xOff, yPos - 2, halfW, 82, 4, 4, 'F');
+      doc.roundedRect(xOff, yPos, halfW, boxH, 4, 4, 'F');
+
+      // título dentro da caixa, no topo
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(titulo.toUpperCase(), xOff + 5, yPos + 6);
 
       const imgData = canvas.toDataURL('image/png', 1.0);
-      const tamanho = 60;
-      const gx = xOff + 4;
-      doc.addImage(imgData, 'PNG', gx, yPos + 2, tamanho, tamanho);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(...DARK);
-      doc.text(titulo, xOff + 4, yPos - 4);
+      const tamanho = 48;
+      const gx = xOff + 3;
+      doc.addImage(imgData, 'PNG', gx, yPos + 9, tamanho, tamanho);
 
       const total = dadosArr.reduce((a, b) => a + b, 0);
-      const lx = gx + tamanho + 5;
-      let ly = yPos + 8;
+      const lx = gx + tamanho + 3;
+      const maxLegW = xOff + halfW - lx - 2;
+      let ly = yPos + 16;
       labelsArr.forEach((l, i) => {
         if (dadosArr[i] === 0) return;
         const pct = total > 0 ? ((dadosArr[i] / total) * 100).toFixed(1) : 0;
         const cor = coresArr[i] || [100,116,139];
+        const maxCh = Math.floor(maxLegW / 1.75);
+        const lbl = l.length > maxCh ? l.slice(0, maxCh - 1) + '…' : l;
         doc.setFillColor(...cor);
         doc.circle(lx + 2, ly - 1.5, 2, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7.5);
         doc.setTextColor(...DARK);
-        doc.text(l, lx + 6, ly);
+        doc.text(lbl, lx + 6, ly);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(...MUTED);
         doc.text(`${dadosArr[i]}  ·  ${pct}%`, lx + 6, ly + 4.5);
-        ly += 11;
+        ly += itemStep;
       });
-      return yPos + 86;
+      return yPos + boxH + 6;
     }
 
-    {% if grafico_motivos %}
-    const labelsMotivo = {{ grafico_motivos | tojson }};
-    const dadosMotivo  = {{ grafico_quantidades | tojson }};
-    const coresMotivoPdf = [
-      [91,109,61],[214,113,85],[243,182,81],[147,46,80],[59,130,246],
+    var labelsMotivo    = _motivos;
+    var dadosMotivo     = _quantidades;
+    var coresMotivoPdf  = [
+      [76,153,108],[214,113,85],[243,182,81],[147,46,80],[59,130,246],
       [139,92,246],[236,72,153],[20,184,166],[249,115,22],[100,116,139]
     ];
-    {% endif %}
+    var labelsPedidos   = ['Pendente','Confirmado','Entregue','Cancelado'];
+    var dadosPedidos    = [_vendaPendente, _vendaConfirmado, _vendaEntregue, _vendaCancelado];
+    var coresPedidosPdf = [[245,158,11],[59,130,246],[34,197,94],[239,68,68]];
 
-    {% if venda_stats.total > 0 %}
-    const labelsPedidos = ['Pendente','Confirmado','Entregue','Cancelado'];
-    const dadosPedidos  = [{{ venda_stats.pendente }},{{ venda_stats.confirmado }},{{ venda_stats.entregue }},{{ venda_stats.cancelado }}];
-    const coresPedidosPdf = [[245,158,11],[59,130,246],[34,197,94],[239,68,68]];
-    {% endif %}
+    y = secao('Saídas por Motivo  ·  Pedidos por Status', y);
 
-    y = secao('Saídas por Motivo  &  Pedidos por Status', y);
+    var yAfterPie = y;
+    if (_motivos.length > 0) {
+      yAfterPie = Math.max(yAfterPie, renderPizzaPdf('graficoPizza', 'Saídas por Motivo', labelsMotivo, dadosMotivo, coresMotivoPdf, 14, y));
+    }
+    if (_vendaTotal > 0) {
+      yAfterPie = Math.max(yAfterPie, renderPizzaPdf('graficoPedidos', 'Pedidos por Status', labelsPedidos, dadosPedidos, coresPedidosPdf, 14 + halfW + 5, y));
+    }
+    y = yAfterPie;
 
-    {% if grafico_motivos %}
-    renderPizzaPdf('graficoPizza', 'Saídas por Motivo', labelsMotivo, dadosMotivo, coresMotivoPdf, 14, y);
-    {% endif %}
-    {% if venda_stats.total > 0 %}
-    y = renderPizzaPdf('graficoPedidos', 'Pedidos por Status', labelsPedidos, dadosPedidos, coresPedidosPdf, 14 + halfW + 5, y);
-    {% else %}
-    {% if grafico_motivos %}
-    y += 86;
-    {% endif %}
-    {% endif %}
-
-    // ── TABELA DE ITENS ──
     y = secao('Resumo por Item', y);
 
-    const linhas = [
-      {% for item in itens %}
-      [
-        '{{ item.nome | replace("'", "\\'") }}',
-        '{{ item.tipo | capitalize }}',
-        '+{{ item.entradas }}',
-        '-{{ item.saidas }}',
-        '{{ "+" if item.saldo >= 0 else "" }}{{ item.saldo }}',
-        '{{ item.total_movs }}'
-      ],
-      {% endfor %}
-    ];
+    const linhas = _itens.map(function(item) {
+      return [
+        item.nome,
+        item.tipo,
+        '+' + item.entradas,
+        '-' + item.saidas,
+        (item.saldo >= 0 ? '+' : '') + item.saldo,
+        String(item.total_movs)
+      ];
+    });
 
     doc.autoTable({
       startY: y,
@@ -997,7 +1027,6 @@ async function exportarPDF() {
       },
       margin: { left: 14, right: 14 },
       didDrawPage: (data) => {
-        // rodapé em cada página
         doc.setFillColor(...VERDE);
         doc.rect(0, H - 10, W, 10, 'F');
         doc.setFont('helvetica', 'normal');
@@ -1009,108 +1038,79 @@ async function exportarPDF() {
       }
     });
 
-    // ── TABELA DE VENDAS ──
-    {% if pedidos_periodo %}
-    y = doc.lastAutoTable.finalY + 10;
-    y = secao('Controle de Vendas — Pedidos no Período', y);
+    if (_pedidos.length > 0) {
+      y = doc.lastAutoTable.finalY + 10;
+      y = secao('Controle de Vendas — Pedidos no Período', y);
 
-    const coresStatus = {
-      pendente:   [245,158,11],
-      confirmado: [59,130,246],
-      entregue:   [34,197,94],
-      cancelado:  [239,68,68],
-    };
+      doc.autoTable({
+        startY: y,
+        head: [['#', 'Data', 'Cliente', 'Tipo', 'Total (R$)', 'Status']],
+        body: _pedidos.map(function(p) {
+          return ['#' + p.id, p.data, p.cliente, p.tipo, p.total, p.status];
+        }),
+        foot: [['', '', {content: 'Faturado (confirmados + entregues)', colSpan: 3, styles: {halign: 'right', fontStyle: 'bold'}}, 'R$ ' + _vendaFaturado, '']],
+        styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, lineColor: BORDER, lineWidth: 0.3 },
+        headStyles: { fillColor: VERDE, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8, cellPadding: 5 },
+        footStyles: { fillColor: BGCARD, fontStyle: 'bold', textColor: DARK },
+        alternateRowStyles: { fillColor: BGCARD },
+        columnStyles: {
+          0: { cellWidth: 14, halign: 'center', textColor: MUTED },
+          1: { cellWidth: 34 },
+          2: { cellWidth: 'auto', fontStyle: 'bold' },
+          3: { cellWidth: 22, halign: 'center' },
+          4: { cellWidth: 26, halign: 'right', fontStyle: 'bold', textColor: [91,109,61] },
+          5: { cellWidth: 24, halign: 'center' },
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data) => {
+          doc.setFillColor(...VERDE);
+          doc.rect(0, H - 10, W, 10, 'F');
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(200, 215, 180);
+          doc.text('Doces da Fhê — Relatório', 14, H - 4);
+          doc.setTextColor(255,255,255);
+          doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
+        }
+      });
+    }
 
-    doc.autoTable({
-      startY: y,
-      head: [['#', 'Data', 'Cliente', 'Tipo', 'Total (R$)', 'Status']],
-      body: [
-        {% for p in pedidos_periodo %}
-        [
-          '#{{ p.id }}',
-          '{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}',
-          '{{ (p.user.name or p.user.email) | replace("'", "\\'") }}',
-          '{{ "Entrega" if p.tipo == "entrega" else "Retirar" }}',
-          'R$ {{ "%.2f"|format(p.total) }}',
-          '{{ p.status | capitalize }}'
-        ],
-        {% endfor %}
-      ],
-      foot: [['', '', '', 'Faturado (conf.+entregues)', 'R$ {{ "%.2f"|format(venda_stats.faturado) }}', '']],
-      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, lineColor: BORDER, lineWidth: 0.3 },
-      headStyles: { fillColor: [91,109,61], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8, cellPadding: 5 },
-      footStyles: { fillColor: BGCARD, fontStyle: 'bold', textColor: DARK },
-      alternateRowStyles: { fillColor: BGCARD },
-      columnStyles: {
-        0: { cellWidth: 14, halign: 'center', textColor: MUTED },
-        1: { cellWidth: 34 },
-        2: { cellWidth: 'auto', fontStyle: 'bold' },
-        3: { cellWidth: 22, halign: 'center' },
-        4: { cellWidth: 26, halign: 'right', fontStyle: 'bold', textColor: [91,109,61] },
-        5: { cellWidth: 24, halign: 'center' },
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        doc.setFillColor(...VERDE);
-        doc.rect(0, H - 10, W, 10, 'F');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(200, 215, 180);
-        doc.text('Doces da Fhê — Relatório', 14, H - 4);
-        doc.setTextColor(255,255,255);
-        doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
-      }
-    });
-    {% endif %}
+    if (_corp.length > 0) {
+      y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y;
+      y = secao('Pedidos Corporativos', y);
 
-    // ── TABELA CORPORATIVOS ──
-    {% if corp_pedidos %}
-    y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y;
-    y = secao('Pedidos Corporativos', y);
-
-    doc.autoTable({
-      startY: y,
-      head: [['#', 'Data', 'Cliente', 'Telefone', 'Tipo', 'Produto / Descrição', 'Qtd', 'Status']],
-      body: [
-        {% for p in corp_pedidos %}
-        [
-          '#{{ p.id }}',
-          '{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}',
-          '{{ p.nome | replace("'", "\\'") }}',
-          '{{ p.telefone }}',
-          '{{ "Personalizar" if p.tipo == "personalizar" else "Solicitar" }}',
-          '{{ ((p.produto_nome or "") + (" — " + p.personalizacao[:50] if p.personalizacao else "")) | replace("'", "\\'") }}',
-          '{{ p.quantidade or "" }}',
-          '{{ p.status.replace("_", " ") | capitalize }}'
-        ],
-        {% endfor %}
-      ],
-      styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3.5, lineColor: BORDER, lineWidth: 0.3 },
-      headStyles: { fillColor: [30,41,59], textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5, cellPadding: 4 },
-      alternateRowStyles: { fillColor: BGCARD },
-      columnStyles: {
-        0: { cellWidth: 12, halign: 'center', textColor: MUTED },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 'auto', fontStyle: 'bold' },
-        3: { cellWidth: 28 },
-        4: { cellWidth: 24, halign: 'center' },
-        5: { cellWidth: 'auto' },
-        6: { cellWidth: 12, halign: 'center' },
-        7: { cellWidth: 22, halign: 'center' },
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        doc.setFillColor(...VERDE);
-        doc.rect(0, H - 10, W, 10, 'F');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(200, 215, 180);
-        doc.text('Doces da Fhê — Relatório', 14, H - 4);
-        doc.setTextColor(255,255,255);
-        doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
-      }
-    });
-    {% endif %}
+      doc.autoTable({
+        startY: y,
+        head: [['#', 'Data', 'Cliente', 'Telefone', 'Tipo', 'Produto / Descrição', 'Qtd', 'Status']],
+        body: _corp.map(function(p) {
+          return ['#' + p.id, p.data, p.nome, p.telefone, p.tipo, p.descricao, p.quantidade, p.status];
+        }),
+        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3, lineColor: BORDER, lineWidth: 0.3 },
+        headStyles: { fillColor: [30,41,59], textColor: [255,255,255], fontStyle: 'bold', fontSize: 7, cellPadding: 3 },
+        alternateRowStyles: { fillColor: BGCARD },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center', textColor: MUTED },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 36, fontStyle: 'bold' },
+          3: { cellWidth: 24 },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 'auto' },
+          6: { cellWidth: 12, halign: 'center' },
+          7: { cellWidth: 22, halign: 'center' },
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data) => {
+          doc.setFillColor(...VERDE);
+          doc.rect(0, H - 10, W, 10, 'F');
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(200, 215, 180);
+          doc.text('Doces da Fhê — Relatório', 14, H - 4);
+          doc.setTextColor(255,255,255);
+          doc.text(`Página ${data.pageNumber}`, W - 14, H - 4, { align: 'right' });
+        }
+      });
+    }
 
     const nomeArquivo = `relatorio_estoque_${hoje.replace(/ /g,'_').replace(/,/g,'')}.pdf`;
     doc.save(nomeArquivo);
@@ -1119,105 +1119,99 @@ async function exportarPDF() {
   }
 }
 
-{% if grafico_motivos %}
-(function() {
-  const labels = {{ grafico_motivos | tojson }};
-  const dados  = {{ grafico_quantidades | tojson }};
-  const cores  = [
-    'var(--color-primary)','var(--color-secondary)','var(--color-accent)','var(--color-dark)','#3b82f6',
-    '#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'
-  ];
+if (_motivos.length > 0) {
+  (function() {
+    const labels = _motivos;
+    const dados  = _quantidades;
+    const cores  = [
+      '#4c996c','#d67155','#f3b651','#932e50','#3b82f6',
+      '#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'
+    ];
 
-  const ctx = document.getElementById('graficoPizza').getContext('2d');
-  new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: dados,
-        backgroundColor: cores.slice(0, labels.length),
-        borderWidth: 2,
-        borderColor: '#fff',
-      }]
-    },
-    options: {
-      responsive: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.parsed} un`
+    const ctx = document.getElementById('graficoPizza').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dados,
+          backgroundColor: cores.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.parsed} un`
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  // legenda customizada
-  const total = dados.reduce((a, b) => a + b, 0);
-  const leg   = document.getElementById('graficoPizzaLegenda');
-  leg.innerHTML = labels.map((l, i) => {
-    const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
-    return `<div class="rel-legend-item">
-      <div class="rel-legend-dot" style="background:${cores[i]}"></div>
-      <span class="rel-legend-label">${l}</span>
-      <span class="rel-legend-val">${dados[i]} un</span>
-      <span class="rel-legend-pct">(${pct}%)</span>
-    </div>`;
-  }).join('');
-})();
-{% endif %}
+    const total = dados.reduce((a, b) => a + b, 0);
+    const leg   = document.getElementById('graficoPizzaLegenda');
+    leg.innerHTML = labels.map((l, i) => {
+      const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
+      return `<div class="rel-legend-item">
+        <div class="rel-legend-dot" style="background:${cores[i]}"></div>
+        <span class="rel-legend-label">${l}</span>
+        <span class="rel-legend-val">${dados[i]} un</span>
+        <span class="rel-legend-pct">(${pct}%)</span>
+      </div>`;
+    }).join('');
+  })();
+}
 
-{% if venda_stats.total > 0 %}
-(function() {
-  const labels = ['Pendente', 'Confirmado', 'Entregue', 'Cancelado'];
-  const dados  = [
-    {{ venda_stats.pendente }},
-    {{ venda_stats.confirmado }},
-    {{ venda_stats.entregue }},
-    {{ venda_stats.cancelado }}
-  ];
-  const cores = ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444'];
+if (_vendaTotal > 0) {
+  (function() {
+    const labels = ['Pendente', 'Confirmado', 'Entregue', 'Cancelado'];
+    const dados  = [_vendaPendente, _vendaConfirmado, _vendaEntregue, _vendaCancelado];
+    const cores = ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444'];
 
-  const ctx = document.getElementById('graficoPedidos').getContext('2d');
-  new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: dados,
-        backgroundColor: cores,
-        borderWidth: 2,
-        borderColor: '#fff',
-      }]
-    },
-    options: {
-      responsive: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.parsed} pedido(s)`
+    const ctx = document.getElementById('graficoPedidos').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dados,
+          backgroundColor: cores,
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.parsed} pedido(s)`
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  const total = dados.reduce((a, b) => a + b, 0);
-  const leg   = document.getElementById('graficoPedidosLegenda');
-  leg.innerHTML = labels.map((l, i) => {
-    if (dados[i] === 0) return '';
-    const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
-    return `<div class="rel-legend-item">
-      <div class="rel-legend-dot" style="background:${cores[i]}"></div>
-      <span class="rel-legend-label">${l}</span>
-      <span class="rel-legend-val">${dados[i]} ped.</span>
-      <span class="rel-legend-pct">(${pct}%)</span>
-    </div>`;
-  }).join('');
-})();
-{% endif %}
+    const total = dados.reduce((a, b) => a + b, 0);
+    const leg   = document.getElementById('graficoPedidosLegenda');
+    leg.innerHTML = labels.map((l, i) => {
+      if (dados[i] === 0) return '';
+      const pct = total > 0 ? ((dados[i] / total) * 100).toFixed(1) : 0;
+      return `<div class="rel-legend-item">
+        <div class="rel-legend-dot" style="background:${cores[i]}"></div>
+        <span class="rel-legend-label">${l}</span>
+        <span class="rel-legend-val">${dados[i]} ped.</span>
+        <span class="rel-legend-pct">(${pct}%)</span>
+      </div>`;
+    }).join('');
+  })();
+}
 
 function setPeriodo(p) {
   const hoje = new Date();

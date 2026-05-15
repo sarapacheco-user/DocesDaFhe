@@ -189,7 +189,7 @@
         <div class="fg">
           <label>Cor inicial do hero (gradiente)</label>
           <div class="color-row">
-            <div class="color-swatch" id="sw_hero_ini" style="background:{{ config.cor_hero_ini or '#1e293b' }}">
+            <div class="color-swatch" id="sw_hero_ini">
               <input type="color" id="cp_hero_ini" value="{{ config.cor_hero_ini or '#1e293b' }}"
                      oninput="syncCorp('hero_ini', this.value)">
             </div>
@@ -202,7 +202,7 @@
         <div class="fg">
           <label>Cor final do hero (gradiente)</label>
           <div class="color-row">
-            <div class="color-swatch" id="sw_hero_fim" style="background:{{ config.cor_hero_fim or '#334155' }}">
+            <div class="color-swatch" id="sw_hero_fim">
               <input type="color" id="cp_hero_fim" value="{{ config.cor_hero_fim or '#334155' }}"
                      oninput="syncCorp('hero_fim', this.value)">
             </div>
@@ -215,7 +215,7 @@
         <div class="fg">
           <label>Cor de destaque (botões, prazo, badge)</label>
           <div class="color-row">
-            <div class="color-swatch" id="sw_destaque" style="background:{{ config.cor_destaque or 'var(--color-primary)' }}">
+            <div class="color-swatch" id="sw_destaque">
               <input type="color" id="cp_destaque" value="{{ config.cor_destaque or 'var(--color-primary)' }}"
                      oninput="syncCorp('destaque', this.value)">
             </div>
@@ -227,13 +227,8 @@
 
         <div class="fg">
           <label>Prévia do hero</label>
-          <div class="corp-preview-strip" id="corp_preview_hero"
-               style="background: linear-gradient(135deg, {{ config.cor_hero_ini or '#1e293b' }}, {{ config.cor_hero_fim or '#334155' }});">
-            Linha Corporativa
-          </div>
-          <div id="corp_preview_destaque"
-               style="margin-top:.4rem; height:28px; border-radius:8px; transition:background .2s; background:{{ config.cor_destaque or 'var(--color-primary)' }}">
-          </div>
+          <div class="corp-preview-strip" id="corp_preview_hero">Linha Corporativa</div>
+          <div id="corp_preview_destaque" style="margin-top:.4rem; height:28px; border-radius:8px; transition:background .2s;"></div>
         </div>
 
         <div class="fg-full" style="display:flex; justify-content:flex-end; margin-top:.5rem;">
@@ -261,6 +256,13 @@
         if (hero) hero.style.background = 'linear-gradient(135deg,' + ini + ',' + fim + ')';
         if (destEl) destEl.style.background = dest;
       }
+      // Inicializa swatches e preview com os valores dos inputs
+      ['hero_ini', 'hero_fim', 'destaque'].forEach(function(key) {
+        var hex = document.getElementById('hex_' + key);
+        var sw  = document.getElementById('sw_' + key);
+        if (hex && sw) sw.style.background = hex.value;
+      });
+      updateCorpPreview();
       updateCorpPreview();
     </script>
   </div>
@@ -316,7 +318,7 @@
             {% endif %}
           </td>
           <td>
-            <button class="det-btn" onclick="toggleDet({{ p.id }})">Ver detalhes</button>
+            <button class="det-btn" data-id="{{ p.id }}" onclick="toggleDet(+this.dataset.id)">Ver detalhes</button>
             <div class="det-box" id="det-{{ p.id }}">
               {% if p.logo_url %}
               <div style="margin-bottom:.5rem;">

@@ -82,6 +82,9 @@
   .btn-agenda-salvar:hover { background: #4a5c30; }
 
   .agenda-vazio { text-align: center; padding: 3rem; color: #94a3b8; }
+  .flash-msg { padding:.7rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:.88rem; font-weight:600; }
+  .flash-success { background:#dcfce7; color:#166534; }
+  .flash-error   { background:#fee2e2; color:#991b1b; }
 
   /* Modal editar */
   .modal-agenda { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; align-items:center; justify-content:center; }
@@ -97,7 +100,7 @@
 {% endblock %}
 
 {% macro card_evento(ev, opaco=False) %}
-<div class="agenda-card{% if opaco %} passado{% endif %}" style="--cor: {{ ev.cor }}">
+<div class="agenda-card{% if opaco %} passado{% endif %}" data-cor="{{ ev.cor }}">
   <div class="agenda-data-box">
     <div class="agenda-data-dia">{{ ev.data_inicio.strftime('%d') }}</div>
     <div class="agenda-data-mes">{{ ev.data_inicio | mes_pt }}</div>
@@ -112,7 +115,17 @@
     {% if ev.descricao %}<p class="agenda-desc">{{ ev.descricao }}</p>{% endif %}
   </div>
   <div class="agenda-acoes">
-    <button class="btn-agenda-edit" onclick="abrirEdicao({{ ev.id }}, '{{ ev.titulo|replace("'","\\'")|e }}', '{{ ev.descricao|replace("'","\\'")|e if ev.descricao else '' }}', '{{ ev.local|replace("'","\\'")|e if ev.local else '' }}', '{{ ev.data_inicio.strftime('%Y-%m-%d') }}', '{{ ev.data_inicio.strftime('%H:%M') }}', '{{ ev.data_fim.strftime('%Y-%m-%d') if ev.data_fim else '' }}', '{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}', '{{ ev.cor }}')">Editar</button>
+    <button class="btn-agenda-edit"
+            data-id="{{ ev.id }}"
+            data-titulo="{{ ev.titulo }}"
+            data-desc="{{ ev.descricao or '' }}"
+            data-local="{{ ev.local or '' }}"
+            data-ini-data="{{ ev.data_inicio.strftime('%Y-%m-%d') }}"
+            data-ini-hora="{{ ev.data_inicio.strftime('%H:%M') }}"
+            data-fim-data="{{ ev.data_fim.strftime('%Y-%m-%d') if ev.data_fim else '' }}"
+            data-fim-hora="{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}"
+            data-cor="{{ ev.cor }}"
+            onclick="abrirEdicaoBtn(this)">Editar</button>
     <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" onsubmit="return confirm('Remover este evento?')">
       <button type="submit" class="btn-agenda-del">Excluir</button>
     </form>
@@ -130,7 +143,7 @@
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
-    <div style="background:{% if cat=='success' %}#dcfce7{% else %}#fee2e2{% endif %}; color:{% if cat=='success' %}#166534{% else %}#991b1b{% endif %}; padding:.7rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:.88rem; font-weight:600;">{{ msg }}</div>
+    <div class="flash-msg {% if cat=='success' %}flash-success{% else %}flash-error{% endif %}">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
 
@@ -284,6 +297,16 @@
 </div>
 
 <script>
+// Aplica --cor nos cards via data-cor
+document.querySelectorAll('.agenda-card[data-cor]').forEach(function(c) {
+  c.style.setProperty('--cor', c.dataset.cor);
+});
+
+function abrirEdicaoBtn(btn) {
+  var d = btn.dataset;
+  abrirEdicao(d.id, d.titulo, d.desc, d.local, d.iniData, d.iniHora, d.fimData, d.fimHora, d.cor);
+}
+
 function abrirEdicao(id, titulo, desc, local, inicioData, inicioHora, fimData, fimHora, cor) {
   document.getElementById('formEditar').action     = '/admin/agenda/' + id + '/editar';
   document.getElementById('editTitulo').value      = titulo;

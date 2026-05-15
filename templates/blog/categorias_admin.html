@@ -26,7 +26,7 @@
         {% for cat in categorias %}
         <div class="cat-admin-card">
           <div class="cat-admin-nome">
-            <span class="cat-admin-color-dot" style="background: {{ cat.cor }};"></span>
+            <span class="cat-admin-color-dot" data-cor="{{ cat.cor }}"></span>
             {{ cat.nome }}
           </div>
           {% if cat.descricao %}
@@ -36,7 +36,9 @@
             {{ cat.posts | selectattr('status', 'equalto', 'publicado') | list | length }} post(s)
             &bull; slug: <code style="font-size:.75rem; background:#f1f5f9; padding:.1rem .3rem; border-radius:4px;">{{ cat.slug }}</code>
           </p>
-          <form action="{{ url_for('blog.admin_excluir_categoria', id=cat.id) }}" method="post" onsubmit="return confirm('Excluir a categoria &quot;{{ cat.nome }}&quot;? Os posts ficarão sem categoria.');">
+          <form action="{{ url_for('blog.admin_excluir_categoria', id=cat.id) }}" method="post"
+                data-nome="{{ cat.nome }}"
+                onsubmit="return confirm('Excluir a categoria &quot;'+this.dataset.nome+'&quot;? Os posts ficarão sem categoria.');">
             <button type="submit" class="action-btn action-btn-delete" style="width:100%;">Excluir Categoria</button>
           </form>
         </div>
@@ -114,6 +116,10 @@ catCorText.addEventListener('blur', function() {
   if (!/^#[0-9A-Fa-f]{6}$/.test(val)) {
     this.value = catCor.value.toUpperCase();
   }
+});
+
+document.querySelectorAll('.cat-admin-color-dot[data-cor]').forEach(function(el) {
+  el.style.background = el.dataset.cor;
 });
 </script>
 

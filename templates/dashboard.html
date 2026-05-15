@@ -222,13 +222,13 @@
   {% endif %}
   <div id="agendaGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
     {% for ev in agenda_proximos %}
-    <div class="agenda-ev-card" style="background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden; display:none;">
-      <div style="height:5px; background:{{ ev.cor }};"></div>
+    <div class="agenda-ev-card" data-cor="{{ ev.cor }}" style="background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden; display:none;">
+      <div class="ev-bar" style="height:5px;"></div>
       <div style="padding:1rem 1.1rem;">
         <div style="display:flex; align-items:center; gap:.8rem; margin-bottom:.7rem;">
-          <div style="background:{{ ev.cor }}20; border-radius:10px; padding:.4rem .65rem; text-align:center; min-width:48px; flex-shrink:0;">
-            <div style="font-size:1.35rem; font-weight:800; color:{{ ev.cor }}; line-height:1;">{{ ev.data_inicio.strftime('%d') }}</div>
-            <div style="font-size:.6rem; font-weight:700; text-transform:uppercase; color:{{ ev.cor }}; letter-spacing:.06em;">{{ ev.data_inicio | mes_pt }}</div>
+          <div class="ev-date-box" style="border-radius:10px; padding:.4rem .65rem; text-align:center; min-width:48px; flex-shrink:0;">
+            <div class="ev-day" style="font-size:1.35rem; font-weight:800; line-height:1;">{{ ev.data_inicio.strftime('%d') }}</div>
+            <div class="ev-month" style="font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;">{{ ev.data_inicio | mes_pt }}</div>
           </div>
           <h3 style="font-size:.92rem; font-weight:700; color:#1e293b; margin:0; line-height:1.3;">{{ ev.titulo }}</h3>
         </div>
@@ -473,7 +473,7 @@
     {% endif %}
     <div style="padding:.9rem 1rem 1rem; flex:1;">
       {% if post.categoria %}
-      <span style="display:inline-block; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; background:{{ post.categoria.cor }}; color:#fff; border-radius:4px; padding:.15rem .5rem; margin-bottom:.5rem;">{{ post.categoria.nome }}</span>
+      <span class="cat-badge" data-cor="{{ post.categoria.cor }}" style="display:inline-block; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fff; border-radius:4px; padding:.15rem .5rem; margin-bottom:.5rem;">{{ post.categoria.nome }}</span>
       {% endif %}
       <p style="font-size:.9rem; font-weight:700; color:#1e293b; margin:0 0 .4rem; line-height:1.35;">{{ post.titulo | truncate(60) }}</p>
       <p style="font-size:.78rem; color:#64748b; margin:0;">{{ post.created_at.strftime('%d/%m/%Y') }} · {{ post.tempo_leitura }} min</p>
@@ -620,6 +620,23 @@
       card.style.display = card.dataset.nome.includes(termo) ? '' : 'none';
     });
   }
+
+  // Aplica cores dinâmicas dos cards de agenda e badges de categoria do blog
+  document.querySelectorAll('.agenda-ev-card[data-cor]').forEach(function(card) {
+    var cor = card.dataset.cor;
+    var bar = card.querySelector('.ev-bar');
+    var box = card.querySelector('.ev-date-box');
+    var day = card.querySelector('.ev-day');
+    var mon = card.querySelector('.ev-month');
+    if (bar) bar.style.background = cor;
+    if (box) box.style.background = cor + '20';
+    if (day) day.style.color = cor;
+    if (mon) mon.style.color = cor;
+  });
+  document.querySelectorAll('.cat-badge[data-cor]').forEach(function(span) {
+    span.style.background = span.dataset.cor;
+  });
+
 
   function toggleFav(btn) {
     fetch('/favoritar', {

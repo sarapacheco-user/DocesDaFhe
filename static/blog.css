@@ -233,6 +233,7 @@
   background: var(--blog-primary);
   color: #fff;
 }
+.blog-cat-ativo { background: var(--blog-accent) !important; color: #fff; }
 
 .blog-card-title {
   font-family: 'Playfair Display', serif;
@@ -429,7 +430,7 @@
   cursor: pointer;
   transition: background var(--blog-transition);
 }
-.newsletter-form button:hover { background: #4a5932; }
+.newsletter-form button:hover { background: var(--color-hover-primary); }
 
 /* ── Post Detail ───────────────────────────────────────── */
 
@@ -742,7 +743,7 @@
   cursor: pointer;
   transition: background var(--blog-transition);
 }
-.comment-form button:hover { background: #4a5932; }
+.comment-form button:hover { background: var(--color-hover-primary); }
 
 .comment-item {
   display: flex;
@@ -794,7 +795,7 @@
   transition: color var(--blog-transition);
 }
 .comment-reply-btn { color: var(--blog-primary); }
-.comment-reply-btn:hover { color: #4a5932; }
+.comment-reply-btn:hover { color: var(--color-hover-primary); }
 .comment-delete-btn { color: #ef4444; }
 .comment-delete-btn:hover { color: #dc2626; }
 
@@ -1044,7 +1045,7 @@
   transition: all var(--blog-transition);
 }
 .editor-btn-primary { background: var(--blog-primary); color: #fff; }
-.editor-btn-primary:hover { background: #4a5932; transform: translateY(-1px); }
+.editor-btn-primary:hover { background: var(--color-hover-primary); transform: translateY(-1px); }
 .editor-btn-accent { background: var(--blog-accent); color: #fff; }
 .editor-btn-accent:hover { background: #7a2443; transform: translateY(-1px); }
 .editor-btn-ghost {

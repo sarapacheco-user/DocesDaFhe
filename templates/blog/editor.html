@@ -7,6 +7,8 @@
   .ql-editor { min-height: 320px; font-family: 'Nunito', sans-serif; font-size: 1rem; }
   .ql-toolbar.ql-snow { border-color: var(--blog-border); }
   .ql-container.ql-snow { border-color: var(--blog-border); }
+  .tag-chip { display:inline-block; padding:.3rem .8rem; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid #e2e8f0; background:#f8fafc; color:#475569; transition:all .15s; user-select:none; }
+  .tag-chip.ativo { background:var(--color-primary); color:#fff; border-color:var(--color-primary); }
 </style>
 {% endblock %}
 
@@ -24,7 +26,7 @@
     <div id="autoSaveStatus" style="font-size:.78rem; color:var(--blog-muted);"></div>
   </div>
 
-  <form id="editorForm" method="post" action="{{ action }}" enctype="multipart/form-data">
+  <form id="editorForm" method="post" action="{{ action }}" enctype="multipart/form-data" data-post-id="{{ post.id if post else '' }}">
 
     <!-- Título -->
     <input type="text" name="titulo" id="tituloInput" class="editor-title-input"
@@ -93,7 +95,7 @@
           <input type="checkbox" name="tags" value="{{ tag.id }}"
                  {% if post and tag in post.tags %}checked{% endif %}
                  style="display:none;" onchange="toggleTagChip(this)">
-          <span style="display:inline-block; padding:.3rem .8rem; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid #e2e8f0; background:{% if post and tag in post.tags %}var(--color-primary){% else %}#f8fafc{% endif %}; color:{% if post and tag in post.tags %}#fff{% else %}#475569{% endif %}; transition:all .15s; user-select:none;">{{ tag.nome }}</span>
+          <span class="tag-chip {% if post and tag in post.tags %}ativo{% endif %}">{{ tag.nome }}</span>
         </label>
         {% endfor %}
       </div>
@@ -102,9 +104,7 @@
     </div>
     <script>
     function toggleTagChip(cb) {
-      const chip = cb.nextElementSibling;
-      if (cb.checked) { chip.style.background='var(--color-primary)'; chip.style.color='#fff'; chip.style.borderColor='var(--color-primary)'; }
-      else { chip.style.background='#f8fafc'; chip.style.color='#475569'; chip.style.borderColor='#e2e8f0'; }
+      cb.nextElementSibling.classList.toggle('ativo', cb.checked);
     }
     </script>
 
@@ -220,7 +220,7 @@ function setStatus(s) {
 }
 
 // Auto-save to localStorage
-const DRAFT_KEY = 'blog_draft_{{ post.id if post else "new" }}';
+const DRAFT_KEY = 'blog_draft_' + (document.getElementById('editorForm').dataset.postId || 'new');
 
 function autoSave() {
   const draft = {
@@ -247,22 +247,22 @@ quill.on('text-change', () => {
 });
 
 // Restore draft if exists (only for new posts)
-{% if not post %}
-const savedDraft = localStorage.getItem(DRAFT_KEY);
-if (savedDraft) {
-  try {
-    const draft = JSON.parse(savedDraft);
-    if (draft.titulo && !document.getElementById('tituloInput').value) {
-      if (confirm(`Encontramos um rascunho salvo em ${new Date(draft.ts).toLocaleString()}. Restaurar?`)) {
-        document.getElementById('tituloInput').value = draft.titulo;
-        document.getElementById('resumoInput').value = draft.resumo || '';
-        quill.root.innerHTML = draft.conteudo || '';
-        updateStats();
+if (!document.getElementById('editorForm').dataset.postId) {
+  const savedDraft = localStorage.getItem(DRAFT_KEY);
+  if (savedDraft) {
+    try {
+      const draft = JSON.parse(savedDraft);
+      if (draft.titulo && !document.getElementById('tituloInput').value) {
+        if (confirm(`Encontramos um rascunho salvo em ${new Date(draft.ts).toLocaleString()}. Restaurar?`)) {
+          document.getElementById('tituloInput').value = draft.titulo;
+          document.getElementById('resumoInput').value = draft.resumo || '';
+          quill.root.innerHTML = draft.conteudo || '';
+          updateStats();
+        }
       }
-    }
-  } catch(e) {}
+    } catch(e) {}
+  }
 }
-{% endif %}
 </script>
 
 {% endblock %}

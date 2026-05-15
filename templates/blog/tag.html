@@ -78,7 +78,7 @@
           {% endif %}
           <div class="blog-card-body">
             {% if post.categoria %}
-            <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="blog-card-cat" style="background: {{ post.categoria.cor }}; text-decoration:none;">{{ post.categoria.nome }}</a>
+            <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="blog-card-cat" data-cor="{{ post.categoria.cor }}" style="text-decoration:none;">{{ post.categoria.nome }}</a>
             {% endif %}
             <a href="{{ url_for('blog.post', slug=post.slug) }}" class="blog-card-title">{{ post.titulo }}</a>
             {% if post.resumo %}
@@ -151,6 +151,9 @@
 </div>
 
 <script>
+document.querySelectorAll('.blog-card-cat[data-cor]').forEach(function(el) {
+  el.style.background = el.dataset.cor;
+});
 function buscarGlobal() {
   const q = document.getElementById('searchInput').value.trim();
   if (q) window.location.href = '/busca?q=' + encodeURIComponent(q);

@@ -160,7 +160,8 @@
   <div class="search-bar-wrap">
     <div class="search-bar">
       <input type="text" placeholder="Buscar Produto"
-             onkeydown="if(event.key==='Enter') window.location.href='{{ url_for('busca') }}?q='+encodeURIComponent(this.value)" />
+             data-url="{{ url_for('busca') }}"
+             onkeydown="if(event.key==='Enter') window.location.href=this.dataset.url+'?q='+encodeURIComponent(this.value)" />
       <button onclick="if(document.getElementById('searchInput'))buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
     </div>
   </div>
@@ -223,7 +224,7 @@
       <h2 class="mk-categoria-titulo">{{ cat | capitalize }}</h2>
       <div class="mk-grid">
         {% for p in prods_cat %}
-        <div class="mk-card" id="card-{{ p.id }}" onclick="toggleCard({{ p.id }})">
+        <div class="mk-card" id="card-{{ p.id }}" data-id="{{ p.id }}" data-price="{{ p.price }}" onclick="toggleCard(+this.dataset.id)">
           <div class="mk-card-img">
             {% if p.image_url %}
               <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
@@ -235,9 +236,9 @@
           </div>
           <div class="mk-card-footer">
             <div class="mk-qty-wrap" id="qty-wrap-{{ p.id }}" onclick="event.stopPropagation()">
-              <button type="button" onclick="changeQty({{ p.id }}, -1)">−</button>
+              <button type="button" onclick="changeQty(+this.closest('.mk-card').dataset.id, -1)">−</button>
               <span id="qty-display-{{ p.id }}">1</span>
-              <button type="button" onclick="changeQty({{ p.id }}, 1)">+</button>
+              <button type="button" onclick="changeQty(+this.closest('.mk-card').dataset.id, 1)">+</button>
             </div>
             <div class="mk-badge-check" id="check-{{ p.id }}">✓</div>
           </div>
@@ -318,11 +319,10 @@
 </footer>
 
 <script>
-  const precos = {
-    {% for p in produtos %}
-    {{ p.id }}: {{ p.price | float }},
-    {% endfor %}
-  };
+  const precos = {};
+  document.querySelectorAll('.mk-card[data-price]').forEach(function(c) {
+    precos[c.dataset.id] = parseFloat(c.dataset.price);
+  });
 
   function toggleCard(id) {
     const card  = document.getElementById('card-' + id);

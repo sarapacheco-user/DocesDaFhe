@@ -2,7 +2,11 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 {% if site_config and site_config.auth_bg_color1 %}
-<style>body { background: linear-gradient(135deg, {{ site_config.auth_bg_color1 }} 0%, {{ site_config.auth_bg_color2 }} 100%) !important; }</style>
+<div id="authBgData" data-c1="{{ site_config.auth_bg_color1 }}" data-c2="{{ site_config.auth_bg_color2 }}" style="display:none;"></div>
+<script>
+  var d = document.getElementById('authBgData');
+  if (d) document.body.style.setProperty('background', 'linear-gradient(135deg,' + d.dataset.c1 + ' 0%,' + d.dataset.c2 + ' 100%)', 'important');
+</script>
 {% endif %}
 {% endblock %}
 
