@@ -331,7 +331,7 @@
           <div class="dp-group-title">Botões — arredondamento</div>
           <div class="dp-field">
             <div class="dp-chips">
-              {% for val, lbl in [('4px','Quadrado'),('12px','Arredondado'),('24px','Oval'),('999px','Pílula')] %}
+              {% for val, lbl in [('4px','Quadrado'),('12px','Arredondado'),('999px','Pílula')] %}
               <button type="button" class="dp-chip {% if config.btn_radius == val %}selected{% endif %}"
                       data-val="{{ val }}" onclick="selectChip(this, 'btn_radius', this.dataset.val); updateBtnRadius(this.dataset.val)">
                 {{ lbl }}
@@ -598,7 +598,7 @@
             <input type="text" id="paletaNomeInput" placeholder="Ex: Tema Natal, Cores de Verão..."
                    style="flex:1; padding:.5rem .8rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.85rem; color:#1e293b; background:#f8fafc; outline:none;">
             <button type="button" onclick="submitSalvarPaleta()"
-                    style="padding:.5rem 1rem; background:#5B6D3D; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+                    style="padding:.5rem 1rem; background:var(--color-primary); color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;">
               Salvar paleta
             </button>
           </div>
@@ -629,7 +629,7 @@
                 <button type="button"
                         data-cores="{{ p.cores | e }}"
                         onclick="aplicarPaleta(JSON.parse(this.dataset.cores))"
-                        style="flex:1; padding:.4rem; background:#5B6D3D; color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
+                        style="flex:1; padding:.4rem; background:var(--color-primary); color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
                   Aplicar
                 </button>
                 <button type="button"

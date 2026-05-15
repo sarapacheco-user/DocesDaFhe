@@ -3,13 +3,6 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 <style>
-  :root {
-    --corp-hero-ini: {{ config.cor_hero_ini or '#1e293b' }};
-    --corp-hero-fim: {{ config.cor_hero_fim or '#334155' }};
-    --corp-destaque: {{ config.cor_destaque or '#5B6D3D' }};
-  }
-</style>
-<style>
   .card-link-inner { text-decoration: none; color: inherit; display: block; }
   .cart-icon-wrap  { position: relative; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
   .cart-badge      { position: absolute; top: -8px; right: -8px; background: var(--color-dark); color: #fff;
@@ -18,12 +11,12 @@
 
   /* ── HERO CORPORATIVO ── */
   .corp-hero {
-    background: linear-gradient(135deg, var(--corp-hero-ini) 0%, var(--corp-hero-fim) 100%);
+    background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-secondary) 100%);
     color: #fff; padding: 2.5rem 1.6rem 2rem;
     text-align: center;
   }
   .corp-hero-label {
-    display: inline-block; background: rgba(91,109,61,.8); color: #fff;
+    display: inline-block; background: var(--color-primary-medium); color: #fff;
     font-size: .72rem; font-weight: 800; letter-spacing: .12em;
     text-transform: uppercase; padding: .3rem .9rem; border-radius: 20px;
     margin-bottom: .9rem;
@@ -37,15 +30,15 @@
   }
   .corp-prazo-badge {
     display: inline-flex; align-items: center; gap: .5rem;
-    background: var(--corp-destaque); color: #fff;
+    background: var(--color-primary); color: #fff;
     font-size: .88rem; font-weight: 700;
     padding: .55rem 1.4rem; border-radius: 30px;
-    box-shadow: 0 4px 14px rgba(91,109,61,.4);
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
   }
 
   /* ── INFO BANNER ── */
   .corp-info {
-    background: #f0fdf4; border-left: 4px solid var(--corp-destaque);
+    background: #f0fdf4; border-left: 4px solid var(--color-primary);
     padding: .9rem 1.4rem; margin: 1.4rem auto; max-width: 900px;
     border-radius: 0 10px 10px 0; font-size: .9rem; color: #166534;
   }
@@ -109,7 +102,7 @@
 
   .btn-personalizar {
     display: block; width: calc(100% - 2rem); margin: 0 1rem 1rem;
-    padding: .6rem 1rem; background: var(--corp-destaque); color: #fff;
+    padding: .6rem 1rem; background: var(--color-primary); color: #fff;
     border: none; border-radius: 10px; font-size: .88rem; font-weight: 700;
     cursor: pointer; text-align: center; text-decoration: none;
     transition: background .15s;
@@ -121,7 +114,7 @@
     max-width: 900px; margin: 0 auto 3rem; padding: 0 1rem;
   }
   .corp-solicitar-inner {
-    background: linear-gradient(135deg, var(--corp-hero-ini), var(--corp-hero-fim));
+    background: linear-gradient(135deg, var(--color-dark), var(--color-secondary));
     border-radius: 18px; padding: 2rem 2rem;
     display: flex; align-items: center; justify-content: space-between;
     gap: 1.5rem; flex-wrap: wrap;

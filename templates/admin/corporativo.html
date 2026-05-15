@@ -185,86 +185,11 @@
                     placeholder="Texto informativo exibido no topo da página corporativa...">{{ config.informacoes or '' }}</textarea>
         </div>
 
-        <!-- CORES -->
-        <div class="fg">
-          <label>Cor inicial do hero (gradiente)</label>
-          <div class="color-row">
-            <div class="color-swatch" id="sw_hero_ini">
-              <input type="color" id="cp_hero_ini" value="{{ config.cor_hero_ini or '#1e293b' }}"
-                     oninput="syncCorp('hero_ini', this.value)">
-            </div>
-            <input type="text" class="color-hex" id="hex_hero_ini" name="cor_hero_ini"
-                   value="{{ config.cor_hero_ini or '#1e293b' }}" maxlength="7"
-                   oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) syncCorp('hero_ini', this.value)">
-          </div>
-        </div>
-
-        <div class="fg">
-          <label>Cor final do hero (gradiente)</label>
-          <div class="color-row">
-            <div class="color-swatch" id="sw_hero_fim">
-              <input type="color" id="cp_hero_fim" value="{{ config.cor_hero_fim or '#334155' }}"
-                     oninput="syncCorp('hero_fim', this.value)">
-            </div>
-            <input type="text" class="color-hex" id="hex_hero_fim" name="cor_hero_fim"
-                   value="{{ config.cor_hero_fim or '#334155' }}" maxlength="7"
-                   oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) syncCorp('hero_fim', this.value)">
-          </div>
-        </div>
-
-        <div class="fg">
-          <label>Cor de destaque (botões, prazo, badge)</label>
-          <div class="color-row">
-            <div class="color-swatch" id="sw_destaque">
-              <input type="color" id="cp_destaque" value="{{ config.cor_destaque or 'var(--color-primary)' }}"
-                     oninput="syncCorp('destaque', this.value)">
-            </div>
-            <input type="text" class="color-hex" id="hex_destaque" name="cor_destaque"
-                   value="{{ config.cor_destaque or 'var(--color-primary)' }}" maxlength="7"
-                   oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) syncCorp('destaque', this.value)">
-          </div>
-        </div>
-
-        <div class="fg">
-          <label>Prévia do hero</label>
-          <div class="corp-preview-strip" id="corp_preview_hero">Linha Corporativa</div>
-          <div id="corp_preview_destaque" style="margin-top:.4rem; height:28px; border-radius:8px; transition:background .2s;"></div>
-        </div>
-
         <div class="fg-full" style="display:flex; justify-content:flex-end; margin-top:.5rem;">
           <button type="submit" class="btn-cfg">Salvar configurações</button>
         </div>
       </div>
     </form>
-
-    <script>
-      function syncCorp(key, val) {
-        const sw  = document.getElementById('sw_' + key);
-        const cp  = document.getElementById('cp_' + key);
-        const hex = document.getElementById('hex_' + key);
-        if (sw)  sw.style.background = val;
-        if (cp)  cp.value = val;
-        if (hex) hex.value = val;
-        updateCorpPreview();
-      }
-      function updateCorpPreview() {
-        const ini = document.getElementById('hex_hero_ini').value;
-        const fim = document.getElementById('hex_hero_fim').value;
-        const dest = document.getElementById('hex_destaque').value;
-        const hero = document.getElementById('corp_preview_hero');
-        const destEl = document.getElementById('corp_preview_destaque');
-        if (hero) hero.style.background = 'linear-gradient(135deg,' + ini + ',' + fim + ')';
-        if (destEl) destEl.style.background = dest;
-      }
-      // Inicializa swatches e preview com os valores dos inputs
-      ['hero_ini', 'hero_fim', 'destaque'].forEach(function(key) {
-        var hex = document.getElementById('hex_' + key);
-        var sw  = document.getElementById('sw_' + key);
-        if (hex && sw) sw.style.background = hex.value;
-      });
-      updateCorpPreview();
-      updateCorpPreview();
-    </script>
   </div>
 
   <!-- FILTROS -->
