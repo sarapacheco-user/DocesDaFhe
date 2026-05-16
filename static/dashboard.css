@@ -773,13 +773,13 @@ nav a.nav-active {
   .location { display: none !important; }
   .btn-entrar { font-size: .78rem !important; padding: .35rem .8rem !important; }
 
-  nav {
+  nav:not(.sidebar-nav) {
     gap: .6rem !important;
     padding: .5rem .8rem !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
   }
-  nav a { font-size: .8rem !important; }
+  nav:not(.sidebar-nav) a { font-size: .8rem !important; }
 
   /* carrossel principal */
   .carrossel-wrap, .hero {
@@ -807,6 +807,17 @@ nav a.nav-active {
   .footer-container { flex-direction: column !important; gap: 20px !important; }
   .footer { padding: 28px 16px !important; }
   .footer-social { margin-top: 14px !important; }
+
+  /* agenda de eventos: 2 colunas no tablet */
+  #agendaHeader, #agendaWrap { padding: 0 1rem !important; }
+  #agendaHeader { justify-content: flex-start !important; }
+  #agendaHeader .section-title { text-align: left !important; padding: 0 !important; }
+  #agendaGrid { grid-template-columns: repeat(2, 1fr) !important; gap: .7rem !important; }
+
+  /* blog posts: 1 coluna no tablet */
+  #blogHeader { padding: 0 1rem !important; justify-content: space-between !important; }
+  #blogHeader .section-title { text-align: left !important; padding: 0 !important; }
+  #blogGrid { grid-template-columns: 1fr !important; padding: 0 1rem !important; gap: .8rem !important; }
 }
 
 /* ── MOBILE (≤480px) ── */
@@ -814,8 +825,8 @@ nav a.nav-active {
   header { padding: .5rem .8rem !important; }
   .logo-img { height: 50px !important; }
 
-  nav { gap: .4rem !important; padding: .4rem .6rem !important; }
-  nav a { font-size: .75rem !important; }
+  nav:not(.sidebar-nav) { gap: .4rem !important; padding: .4rem .6rem !important; }
+  nav:not(.sidebar-nav) a { font-size: .75rem !important; }
 
   /* carrossel principal */
   .carrossel-slide img { height: 180px !important; }
@@ -839,4 +850,22 @@ nav a.nav-active {
   .filtros-wrap { gap: .4rem !important; padding: 0 .6rem !important; }
   .filtro-btn { font-size: .75rem !important; padding: .3rem .7rem !important; }
   .footer-bottom { font-size: .78rem !important; }
+
+  /* agenda de eventos: 1 coluna no mobile */
+  #agendaGrid { grid-template-columns: 1fr !important; }
+}
+
+/* Títulos dentro dos flex-headers: forçar alinhamento à esquerda
+   (specificity (1,1,0) vence .section-title (0,1,0) mesmo com !important) */
+#agendaHeader .section-title,
+#blogHeader .section-title {
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: clamp(1.1rem, 4vw, 1.7rem) !important;
+}
+
+#agendaHeader,
+#blogHeader {
+  align-items: center !important;
 }

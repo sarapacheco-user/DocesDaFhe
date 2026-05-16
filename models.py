@@ -35,6 +35,7 @@ class Product(db.Model):
     __tablename__ = "products"
     id          = db.Column(db.Integer, primary_key=True)
     name        = db.Column(db.String(200), nullable=False, index=True)
+    resumo      = db.Column(db.String(400), nullable=True)
     description = db.Column(db.String(800), nullable=False)
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
@@ -63,6 +64,7 @@ class Kit(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
+    resumo = db.Column(db.String(400), nullable=True)
     description = db.Column(db.Text, nullable=True)
     created_by = db.Column(
         db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -153,6 +155,7 @@ class ProdutoEspecial(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     evento_id    = db.Column(db.Integer, db.ForeignKey('eventos_especiais.id'), nullable=False)
     name         = db.Column(db.String(200), nullable=False)
+    resumo       = db.Column(db.String(400), nullable=True)
     description  = db.Column(db.String(800), nullable=False)
     price        = db.Column(db.Numeric(10, 2), nullable=False)
     category          = db.Column(db.String(100), nullable=True, default='geral')

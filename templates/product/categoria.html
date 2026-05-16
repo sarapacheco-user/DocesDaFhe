@@ -455,12 +455,6 @@
              data-preco="{{ p.price }}"
              data-created="{{ p.created_at.timestamp() if p.created_at else 0 }}">
 
-          <div class="cat-card-img">
-            {% if p.image_url %}
-              <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
-            {% else %}🍰{% endif %}
-          </div>
-
           <button class="btn-fav {% if p.id in fav_p %}ativo{% endif %}"
                   data-tipo="produto" data-id="{{ p.id }}"
                   onclick="toggleFav(this)" title="Favoritar">
@@ -472,6 +466,11 @@
           {% endif %}
 
           <a href="{{ url_for('produto_detalhe', id=p.id) }}" style="text-decoration:none;color:inherit;display:block;">
+            <div class="cat-card-img">
+              {% if p.image_url %}
+                <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+              {% else %}🍰{% endif %}
+            </div>
             <div class="cat-card-body">
               <h3>{{ p.name }}</h3>
               {% if p.description %}<p>{{ p.description }}</p>{% endif %}

@@ -174,7 +174,16 @@
         <span class="btn-fav-txt">{% if is_favorito %}Favoritado{% else %}Favoritar{% endif %}</span>
       </button>
     </div>
-    <p class="produto-descricao">{{ produto.description }}</p>
+    {% if produto.resumo or produto.description %}
+    <div class="produto-resumo">
+      <p>{{ produto.resumo if produto.resumo else produto.description | truncate(220, True, '…') }}</p>
+      {% if produto.resumo and produto.description %}
+        <a href="#pd-descricao" class="pd-ver-mais">VER DESCRIÇÃO COMPLETA ↓</a>
+      {% elif not produto.resumo and produto.description | length > 220 %}
+        <a href="#pd-descricao" class="pd-ver-mais">VER DESCRIÇÃO COMPLETA ↓</a>
+      {% endif %}
+    </div>
+    {% endif %}
 
     {% if is_kit and kit.products %}
     <div class="kit-itens-lista">
@@ -209,7 +218,7 @@
     <!-- CORPORATIVO: botão personalizar -->
     <a href="{{ url_for('corporativo_personalizar') }}?produto_id={{ produto.id }}"
        class="produto-btn-cart"
-       style="display:block;text-align:center;text-decoration:none;margin-top:.8rem;">
+       style="text-decoration:none; flex:none; align-self:stretch;">
       Personalizar
     </a>
     {% else %}
@@ -248,6 +257,18 @@
 
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DESCRIÇÃO COMPLETA                     -->
+<!-- ═══════════════════════════════════════ -->
+{% if produto.description and produto.description | length > 0 %}
+<section id="pd-descricao" class="pd-descricao-section">
+  <div class="pd-desc-inner">
+    <h2 class="pd-desc-titulo">Sobre o Produto</h2>
+    <div class="pd-desc-texto">{{ produto.description }}</div>
+  </div>
+</section>
+{% endif %}
 
 <!-- ═══════════════════════════════════════ -->
 <!-- AVALIAÇÕES                             -->
@@ -357,24 +378,52 @@
 <!-- RELACIONADOS -->
 {% if relacionados %}
 <div class="relacionados-wrap">
-  <h2 class="section-title">Veja também</h2>
-  <div class="produtos-relacionados">
-    {% for rel in relacionados %}
-    <a href="{{ url_for('kit_detalhe', kit_id=rel.id) if is_kit else url_for('produto_detalhe', id=rel.id) }}"
-       class="card-rel">
-      <div class="card-rel-img">
-        {% if rel.image_url %}
-          <img src="{{ url_for('static', filename=rel.image_url) }}" alt="{{ rel.name }}">
-        {% else %}
-          {{ '🎁' if is_kit else '🍰' }}
-        {% endif %}
+  <h2 class="section-title">Compre também</h2>
+  <div class="rel-carrossel-wrap">
+    <button class="rel-btn prev" id="relPrev" onclick="moverRel(-1)">&#8249;</button>
+    <div class="rel-track" id="relTrack">
+      {% for rel in relacionados %}
+      <div class="card-rel">
+        <a href="{{ url_for('kit_detalhe', kit_id=rel.id) if is_kit else url_for('produto_detalhe', id=rel.id) }}"
+           class="card-rel-link">
+          <div class="card-rel-img">
+            {% if rel.image_url %}
+              <img src="{{ url_for('static', filename=rel.image_url) }}" alt="{{ rel.name }}">
+            {% else %}
+              {{ '🎁' if is_kit else '🍰' }}
+            {% endif %}
+          </div>
+          <div class="card-rel-body">
+            <h3>{{ rel.name }}</h3>
+          </div>
+        </a>
+        <div class="card-rel-footer">
+          <span class="card-rel-price">
+            <sup>R$</sup> {{ "%.2f"|format(rel.price) }}
+            <span class="card-rel-per">/{{ 'kit' if is_kit else 'un' }}</span>
+          </span>
+          <div class="card-rel-qty" id="qty-rel-{{ rel.id }}">
+            <button type="button" onclick="changeQtyRel('{{ rel.id }}', -1)">−</button>
+            <span>{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}</span>
+            <button type="button" onclick="changeQtyRel('{{ rel.id }}', 1)">+</button>
+          </div>
+        </div>
+        <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+          {% if is_kit %}
+            <input type="hidden" name="kit_id" value="{{ rel.id }}">
+          {% else %}
+            <input type="hidden" name="produto_id" value="{{ rel.id }}">
+          {% endif %}
+          <input type="hidden" name="quantidade" id="qty-input-rel-{{ rel.id }}"
+                 value="{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}"
+                 data-min="{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}">
+          <input type="hidden" name="next" value="{{ request.url }}">
+          <button type="submit" class="card-rel-btn-cart">Adicionar ao carrinho 🛒</button>
+        </form>
       </div>
-      <div class="card-rel-body">
-        <h3>{{ rel.name }}</h3>
-        <p>R$ {{ "%.2f"|format(rel.price) }}</p>
-      </div>
-    </a>
-    {% endfor %}
+      {% endfor %}
+    </div>
+    <button class="rel-btn next" id="relNext" onclick="moverRel(1)">&#8250;</button>
   </div>
 </div>
 {% endif %}
@@ -465,6 +514,46 @@
           btn.querySelector('.btn-fav-txt').textContent = data.favorito ? 'Favoritado' : 'Favoritar';
         })
     );
+  }
+
+  // ── Carrossel de relacionados ──
+  (function(){
+    var track  = document.getElementById('relTrack');
+    var btnP   = document.getElementById('relPrev');
+    var btnN   = document.getElementById('relNext');
+    if (!track) return;
+    var offset = 0;
+    var total  = track.querySelectorAll('.card-rel').length;
+    function visRel() { return window.innerWidth <= 480 ? 1 : (window.innerWidth <= 768 ? 2 : 3); }
+    function cardW()  { var c = track.querySelector('.card-rel'); return c ? c.offsetWidth + 16 : 180; }
+    function maxOff() { return Math.max(0, (total - visRel()) * cardW()); }
+    function setBtn(btn, show) { if(btn){btn.style.opacity=show?'1':'0';btn.style.pointerEvents=show?'auto':'none';} }
+    function render() {
+      track.style.transform = 'translateX(-' + offset + 'px)';
+      var mx = maxOff();
+      setBtn(btnP, offset > 0);
+      setBtn(btnN, offset < mx);
+    }
+    window.moverRel = function(dir) {
+      var mx = maxOff();
+      offset = Math.max(0, Math.min(offset + dir * cardW(), mx));
+      render();
+    };
+    window.addEventListener('resize', function(){ offset = Math.min(offset, maxOff()); render(); });
+    requestAnimationFrame(render);
+  })();
+
+  // ── Qty nos cards relacionados ──
+  function changeQtyRel(id, delta) {
+    var qtyDiv   = document.getElementById('qty-rel-' + id);
+    var qtyInput = document.getElementById('qty-input-rel-' + id);
+    if (!qtyDiv || !qtyInput) return;
+    var span   = qtyDiv.querySelector('span');
+    var minVal = parseInt(qtyInput.dataset.min) || 1;
+    var val    = parseInt(span.textContent) + delta;
+    if (val < minVal) val = minVal;
+    span.textContent = val;
+    qtyInput.value   = val;
   }
 
   // ── Estrelas interativas ──

@@ -23,7 +23,15 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Descrição *</label>
+              <label class="form-label">Resumo <small class="text-muted">(exibido no topo da página)</small></label>
+              <textarea class="form-control" name="resumo"
+                        rows="2" maxlength="400"
+                        placeholder="Breve descrição do produto (até 400 caracteres)"></textarea>
+              <small class="text-muted">Máx. 400 caracteres.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Descrição completa *</label>
               <textarea class="form-control" name="description" rows="3" required></textarea>
             </div>
 

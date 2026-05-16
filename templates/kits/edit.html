@@ -29,7 +29,15 @@
             </div>
 
             <div class="mb-3">
-              <label for="description" class="form-label">Descrição</label>
+              <label for="resumo" class="form-label">Resumo <small class="text-muted">(exibido no topo da página)</small></label>
+              <textarea class="form-control" id="resumo" name="resumo"
+                        rows="2" maxlength="400"
+                        placeholder="Breve descrição do kit (até 400 caracteres)">{{ kit.resumo if kit.resumo else '' }}</textarea>
+              <small class="text-muted">Máx. 400 caracteres.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Descrição completa</label>
               <textarea class="form-control" id="description" name="description"
                         rows="3">{{ kit.description }}</textarea>
             </div>

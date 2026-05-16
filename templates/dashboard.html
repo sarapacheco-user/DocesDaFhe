@@ -212,10 +212,10 @@
 
 <!-- AGENDA -->
 {% if agenda_proximos %}
-<div style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+<div id="agendaHeader" style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
   <h2 class="section-title" style="margin:0; padding:0;">Próximos Eventos</h2>
 </div>
-<div style="position:relative; max-width:960px; margin:0 auto 2.5rem; padding:0 3.5rem;">
+<div id="agendaWrap" style="position:relative; max-width:960px; margin:0 auto 2.5rem; padding:0 3.5rem;">
   {% if agenda_proximos|length > 3 %}
   <button onclick="agendaPage(-1)" class="cards-btn prev">&#8249;</button>
   <button onclick="agendaPage(1)"  class="cards-btn next">&#8250;</button>
@@ -242,13 +242,16 @@
 </div>
 <script>
 (function(){
-  const cards   = document.querySelectorAll('.agenda-ev-card');
-  const visible = 3;
-  const total   = cards.length;
+  const cards    = document.querySelectorAll('.agenda-ev-card');
+  const total    = cards.length;
   let start = 0;
-  const agendaWrap = document.getElementById('agendaGrid') && document.getElementById('agendaGrid').closest('[style*="position:relative"]');
+  const agendaWrap = document.getElementById('agendaWrap');
   const prevBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.prev');
   const nextBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.next');
+
+  function getVisible() {
+    return window.innerWidth <= 768 ? 2 : 3;
+  }
 
   function setBtn(btn, show) {
     if (!btn) return;
@@ -257,14 +260,17 @@
   }
 
   function render() {
+    const visible = getVisible();
     cards.forEach((c, i) => c.style.display = (i >= start && i < start + visible) ? 'block' : 'none');
     setBtn(prevBtn, start > 0);
     setBtn(nextBtn, start + visible < total);
   }
   window.agendaPage = function(dir) {
+    const visible = getVisible();
     start = Math.max(0, Math.min(start + dir, total - visible));
     render();
   };
+  window.addEventListener('resize', function() { start = 0; render(); });
   render();
 })();
 </script>
@@ -457,11 +463,11 @@
 
 <!-- POSTS RECENTES DO BLOG -->
 {% if posts_recentes %}
-<div style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+<div id="blogHeader" style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
   <h2 class="section-title" style="margin:0; padding:0;">Do Blog</h2>
   <a href="{{ url_for('blog.index') }}" style="font-size:.85rem; font-weight:700; color:var(--color-primary); text-decoration:none; white-space:nowrap;">Ver todos →</a>
 </div>
-<div style="max-width:960px; margin:0 auto 3rem; padding:0 3.5rem; display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem;">
+<div id="blogGrid" style="max-width:960px; margin:0 auto 3rem; padding:0 3.5rem; display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem;">
   {% for post in posts_recentes %}
   <a href="{{ url_for('blog.post', slug=post.slug) }}" style="text-decoration:none; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; transition:transform .2s, box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'">
     {% if post.capa_url %}
@@ -554,8 +560,12 @@
     setInterval(() => moverCarrossel(1), 4000);
   }
 
-  // ── CARROSSEL DE CARDS (avança 1 por vez, mostra 3) ──
+  // ── CARROSSEL DE CARDS ──
   const trackOffsets = {};
+
+  function _visCards() {
+    return window.innerWidth <= 480 ? 1 : (window.innerWidth <= 768 ? 2 : 3);
+  }
 
   function _updateCardsBtns(track, offset, maxOffset) {
     const wrap = track.closest('.cards-carrossel-wrap');
@@ -566,35 +576,50 @@
     if (next) { next.style.opacity = offset < maxOffset ? '1' : '0'; next.style.pointerEvents = offset < maxOffset ? 'auto' : 'none'; }
   }
 
+  function _initCarousel(wrap) {
+    const track = wrap.querySelector('.cards-track');
+    if (!track) return;
+    const cards    = track.querySelectorAll('.card');
+    const vis      = _visCards();
+    const trackId  = track.id;
+    if (cards.length <= vis) {
+      if (trackId) trackOffsets[trackId] = 0;
+      track.style.transform = 'translateX(0)';
+      _updateCardsBtns(track, 0, 0);
+      return;
+    }
+    const cardWidth = cards[0].offsetWidth + 16;
+    const maxOffset = (cards.length - vis) * cardWidth;
+    if (trackId) {
+      trackOffsets[trackId] = Math.min(trackOffsets[trackId] || 0, maxOffset);
+      track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
+      _updateCardsBtns(track, trackOffsets[trackId], maxOffset);
+    } else {
+      _updateCardsBtns(track, 0, maxOffset);
+    }
+  }
+
   function moverCards(trackId, dir) {
     const track = document.getElementById(trackId);
     if (!track) return;
-
     const cards      = track.querySelectorAll('.card');
-    const totalCards = cards.length;
-    if (totalCards <= 3) return;
-
-    const cardWidth  = track.querySelector('.card').offsetWidth + 16;
-    const maxOffset  = (totalCards - 3) * cardWidth;
-
+    const vis        = _visCards();
+    if (cards.length <= vis) return;
+    const cardWidth  = cards[0].offsetWidth + 16;
+    const maxOffset  = (cards.length - vis) * cardWidth;
     if (!trackOffsets[trackId]) trackOffsets[trackId] = 0;
     trackOffsets[trackId] += dir * cardWidth;
     trackOffsets[trackId]  = Math.max(0, Math.min(trackOffsets[trackId], maxOffset));
-
     track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
     _updateCardsBtns(track, trackOffsets[trackId], maxOffset);
   }
 
-  // Inicializa botões de todos os carrosséis de cards
-  document.querySelectorAll('.cards-carrossel-wrap').forEach(wrap => {
-    const track = wrap.querySelector('.cards-track');
-    if (!track) return;
-    const cards = track.querySelectorAll('.card');
-    if (cards.length <= 3) return;
-    const cardWidth = cards[0].offsetWidth + 16;
-    const maxOffset = (cards.length - 3) * cardWidth;
-    _updateCardsBtns(track, 0, maxOffset);
-  });
+  // Inicializa e re-inicializa no resize
+  function _initAllCarousels() {
+    document.querySelectorAll('.cards-carrossel-wrap').forEach(_initCarousel);
+  }
+  _initAllCarousels();
+  window.addEventListener('resize', _initAllCarousels);
 
   // ── QTY ── ✅ função corrigida
   function changeQty(id, delta) {
@@ -653,5 +678,6 @@
         })
     );
   }
+
 </script>
 {% endblock %}

@@ -25,7 +25,15 @@
             </div>
 
             <div class="mb-3">
-              <label for="description" class="form-label">Descrição *</label>
+              <label for="resumo" class="form-label">Resumo <small class="text-muted">(exibido no topo da página do produto)</small></label>
+              <textarea class="form-control" id="resumo" name="resumo"
+                        rows="3" maxlength="400"
+                        placeholder="Breve descrição do produto (até 400 caracteres)">{{ product.resumo if product and product.resumo else '' }}</textarea>
+              <small class="text-muted">Aparece no painel lateral do produto. Máx. 400 caracteres.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Descrição completa *</label>
               <textarea class="form-control" id="description" name="description"
                         rows="4" required>{{ product.description if product else '' }}</textarea>
             </div>

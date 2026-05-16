@@ -479,6 +479,7 @@ def list_products():
 def create_product():
     if request.method == 'POST':
         name        = request.form['name']
+        resumo      = request.form.get('resumo', '').strip()
         description = request.form['description']
         price       = request.form['price']
         category    = request.form.get('category', 'geral')
@@ -499,7 +500,7 @@ def create_product():
             image_url = salvar_imagem_produto_b64(imagem_b64)
         else:
             image_url = salvar_imagem_produto(arquivo)
-        product = Product(name=name, description=description,
+        product = Product(name=name, resumo=resumo, description=description,
                           price=price, category=category, image_url=image_url,
                           quantidade_minima=qtd_min, quantidade_maxima=qtd_max)
         db.session.add(product)
@@ -516,6 +517,7 @@ def edit_product(id):
     product = Product.query.get_or_404(id)
     if request.method == 'POST':
         product.name        = request.form['name']
+        product.resumo      = request.form.get('resumo', '').strip()
         product.description = request.form['description']
         product.category    = request.form.get('category', 'geral')
         arquivo             = request.files.get('arquivo')
@@ -597,6 +599,7 @@ def view_kit(kit_id):
 def create_kit():
     if request.method == 'POST':
         name        = request.form.get('name', '').strip()
+        resumo      = request.form.get('resumo', '').strip()
         description = request.form.get('description', '').strip()
         arquivo     = request.files.get('arquivo')
         if not name:
@@ -620,7 +623,7 @@ def create_kit():
                 filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
                 arquivo.save(os.path.join(UPLOAD_FOLDER_KITS, filename))
                 image_url = f"uploads/kits/{filename}"
-        kit = Kit(name=name, description=description,
+        kit = Kit(name=name, resumo=resumo, description=description,
                   created_by=current_user.id, image_url=image_url,
                   is_admin_kit=current_user.is_admin)
         db.session.add(kit)
@@ -639,6 +642,7 @@ def edit_kit(kit_id):
         return redirect(url_for('list_kits'))
     if request.method == 'POST':
         kit.name        = request.form.get('name', '').strip()
+        kit.resumo      = request.form.get('resumo', '').strip()
         kit.description = request.form.get('description', '').strip()
         arquivo    = request.files.get('arquivo')
         imagem_b64 = request.form.get('imagem_b64', '').strip()
@@ -808,6 +812,7 @@ def kit_detalhe(kit_id):
             self.id          = k.id
             self.name        = k.name
             self.category    = 'Kits'
+            self.resumo      = k.resumo or ''
             self.description = k.description or ''
             self.price       = k.total_price
             self.image_url   = k.image_url
@@ -998,6 +1003,7 @@ def criar_produto_especial(evento_id):
     evento = EventoEspecial.query.get_or_404(evento_id)
     if request.method == 'POST':
         name        = request.form.get('name', '').strip()
+        resumo      = request.form.get('resumo', '').strip()
         description = request.form.get('description', '').strip()
         price       = request.form.get('price')
         category    = request.form.get('category', 'geral')
@@ -1032,6 +1038,7 @@ def criar_produto_especial(evento_id):
         produto = ProdutoEspecial(
             evento_id=evento_id,
             name=name,
+            resumo=resumo,
             description=description,
             price=price,
             category=category,
@@ -1054,6 +1061,7 @@ def editar_produto_especial(id):
     produto = ProdutoEspecial.query.get_or_404(id)
     if request.method == 'POST':
         produto.name              = request.form.get('name', '').strip()
+        produto.resumo            = request.form.get('resumo', '').strip()
         produto.description       = request.form.get('description', '').strip()
         produto.category          = request.form.get('category', 'geral')
         produto.mostrar           = 'mostrar' in request.form
