@@ -15,9 +15,12 @@
   .cp-stat.s-em_andamento { border-color: #3b82f6; }
   .cp-stat.s-concluido    { border-color: #22c55e; }
   .cp-stat.s-cancelado    { border-color: #ef4444; }
+  .cp-stat.s-faturado     { border-color: var(--color-primary); }
   .cp-stat-val { font-size: 1.6rem; font-weight: 800; color: var(--color-text); }
   .cp-stat-lbl { font-size: .72rem; font-weight: 700; color: var(--color-muted);
                  text-transform: uppercase; letter-spacing: .06em; margin-top: .2rem; }
+  .valor-input { width: 90px; padding: .25rem .5rem; border: 1.5px solid #e2e8f0; border-radius: 7px;
+                 font-size: .82rem; font-weight: 700; color: #1e293b; text-align: right; }
 
   /* CONFIG */
   .cp-config-card {
@@ -156,6 +159,10 @@
       <div class="cp-stat-val">{{ stats.cancelado }}</div>
       <div class="cp-stat-lbl">Cancelados</div>
     </div>
+    <div class="cp-stat s-faturado">
+      <div class="cp-stat-val" id="cp-faturado-val" style="font-size:1.1rem;">R$ {{ "%.2f"|format(stats.faturado_corp) }}</div>
+      <div class="cp-stat-lbl">Faturado</div>
+    </div>
   </div>
 
   <!-- CONFIGURAÇÕES -->
@@ -192,6 +199,26 @@
     </form>
   </div>
 
+  <!-- FILTRO POR DIA -->
+  {% if pedidos_por_dia %}
+  <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <span style="font-size:.78rem; font-weight:700; color:#64748b; white-space:nowrap;">Filtrar por dia:</span>
+    <button class="cp-dia-pill ativo" data-dia="todos"
+            onclick="filtrarDia('todos',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid var(--color-primary); background:var(--color-primary); color:#fff; font-size:.75rem; font-weight:700; cursor:pointer;">
+      Todos
+    </button>
+    {% for dia_key, dia_info in pedidos_por_dia %}
+    <button class="cp-dia-pill" data-dia="{{ dia_key }}"
+            data-count="{{ dia_info.pedidos|length }}"
+            onclick="filtrarDia('{{ dia_key }}',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid #e2e8f0; background:#fff; color:#64748b; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .15s;">
+      {{ dia_info.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- FILTROS -->
   <div class="cp-filters">
     <a href="{{ url_for('admin_corporativo') }}"
@@ -217,15 +244,29 @@
           <th>Cliente</th>
           <th>Tipo</th>
           <th>Detalhes</th>
+          <th>Valor (R$)</th>
           <th>Status</th>
           <th>Ação</th>
         </tr>
       </thead>
       <tbody>
-        {% for p in pedidos %}
-        <tr>
+        {% for dia_key, dia_info in pedidos_por_dia %}
+        <tr class="cp-dia-sep" data-dia="{{ dia_key }}"
+            style="background:#f8fafc; border-top:2px solid #e2e8f0;"
+            data-faturado="{{ dia_info.faturado }}"
+            data-count="{{ dia_info.pedidos|length }}">
+          <td colspan="5" style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary); letter-spacing:.05em; text-transform:uppercase;">
+            {{ dia_info.label }} &nbsp;·&nbsp; {{ dia_info.pedidos|length }} solicitação(ões)
+          </td>
+          <td style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary);">
+            {% if dia_info.faturado > 0 %}R$ {{ "%.2f"|format(dia_info.faturado) }}{% endif %}
+          </td>
+          <td colspan="2" style="padding:.45rem 1rem;"></td>
+        </tr>
+        {% for p in dia_info.pedidos %}
+        <tr data-dia="{{ dia_key }}">
           <td><strong>#{{ p.id }}</strong></td>
-          <td>{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ p.created_at.strftime('%H:%M') }}</td>
           <td>
             <div style="font-weight:700">{{ p.nome }}</div>
             <div style="font-size:.74rem;color:var(--color-muted)">{{ p.telefone }}</div>
@@ -277,22 +318,31 @@
               {% endif %}
             </div>
           </td>
-          <td><span class="badge badge-{{ p.status }}">{{ p.status.replace('_', ' ') }}</span></td>
           <td>
             <form class="status-form" method="POST"
-                  action="{{ url_for('admin_corporativo_status', id=p.id) }}">
+                  action="{{ url_for('admin_corporativo_status', id=p.id) }}"
+                  id="form-corp-{{ p.id }}">
               <input type="hidden" name="status_filter" value="{{ status_filter }}">
-              <select class="status-select" name="status">
+              <input type="text" name="valor" class="valor-input"
+                     value="{{ '%.2f'|format(p.valor) if p.valor else '' }}"
+                     placeholder="0,00">
+            </form>
+          </td>
+          <td><span class="badge badge-{{ p.status }}">{{ p.status.replace('_', ' ') }}</span></td>
+          <td>
+            <div class="status-form">
+              <select class="status-select" form="form-corp-{{ p.id }}" name="status">
                 {% for s in ['novo','em_andamento','concluido','cancelado'] %}
                 <option value="{{ s }}" {% if p.status == s %}selected{% endif %}>
                   {{ s.replace('_', ' ').capitalize() }}
                 </option>
                 {% endfor %}
               </select>
-              <button type="submit" class="btn-save">Salvar</button>
-            </form>
+              <button type="submit" form="form-corp-{{ p.id }}" class="btn-save">Salvar</button>
+            </div>
           </td>
         </tr>
+        {% endfor %}
         {% endfor %}
       </tbody>
     </table>
@@ -305,6 +355,31 @@
 <script>
   function toggleDet(id) {
     document.getElementById('det-' + id).classList.toggle('open');
+  }
+
+  function filtrarDia(dia, btn) {
+    document.querySelectorAll('.cp-dia-pill').forEach(b => {
+      b.style.background = '#fff';
+      b.style.color = '#64748b';
+      b.style.borderColor = '#e2e8f0';
+    });
+    btn.style.background = 'var(--color-primary)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--color-primary)';
+
+    document.querySelectorAll('.cp-table tbody tr').forEach(r => {
+      r.style.display = (dia === 'todos' || r.dataset.dia === dia) ? '' : 'none';
+    });
+
+    let faturado;
+    if (dia === 'todos') {
+      faturado = {{ stats.faturado_corp }};
+    } else {
+      const sep = document.querySelector(`.cp-dia-sep[data-dia="${dia}"]`);
+      faturado = sep ? parseFloat(sep.dataset.faturado) || 0 : 0;
+    }
+    const el = document.getElementById('cp-faturado-val');
+    if (el) el.textContent = 'R$ ' + faturado.toFixed(2).replace('.', ',');
   }
 </script>
 {% endblock %}

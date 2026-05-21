@@ -1522,9 +1522,21 @@ def admin_pedidos():
                           .scalar() or 0),
     )
     brindes = Brinde.query.filter_by(ativo=True).order_by(Brinde.valor_minimo).all()
+
+    from collections import OrderedDict
+    _dias: dict = OrderedDict()
+    for p in sorted(pedidos, key=lambda x: x.created_at):
+        d = p.created_at.strftime('%Y-%m-%d')
+        if d not in _dias:
+            _dias[d] = {'label': p.created_at.strftime('%d/%m'), 'pedidos': [], 'faturado': 0.0}
+        _dias[d]['pedidos'].append(p)
+        if p.status in ('confirmado', 'entregue'):
+            _dias[d]['faturado'] += float(p.total)
+    pedidos_por_dia = list(_dias.items())
+
     return render_template('admin/pedidos.html',
                            pedidos=pedidos, status_filter=status_filter, stats=stats,
-                           brindes=brindes)
+                           brindes=brindes, pedidos_por_dia=pedidos_por_dia)
 
 
 @app.route('/admin/pedidos/<int:id>/status', methods=['POST'])
@@ -1738,6 +1750,18 @@ def relatorio_estoque():
         ),
     )
 
+    # Agrupa pedidos por dia para o filtro de dias
+    from collections import OrderedDict
+    _dias: dict = OrderedDict()
+    for p in sorted(pedidos_periodo, key=lambda x: x.created_at):
+        d = p.created_at.strftime('%Y-%m-%d')
+        if d not in _dias:
+            _dias[d] = {'label': p.created_at.strftime('%d/%m'), 'pedidos': [], 'faturado': 0.0}
+        _dias[d]['pedidos'].append(p)
+        if p.status in ('confirmado', 'entregue'):
+            _dias[d]['faturado'] += float(p.total)
+    pedidos_por_dia = list(_dias.items())
+
     # ── DADOS CORPORATIVOS ──
     corp_pedidos = PedidoCorporativo.query.filter(
         PedidoCorporativo.created_at >= dt_ini,
@@ -1752,7 +1776,18 @@ def relatorio_estoque():
         cancelado    = sum(1 for p in corp_pedidos if p.status == 'cancelado'),
         personalizar = sum(1 for p in corp_pedidos if p.tipo == 'personalizar'),
         solicitar    = sum(1 for p in corp_pedidos if p.tipo == 'solicitar'),
+        faturado     = float(sum(p.valor for p in corp_pedidos if p.valor and p.status == 'concluido') or 0),
     )
+
+    _dias_corp2: dict = {}
+    for p in sorted(corp_pedidos, key=lambda x: x.created_at):
+        d = p.created_at.strftime('%Y-%m-%d')
+        if d not in _dias_corp2:
+            _dias_corp2[d] = {'label': p.created_at.strftime('%d/%m'), 'pedidos': [], 'faturado': 0.0}
+        _dias_corp2[d]['pedidos'].append(p)
+        if p.valor and p.status == 'concluido':
+            _dias_corp2[d]['faturado'] += float(p.valor)
+    corp_por_dia = list(_dias_corp2.items())
 
     # exportar CSV
     if request.args.get('export') == 'csv':
@@ -1789,8 +1824,10 @@ def relatorio_estoque():
         grafico_motivos=grafico_motivos,
         grafico_quantidades=grafico_quantidades,
         pedidos_periodo=pedidos_periodo,
+        pedidos_por_dia=pedidos_por_dia,
         venda_stats=venda_stats,
         corp_pedidos=corp_pedidos,
+        corp_por_dia=corp_por_dia,
         corp_stats=corp_stats,
         data_ini=data_ini_str or data_ini.strftime('%Y-%m-%d'),
         data_fim=data_fim_str or data_fim.strftime('%Y-%m-%d'),
@@ -2373,8 +2410,24 @@ def admin_corporativo():
         'concluido':    PedidoCorporativo.query.filter_by(status='concluido').count(),
         'cancelado':    PedidoCorporativo.query.filter_by(status='cancelado').count(),
     }
+    from collections import OrderedDict
+    _dias_corp: dict = OrderedDict()
+    for p in sorted(pedidos, key=lambda x: x.created_at):
+        d = p.created_at.strftime('%Y-%m-%d')
+        if d not in _dias_corp:
+            _dias_corp[d] = {'label': p.created_at.strftime('%d/%m'), 'pedidos': [], 'faturado': 0.0}
+        _dias_corp[d]['pedidos'].append(p)
+        if p.valor and p.status in ('concluido',):
+            _dias_corp[d]['faturado'] += float(p.valor)
+    pedidos_por_dia = list(_dias_corp.items())
+
+    stats['faturado_corp'] = float(sum(
+        p.valor for p in pedidos if p.valor and p.status == 'concluido'
+    ) or 0)
+
     return render_template('admin/corporativo.html', config=config,
-                           pedidos=pedidos, stats=stats, status_filter=status_filter)
+                           pedidos=pedidos, stats=stats, status_filter=status_filter,
+                           pedidos_por_dia=pedidos_por_dia)
 
 
 @app.route('/admin/corporativo/<int:id>/status', methods=['POST'])
@@ -2384,8 +2437,14 @@ def admin_corporativo_status(id):
         return redirect(url_for('dashboard'))
     p = PedidoCorporativo.query.get_or_404(id)
     p.status = request.form.get('status', p.status)
+    valor_str = request.form.get('valor', '').strip().replace(',', '.')
+    if valor_str:
+        try:
+            p.valor = float(valor_str)
+        except ValueError:
+            pass
     db.session.commit()
-    flash('Status atualizado.', 'success')
+    flash('Pedido atualizado.', 'success')
     sf = request.form.get('status_filter', '')
     return redirect(url_for('admin_corporativo', status=sf))
 
@@ -2508,6 +2567,9 @@ def admin_usuarios():
 @login_required
 @admin_required
 def admin_toggle_admin(uid):
+    if current_user.email != 'docesdafhe@gmail.com':
+        flash('Apenas a proprietária pode alterar níveis de acesso.', 'error')
+        return redirect(url_for('admin_usuarios'))
     u = User.query.get_or_404(uid)
     if u.id == current_user.id:
         flash('Você não pode alterar seu próprio nível de acesso.', 'error')

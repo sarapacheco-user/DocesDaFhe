@@ -497,6 +497,7 @@ class PedidoCorporativo(db.Model):
     frase_tag      = db.Column(db.String(300), nullable=True)
     data_desejada  = db.Column(db.String(100), nullable=True)
     observacoes    = db.Column(db.Text, nullable=True)
+    valor           = db.Column(db.Numeric(10, 2), nullable=True)
     status          = db.Column(db.String(20), default='novo')  # novo | em_andamento | concluido | cancelado
     oculto_cliente  = db.Column(db.Boolean, default=False, nullable=False)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)

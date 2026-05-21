@@ -528,7 +528,7 @@
       </div>
       <div>
         <span class="rel-card-label">Faturado</span>
-        <span class="rel-card-value" style="font-size:1.25rem;">R$ {{ "%.2f"|format(venda_stats.faturado) }}</span>
+        <span class="rel-card-value" style="font-size:1.25rem;" id="faturado-valor">R$ {{ "%.2f"|format(venda_stats.faturado) }}</span>
       </div>
     </div>
     <div class="rel-card cancel">
@@ -559,6 +559,27 @@
     </div>
   </div>
 
+  <!-- FILTRO POR DIA -->
+  {% if pedidos_por_dia %}
+  <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <span style="font-size:.78rem; font-weight:700; color:#64748b; white-space:nowrap;">Filtrar por dia:</span>
+    <button class="dia-pill ativo" data-dia="todos"
+            onclick="filtrarDia('todos', this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid var(--color-primary); background:var(--color-primary); color:#fff; font-size:.75rem; font-weight:700; cursor:pointer;">
+      Todos
+    </button>
+    {% for dia_key, dia_info in pedidos_por_dia %}
+    <button class="dia-pill" data-dia="{{ dia_key }}"
+            data-faturado="{{ dia_info.faturado }}"
+            data-count="{{ dia_info.pedidos|length }}"
+            onclick="filtrarDia('{{ dia_key }}', this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid #e2e8f0; background:#fff; color:#64748b; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .15s;">
+      {{ dia_info.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- STATUS BREAKDOWN -->
   <div class="rel-table-wrap" style="margin-bottom:1.4rem;">
     <div class="rel-section-header">
@@ -571,11 +592,11 @@
         </svg>
         Pedidos no Período
       </span>
-      <span class="rel-section-count">{{ pedidos_periodo|length }} pedido(s)</span>
+      <span class="rel-section-count" id="count-pedidos">{{ pedidos_periodo|length }} pedido(s)</span>
     </div>
 
     {% if pedidos_periodo %}
-    <table class="rel-table">
+    <table class="rel-table" id="tabela-vendas">
       <thead>
         <tr>
           <th>#</th>
@@ -588,11 +609,24 @@
         </tr>
       </thead>
       <tbody>
-        {% for p in pedidos_periodo %}
-        <tr>
+        {% for dia_key, dia_info in pedidos_por_dia %}
+        <!-- separador de dia -->
+        <tr class="dia-sep-row" data-dia="{{ dia_key }}"
+            style="background:#f8fafc; border-top:2px solid #e2e8f0;">
+          <td colspan="5" style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary); letter-spacing:.05em; text-transform:uppercase;">
+            {{ dia_info.label }} &nbsp;·&nbsp; {{ dia_info.pedidos|length }} pedido(s)
+          </td>
+          <td style="text-align:right; padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary);">
+            R$ {{ "%.2f"|format(dia_info.faturado) }}
+          </td>
+          <td style="padding:.45rem 1rem;"></td>
+        </tr>
+        <!-- pedidos do dia -->
+        {% for p in dia_info.pedidos %}
+        <tr data-dia="{{ dia_key }}" data-total="{{ p.total }}" data-status="{{ p.status }}">
           <td style="font-weight:800; color:#475569;">#{{ p.id }}</td>
           <td style="color:#94a3b8; font-size:.8rem; white-space:nowrap;">
-            {{ p.created_at.strftime('%d/%m/%Y %H:%M') }}
+            {{ p.created_at.strftime('%H:%M') }}
           </td>
           <td>
             <div style="font-weight:700; color:#1e293b;">{{ p.user.name or p.user.email }}</div>
@@ -618,11 +652,12 @@
           </td>
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
       <tfoot>
-        <tr>
+        <tr id="tfoot-total">
           <td colspan="5" style="font-weight:800;">Total faturado (confirmados + entregues)</td>
-          <td style="text-align:right; font-weight:800; color:var(--color-primary);">
+          <td style="text-align:right; font-weight:800; color:var(--color-primary);" id="tfoot-valor">
             R$ {{ "%.2f"|format(venda_stats.faturado) }}
           </td>
           <td></td>
@@ -635,6 +670,38 @@
     </div>
     {% endif %}
   </div>
+
+<script>
+function filtrarDia(dia, btn) {
+  document.querySelectorAll('.dia-pill').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#64748b';
+    b.style.borderColor = '#e2e8f0';
+  });
+  btn.style.background = 'var(--color-primary)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--color-primary)';
+
+  const rows = document.querySelectorAll('#tabela-vendas tbody tr');
+  rows.forEach(r => {
+    r.style.display = (dia === 'todos' || r.dataset.dia === dia) ? '' : 'none';
+  });
+
+  let faturado, count;
+  if (dia === 'todos') {
+    faturado = {{ venda_stats.faturado }};
+    count    = {{ pedidos_periodo|length }};
+  } else {
+    faturado = parseFloat(btn.dataset.faturado) || 0;
+    count    = parseInt(btn.dataset.count) || 0;
+  }
+
+  const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+  document.getElementById('faturado-valor').textContent = fmt(faturado);
+  document.getElementById('tfoot-valor').textContent    = fmt(faturado);
+  document.getElementById('count-pedidos').textContent  = count + ' pedido(s)';
+}
+</script>
 
   <!-- ══════════════════════════════════════════
        SEÇÃO CORPORATIVA
@@ -709,7 +776,40 @@
         <span class="rel-card-value" style="color:#991b1b;">{{ corp_stats.cancelado }}</span>
       </div>
     </div>
+    <div class="rel-card faturado">
+      <div class="rel-card-icon faturado">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <span class="rel-card-label">Faturado</span>
+        <span class="rel-card-value" style="font-size:1.1rem;" id="corp-faturado-val">R$ {{ "%.2f"|format(corp_stats.faturado) }}</span>
+      </div>
+    </div>
   </div>
+
+  <!-- FILTRO POR DIA — CORPORATIVO -->
+  {% if corp_por_dia %}
+  <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <span style="font-size:.78rem; font-weight:700; color:#64748b; white-space:nowrap;">Filtrar por dia:</span>
+    <button class="corp-dia-pill ativo" data-dia="todos"
+            onclick="filtrarCorpDia('todos',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid var(--color-primary); background:var(--color-primary); color:#fff; font-size:.75rem; font-weight:700; cursor:pointer;">
+      Todos
+    </button>
+    {% for dia_key, dia_info in corp_por_dia %}
+    <button class="corp-dia-pill" data-dia="{{ dia_key }}"
+            data-faturado="{{ dia_info.faturado }}"
+            data-count="{{ dia_info.pedidos|length }}"
+            onclick="filtrarCorpDia('{{ dia_key }}',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid #e2e8f0; background:#fff; color:#64748b; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .15s;">
+      {{ dia_info.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- TABELA CORPORATIVOS -->
   <div class="rel-table-wrap" style="margin-bottom:1.4rem;">
@@ -724,11 +824,11 @@
         </svg>
         Solicitações Corporativas no Período
       </span>
-      <span class="rel-section-count">{{ corp_pedidos|length }} solicitação(ões)</span>
+      <span class="rel-section-count" id="corp-count">{{ corp_pedidos|length }} solicitação(ões)</span>
     </div>
 
-    {% if corp_pedidos %}
-    <table class="rel-table">
+    {% if corp_por_dia %}
+    <table class="rel-table" id="tabela-corp">
       <thead>
         <tr>
           <th>#</th>
@@ -737,15 +837,27 @@
           <th>Tipo</th>
           <th>Produto / Descrição</th>
           <th style="text-align:center;">Qtd</th>
+          <th style="text-align:right;">Valor</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
-        {% for p in corp_pedidos %}
-        <tr>
+        {% for dia_key, dia_info in corp_por_dia %}
+        <tr class="corp-dia-sep" data-dia="{{ dia_key }}"
+            style="background:#f8fafc; border-top:2px solid #e2e8f0;">
+          <td colspan="6" style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary); letter-spacing:.05em; text-transform:uppercase;">
+            {{ dia_info.label }} &nbsp;·&nbsp; {{ dia_info.pedidos|length }} solicitação(ões)
+          </td>
+          <td style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary); text-align:right;">
+            {% if dia_info.faturado > 0 %}R$ {{ "%.2f"|format(dia_info.faturado) }}{% endif %}
+          </td>
+          <td style="padding:.45rem 1rem;"></td>
+        </tr>
+        {% for p in dia_info.pedidos %}
+        <tr data-dia="{{ dia_key }}">
           <td style="font-weight:800;color:#475569;">#{{ p.id }}</td>
           <td style="color:#94a3b8;font-size:.8rem;white-space:nowrap;">
-            {{ p.created_at.strftime('%d/%m/%Y %H:%M') }}
+            {{ p.created_at.strftime('%H:%M') }}
           </td>
           <td>
             <div style="font-weight:700;color:#1e293b;">{{ p.nome }}</div>
@@ -765,6 +877,9 @@
             {% endif %}
           </td>
           <td style="text-align:center;font-weight:700;">{{ p.quantidade or '—' }}</td>
+          <td style="text-align:right;font-weight:800;color:#1e293b;">
+            {% if p.valor %}R$ {{ "%.2f"|format(p.valor) }}{% else %}<span style="color:#cbd5e1;">—</span>{% endif %}
+          </td>
           <td>
             <span class="status-pill
               {% if p.status == 'novo' %}st-pendente
@@ -776,6 +891,7 @@
           </td>
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
     </table>
     {% else %}
@@ -784,6 +900,99 @@
     </div>
     {% endif %}
   </div>
+
+<script>
+function filtrarCorpDia(dia, btn) {
+  document.querySelectorAll('.corp-dia-pill').forEach(b => {
+    b.style.background = '#fff'; b.style.color = '#64748b'; b.style.borderColor = '#e2e8f0';
+  });
+  btn.style.background = 'var(--color-primary)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--color-primary)';
+
+  document.querySelectorAll('#tabela-corp tbody tr').forEach(r => {
+    r.style.display = (dia === 'todos' || r.dataset.dia === dia) ? '' : 'none';
+  });
+
+  let faturado, count;
+  if (dia === 'todos') {
+    faturado = {{ corp_stats.faturado }};
+    count    = {{ corp_pedidos|length }};
+  } else {
+    faturado = parseFloat(btn.dataset.faturado) || 0;
+    count    = parseInt(btn.dataset.count) || 0;
+  }
+  const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+  const el = document.getElementById('corp-faturado-val');
+  if (el) el.textContent = fmt(faturado);
+  const ce = document.getElementById('corp-count');
+  if (ce) ce.textContent = count + ' solicitação(ões)';
+}
+</script>
+
+  <!-- ══ FATURAMENTO TOTAL POR DIA (pedidos + corporativos) ══ -->
+  {% if pedidos_por_dia or corp_por_dia %}
+  {% set ns = namespace() %}
+
+  {# Coleta todos os dias únicos #}
+  {% set todos_dias = [] %}
+  {% for dia_key, _ in pedidos_por_dia %}{% if dia_key not in todos_dias %}{% set _ = todos_dias.append(dia_key) %}{% endif %}{% endfor %}
+  {% for dia_key, _ in corp_por_dia %}{% if dia_key not in todos_dias %}{% set _ = todos_dias.append(dia_key) %}{% endif %}{% endfor %}
+
+  <div class="rel-section-divider" style="margin-top:2rem;">
+    <span class="rel-section-divider-label">Faturamento Total por Dia</span>
+    <span class="rel-section-divider-line"></span>
+  </div>
+
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+    {% for dia_key in todos_dias | sort %}
+
+    {# faturado de pedidos normais nesse dia #}
+    {% set fat_pedidos = namespace(v=0.0) %}
+    {% for dk, di in pedidos_por_dia if dk == dia_key %}{% set fat_pedidos.v = di.faturado %}{% endfor %}
+
+    {# faturado de corporativos nesse dia #}
+    {% set fat_corp = namespace(v=0.0) %}
+    {% for dk, di in corp_por_dia if dk == dia_key %}{% set fat_corp.v = di.faturado %}{% endfor %}
+
+    {# label do dia #}
+    {% set dia_label = namespace(v='') %}
+    {% for dk, di in pedidos_por_dia if dk == dia_key %}{% set dia_label.v = di.label %}{% endfor %}
+    {% if not dia_label.v %}{% for dk, di in corp_por_dia if dk == dia_key %}{% set dia_label.v = di.label %}{% endfor %}{% endif %}
+
+    {% set total_dia = fat_pedidos.v + fat_corp.v %}
+
+    <div style="background:#fff; border-radius:14px; padding:.9rem 1.3rem; min-width:130px;
+                box-shadow:0 2px 10px rgba(0,0,0,.07); border:1.5px solid #f1f5f9; text-align:center;
+                border-top:3px solid var(--color-primary);">
+      <div style="font-size:.7rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.4rem;">
+        {{ dia_label.v }}
+      </div>
+      <div style="font-size:1.15rem; font-weight:800; color:var(--color-primary); margin-bottom:.3rem;">
+        R$ {{ "%.2f"|format(total_dia) }}
+      </div>
+      {% if fat_pedidos.v > 0 %}
+      <div style="font-size:.68rem; color:#64748b;">Vendas: R$ {{ "%.2f"|format(fat_pedidos.v) }}</div>
+      {% endif %}
+      {% if fat_corp.v > 0 %}
+      <div style="font-size:.68rem; color:#64748b;">Corporativo: R$ {{ "%.2f"|format(fat_corp.v) }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {# Card de total geral #}
+    {% set total_geral = venda_stats.faturado + corp_stats.faturado %}
+    <div style="background:var(--color-primary); border-radius:14px; padding:.9rem 1.3rem; min-width:130px;
+                box-shadow:0 2px 10px rgba(0,0,0,.12); text-align:center; align-self:center;">
+      <div style="font-size:.7rem; font-weight:800; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.4rem;">
+        Total geral
+      </div>
+      <div style="font-size:1.25rem; font-weight:800; color:#fff;">
+        R$ {{ "%.2f"|format(total_geral) }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 

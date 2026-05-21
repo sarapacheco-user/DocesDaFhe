@@ -105,10 +105,31 @@
       <div class="pd-stat-lbl">Cancelados</div>
     </div>
     <div class="pd-stat s-faturado">
-      <div class="pd-stat-val">R$ {{ "%.2f"|format(stats.faturado) }}</div>
+      <div class="pd-stat-val" id="pd-faturado-val">R$ {{ "%.2f"|format(stats.faturado) }}</div>
       <div class="pd-stat-lbl">Faturado</div>
     </div>
   </div>
+
+  <!-- FILTRO POR DIA -->
+  {% if pedidos_por_dia %}
+  <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <span style="font-size:.78rem; font-weight:700; color:#64748b; white-space:nowrap;">Filtrar por dia:</span>
+    <button class="pd-dia-pill ativo" data-dia="todos"
+            onclick="filtrarDia('todos',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid var(--color-primary); background:var(--color-primary); color:#fff; font-size:.75rem; font-weight:700; cursor:pointer;">
+      Todos
+    </button>
+    {% for dia_key, dia_info in pedidos_por_dia %}
+    <button class="pd-dia-pill" data-dia="{{ dia_key }}"
+            data-faturado="{{ dia_info.faturado }}"
+            data-count="{{ dia_info.pedidos|length }}"
+            onclick="filtrarDia('{{ dia_key }}',this)"
+            style="padding:.3rem .85rem; border-radius:20px; border:1.5px solid #e2e8f0; background:#fff; color:#64748b; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .15s;">
+      {{ dia_info.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- FILTROS -->
   <div class="pd-filters">
@@ -141,10 +162,21 @@
         </tr>
       </thead>
       <tbody>
-        {% for p in pedidos %}
-        <tr>
+        {% for dia_key, dia_info in pedidos_por_dia %}
+        <tr class="pd-dia-sep" data-dia="{{ dia_key }}"
+            style="background:#f8fafc; border-top:2px solid #e2e8f0;">
+          <td colspan="5" style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary); letter-spacing:.05em; text-transform:uppercase;">
+            {{ dia_info.label }} &nbsp;·&nbsp; {{ dia_info.pedidos|length }} pedido(s)
+          </td>
+          <td style="padding:.45rem 1rem; font-size:.73rem; font-weight:800; color:var(--color-primary);">
+            R$ {{ "%.2f"|format(dia_info.faturado) }}
+          </td>
+          <td colspan="2" style="padding:.45rem 1rem;"></td>
+        </tr>
+        {% for p in dia_info.pedidos %}
+        <tr data-dia="{{ dia_key }}" data-total="{{ p.total }}" data-status="{{ p.status }}">
           <td><strong>#{{ p.id }}</strong></td>
-          <td>{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ p.created_at.strftime('%H:%M') }}</td>
           <td>
             <div style="font-weight:700">{{ p.user.name or p.user.email }}</div>
             <div style="font-size:.75rem;color:var(--color-muted)">{{ p.user.phone }}</div>
@@ -204,6 +236,7 @@
           </td>
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
     </table>
     {% else %}
@@ -216,6 +249,30 @@
   function toggleItens(id) {
     const el = document.getElementById('itens-' + id);
     el.classList.toggle('open');
+  }
+
+  function filtrarDia(dia, btn) {
+    document.querySelectorAll('.pd-dia-pill').forEach(b => {
+      b.style.background = '#fff';
+      b.style.color = '#64748b';
+      b.style.borderColor = '#e2e8f0';
+    });
+    btn.style.background = 'var(--color-primary)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--color-primary)';
+
+    document.querySelectorAll('.pd-table tbody tr').forEach(r => {
+      r.style.display = (dia === 'todos' || r.dataset.dia === dia) ? '' : 'none';
+    });
+
+    let faturado;
+    if (dia === 'todos') {
+      faturado = {{ stats.faturado }};
+    } else {
+      faturado = parseFloat(btn.dataset.faturado) || 0;
+    }
+    document.getElementById('pd-faturado-val').textContent =
+      'R$ ' + faturado.toFixed(2).replace('.', ',');
   }
 </script>
 {% endblock %}
