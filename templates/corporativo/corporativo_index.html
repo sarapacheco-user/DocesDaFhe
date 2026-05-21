@@ -1,0 +1,370 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  .card-link-inner { text-decoration: none; color: inherit; display: block; }
+  .cart-icon-wrap  { position: relative; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
+  .cart-badge      { position: absolute; top: -8px; right: -8px; background: var(--color-dark); color: #fff;
+                     font-size: .68rem; font-weight: 800; width: 18px; height: 18px;
+                     border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+  /* ── HERO CORPORATIVO ── */
+  .corp-hero {
+    background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-secondary) 100%);
+    color: #fff; padding: 2.5rem 1.6rem 2rem;
+    text-align: center;
+  }
+  .corp-hero-label {
+    display: inline-block; background: var(--color-primary-medium); color: #fff;
+    font-size: .72rem; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; padding: .3rem .9rem; border-radius: 20px;
+    margin-bottom: .9rem;
+  }
+  .corp-hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 800; margin-bottom: .5rem;
+  }
+  .corp-hero-sub {
+    color: rgba(255,255,255,.7); font-size: .95rem; max-width: 560px; margin: 0 auto 1.4rem;
+  }
+  .corp-prazo-badge {
+    display: inline-flex; align-items: center; gap: .5rem;
+    background: var(--color-primary); color: #fff;
+    font-size: .88rem; font-weight: 700;
+    padding: .55rem 1.4rem; border-radius: 30px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+
+  /* ── INFO BANNER ── */
+  .corp-info {
+    background: #f0fdf4; border-left: 4px solid var(--color-primary);
+    padding: .9rem 1.4rem; margin: 1.4rem auto; max-width: 900px;
+    border-radius: 0 10px 10px 0; font-size: .9rem; color: #166534;
+  }
+
+  /* ── SECTION TITLES ── */
+  .corp-section-title {
+    font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 800;
+    color: #1e293b; margin: 2rem auto .9rem; max-width: 900px;
+    padding: 0 1rem; display: flex; align-items: center; gap: .6rem;
+  }
+  .corp-section-title::after {
+    content: ''; flex: 1; height: 1px; background: #e2e8f0; margin-left: .4rem;
+  }
+
+  /* ── LAYOUT SIDEBAR ── */
+  .corp-layout { max-width: 1180px; margin: 0 auto; padding: 2rem 1.4rem 2rem;
+                 display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+  @media (max-width: 768px) { .corp-layout { grid-template-columns: 1fr; } .corp-sidebar { display: none; } .corp-sidebar.open { display: block; } }
+
+  .corp-sidebar { position: sticky; top: 1rem; }
+  .cat-filter-box { background: #fff; border-radius: 12px; border: 1.5px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
+  .cat-filter-title { background: var(--color-primary); color: #fff; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: .65rem 1rem; }
+  .cat-filter-body { padding: .8rem 1rem; }
+  .cat-filter-option { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; cursor: pointer; font-size: .88rem; color: #334155; font-weight: 500; transition: color .15s; }
+  .cat-filter-option:hover { color: var(--color-primary); }
+  .cat-filter-option input[type="radio"] { accent-color: var(--color-primary); width: 15px; height: 15px; cursor: pointer; }
+  .cat-filter-option.active-opt { color: var(--color-primary); font-weight: 700; }
+  .btn-limpar-filtros { width: 100%; padding: .5rem; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; border-radius: 9px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .15s; }
+  .btn-limpar-filtros:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  .corp-main-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin-bottom: 1rem; }
+  .corp-main-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .corp-main-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+  .cat-count { font-size: .82rem; color: #94a3b8; margin-top: .15rem; }
+  .cat-sort-wrap { display: flex; align-items: center; gap: .6rem; }
+  .cat-sort-label { font-size: .82rem; color: #64748b; font-weight: 600; white-space: nowrap; }
+  .cat-sort-select { padding: .45rem .9rem; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: .85rem; color: #334155; font-weight: 600; background: #fff; cursor: pointer; outline: none; }
+  .cat-sort-select:focus { border-color: var(--color-primary); }
+
+  /* ── PRODUCT GRID ── */
+  .corp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  @media (max-width: 900px) { .corp-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .corp-grid { grid-template-columns: 1fr; } }
+
+  .corp-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: transform .18s, box-shadow .18s;
+    position: relative;
+  }
+  .corp-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+
+  .corp-card-img { height: 180px; overflow: hidden; background: #f8fafc;
+                   display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+  .corp-card-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  .corp-card-body { padding: 1rem; flex: 1; }
+  .corp-card-body h3 { font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 .25rem; }
+  .corp-card-price { font-size: .88rem; font-weight: 700; color: var(--color-primary); }
+
+  .btn-personalizar {
+    display: block; width: calc(100% - 2rem); margin: 0 1rem 1rem;
+    padding: .6rem 1rem; background: var(--color-primary); color: #fff;
+    border: none; border-radius: 10px; font-size: .88rem; font-weight: 700;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: background .15s;
+  }
+  .btn-personalizar:hover { background: var(--color-hover-primary); color: #fff; }
+
+  /* ── SOLICITAR CARD ── */
+  .corp-solicitar-card {
+    max-width: 900px; margin: 0 auto 3rem; padding: 0 1rem;
+  }
+  .corp-solicitar-inner {
+    background: linear-gradient(135deg, var(--color-dark), var(--color-secondary));
+    border-radius: 18px; padding: 2rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1.5rem; flex-wrap: wrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  }
+  .corp-solicitar-text h3 {
+    font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 800;
+    color: #fff; margin-bottom: .4rem;
+  }
+  .corp-solicitar-text p { color: rgba(255,255,255,.65); font-size: .9rem; margin: 0; }
+  .btn-solicitar {
+    display: inline-flex; align-items: center; gap: .5rem;
+    background: var(--color-primary); color: #fff;
+    padding: .75rem 1.8rem; border-radius: 12px;
+    font-size: .95rem; font-weight: 800; text-decoration: none;
+    white-space: nowrap; transition: background .15s, transform .12s;
+    flex-shrink: 0;
+  }
+  .btn-solicitar:hover { background: var(--color-hover-primary); transform: translateY(-2px); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}"
+           alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+          Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}
+        </span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+        ENTRAR
+      </a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}<span class="cart-badge">{{ carrinho_total }}</span>{% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('corporativo') }}" class="nav-active">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<!-- HERO -->
+<div class="corp-hero">
+  <div class="corp-hero-label">Linha Corporativa</div>
+  <h1 class="corp-hero-title">Presenteie com sofisticação</h1>
+  <p class="corp-hero-sub">Produtos personalizados para empresas, eventos e presentes corporativos.
+    Sua marca em cada detalhe.</p>
+  {% if config and config.prazo_texto %}
+  <div class="corp-prazo-badge">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    Prazo de entrega: {{ config.prazo_texto }}
+  </div>
+  {% endif %}
+</div>
+
+{% if config and config.informacoes %}
+<div class="corp-info">
+  {{ config.informacoes }}
+</div>
+{% endif %}
+
+<!-- PRODUTOS + SIDEBAR -->
+<div class="corp-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="corp-sidebar" id="corpSidebar">
+    <div class="cat-filter-box">
+      <div class="cat-filter-title">Ordenar por</div>
+      <div class="cat-filter-body">
+        <label class="cat-filter-option active-opt"><input type="radio" name="ordenar" value="relevancia" checked onchange="ordenar(this.value)"> Relevância</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="menor_preco" onchange="ordenar(this.value)"> Menor Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="maior_preco" onchange="ordenar(this.value)"> Maior Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="az" onchange="ordenar(this.value)"> A – Z</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="za" onchange="ordenar(this.value)"> Z – A</label>
+      </div>
+    </div>
+    <button class="btn-limpar-filtros" onclick="limparTudo()">↺ Limpar filtros</button>
+  </aside>
+
+  <!-- MAIN -->
+  <div>
+    <div class="corp-main-header">
+      <div>
+        <h2 class="corp-main-title">Produtos para Personalização</h2>
+        <div class="cat-count" id="corpCount">{{ produtos | length }} produto(s)</div>
+      </div>
+    </div>
+
+    {% if produtos %}
+    <div class="corp-grid" id="corpGrid">
+      {% for produto in produtos %}
+      <div class="corp-card corp-item"
+           data-nome="{{ produto.name | lower }}"
+           data-preco="{{ produto.price }}">
+        <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+          <div class="corp-card-img">
+            {% if produto.image_url %}<img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">{% else %}🍰{% endif %}
+          </div>
+          <div class="corp-card-body">
+            <h3>{{ produto.name }}</h3>
+            <div class="corp-card-price">A partir de R$ {{ "%.2f"|format(produto.price) }}</div>
+          </div>
+        </a>
+        <a href="{{ url_for('corporativo_personalizar', produto_id=produto.id) }}" class="btn-personalizar">
+          Personalizar este produto
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:3rem 1rem;color:#94a3b8;font-size:.95rem;">
+      <div style="font-size:3rem;margin-bottom:.5rem;">🏢</div>
+      Nenhum produto corporativo cadastrado ainda.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- SOLICITAR PERSONALIZADO -->
+<div class="corp-solicitar-card">
+  <div class="corp-solicitar-inner">
+    <div class="corp-solicitar-text">
+      <h3>Não encontrou o que precisava?</h3>
+      <p>Fale com a gente e desenvolvemos exatamente o que sua empresa precisa.</p>
+    </div>
+    <a href="{{ url_for('corporativo_solicitar') }}" class="btn-solicitar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Solicitar produto personalizado
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
+    </div>
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Sábado</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> de 11:00 às 20:30</p>
+    </div>
+    <div class="footer-col">
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
+    </div>
+  </div>
+  <div class="footer-bottom">Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a></div>
+</footer>
+
+<script>
+  function buscarGlobal() {
+    var t = document.getElementById('searchInput').value.trim();
+    if (t) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(t);
+  }
+
+  var ordemAtual = 'relevancia';
+
+  function ordenar(valor) {
+    ordemAtual = valor;
+    document.querySelectorAll('input[name="ordenar"]').forEach(r => {
+      r.checked = r.value === valor;
+      r.closest('.cat-filter-option').classList.toggle('active-opt', r.checked);
+    });
+    var grid  = document.getElementById('corpGrid');
+    if (!grid) return;
+    var cards = Array.from(grid.querySelectorAll('.corp-item'));
+    cards.sort(function(a, b) {
+      if (valor === 'menor_preco') return parseFloat(a.dataset.preco) - parseFloat(b.dataset.preco);
+      if (valor === 'maior_preco') return parseFloat(b.dataset.preco) - parseFloat(a.dataset.preco);
+      if (valor === 'az') return a.dataset.nome.localeCompare(b.dataset.nome);
+      if (valor === 'za') return b.dataset.nome.localeCompare(a.dataset.nome);
+      return 0;
+    });
+    cards.forEach(c => grid.appendChild(c));
+  }
+
+  function limparTudo() {
+    ordenar('relevancia');
+  }
+</script>
+{% endblock %}

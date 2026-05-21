@@ -1,0 +1,217 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+  .filtro-card {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .55rem 1rem;
+    margin: 0 1.5rem 1.2rem;
+    display: inline-flex;
+    flex-direction: column;
+    gap: .45rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .filtro-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .filtro-titulo {
+    font-size: .68rem;
+    font-weight: 800;
+    color: var(--color-primary, #5B6D3D);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .filtro-titulo::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 12px;
+    background: var(--color-primary, #5B6D3D);
+    border-radius: 2px;
+  }
+  .busca-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 240px;
+  }
+  .busca-wrap svg {
+    position: absolute;
+    left: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+  }
+  .busca-prod {
+    width: 100%;
+    padding: .28rem .75rem .28rem 1.9rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: .78rem;
+    outline: none;
+    background: #f8fafc;
+    color: #1e293b;
+    transition: border-color .18s, background .18s;
+    box-sizing: border-box;
+  }
+  .busca-prod:focus { border-color: var(--color-primary); background: #fff; }
+  .prod-count {
+    font-size: .7rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-primary, #5B6D3D);
+    padding: .2rem .6rem;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .filtro-chips {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    flex-wrap: wrap;
+  }
+  .filtro-chip {
+    padding: .2rem .7rem;
+    border-radius: 6px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: .74rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all .15s;
+    text-transform: capitalize;
+  }
+  .filtro-chip:hover { border-color: var(--color-primary); color: var(--color-primary); background: #fff; }
+  .filtro-chip.ativo { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Produtos</h2>
+  {% if current_user.is_admin %}
+    <div class="page-header-actions">
+      <a href="{{ url_for('create_product') }}" class="btn-primary">+ Criar Produto</a>
+    </div>
+  {% endif %}
+</div>
+
+{% if products %}
+  {# coleta categorias únicas para os chips #}
+  {% set cats = products | map(attribute='category') | select | unique | sort | list %}
+
+  <div class="filtro-card">
+    <div class="filtro-topo">
+      <span class="filtro-titulo">Filtrar por categoria</span>
+      <div class="busca-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input class="busca-prod" id="buscaProd" type="search" placeholder="Buscar nome…" oninput="buscar(this.value)">
+      </div>
+      <span class="prod-count" id="prodCount">{{ products|length }} produtos</span>
+    </div>
+    <div class="filtro-chips">
+      <button class="filtro-chip ativo" onclick="filtrar('', this)">Todos</button>
+      {% for cat in cats %}
+        <button class="filtro-chip" onclick="filtrar('{{ cat }}', this)">{{ cat }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <table cellpadding="10" id="tabelaProdutos">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Categoria</th>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Preço</th>
+        <th>Imagem</th>
+        {% if current_user.is_admin %}<th>Status</th><th>Ações</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr data-cat="{{ product.category }}" data-nome="{{ product.name | lower }}"
+          {% if not product.ativo %}style="opacity:0.5;"{% endif %}>
+        <td>{{ product.id }}</td>
+        <td>{{ product.category }}</td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</td>
+        <td>R$ {{ "%.2f"|format(product.price) }}</td>
+        <td>
+          {% if product.image_url %}
+            <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.name }}">
+          {% else %}
+            <span style="color:#aaa; font-size:.8rem;">Sem imagem</span>
+          {% endif %}
+        </td>
+        {% if current_user.is_admin %}
+        <td>
+          {% if product.ativo %}
+            <span class="badge-status badge-visivel">Visível</span>
+          {% else %}
+            <span class="badge-status badge-oculto">Oculto</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="acoes-wrap">
+            <a href="{{ url_for('toggle_product_ativo', id=product.id) }}" class="btn-acao btn-toggle">
+              {% if product.ativo %}Ocultar{% else %}Mostrar{% endif %}
+            </a>
+            <a href="{{ url_for('edit_product', id=product.id) }}" class="btn-acao btn-editar">Editar</a>
+            <a href="{{ url_for('delete_product', id=product.id) }}" class="btn-acao btn-deletar"
+               onclick="return confirm('Deletar {{ product.name }}?')">Deletar</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Nenhum produto encontrado.
+    {% if current_user.is_admin %}Crie seu primeiro produto!{% endif %}
+  </p>
+{% endif %}
+
+<script>
+  var _catAtiva = '', _buscaAtiva = '';
+
+  function filtrar(cat, btn) {
+    _catAtiva = cat;
+    document.querySelectorAll('.filtro-chip').forEach(function(b){ b.classList.remove('ativo'); });
+    btn.classList.add('ativo');
+    aplicar();
+  }
+
+  function buscar(val) {
+    _buscaAtiva = val.toLowerCase().trim();
+    aplicar();
+  }
+
+  function aplicar() {
+    var linhas = document.querySelectorAll('#tabelaProdutos tbody tr');
+    var visivel = 0;
+    linhas.forEach(function(tr) {
+      var catOk  = !_catAtiva  || tr.dataset.cat  === _catAtiva;
+      var nomeOk = !_buscaAtiva || tr.dataset.nome.includes(_buscaAtiva);
+      var mostrar = catOk && nomeOk;
+      tr.style.display = mostrar ? '' : 'none';
+      if (mostrar) visivel++;
+    });
+    document.getElementById('prodCount').textContent = visivel + ' produto' + (visivel !== 1 ? 's' : '');
+  }
+</script>
+{% endblock %}

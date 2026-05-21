@@ -1,0 +1,310 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<style>
+  .cp-page { padding: 1.8rem 1.6rem; max-width: 1100px; margin: 0 auto; }
+  .cp-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800;
+              color: #1e293b; margin-bottom: 1.4rem; }
+  .cp-title span { color: var(--color-primary); }
+
+  /* STATS */
+  .cp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+              gap: 1rem; margin-bottom: 1.6rem; }
+  .cp-stat  { background: #fff; border-radius: var(--radius-md); padding: 1rem 1.1rem;
+              box-shadow: var(--shadow-sm); text-align: center; border-top: 3px solid #e2e8f0; }
+  .cp-stat.s-novo         { border-color: #f59e0b; }
+  .cp-stat.s-em_andamento { border-color: #3b82f6; }
+  .cp-stat.s-concluido    { border-color: #22c55e; }
+  .cp-stat.s-cancelado    { border-color: #ef4444; }
+  .cp-stat-val { font-size: 1.6rem; font-weight: 800; color: var(--color-text); }
+  .cp-stat-lbl { font-size: .72rem; font-weight: 700; color: var(--color-muted);
+                 text-transform: uppercase; letter-spacing: .06em; margin-top: .2rem; }
+
+  /* CONFIG */
+  .cp-config-card {
+    background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 1.5rem; margin-bottom: 1.6rem;
+  }
+  .cp-config-title {
+    font-size: .8rem; font-weight: 800; color: var(--color-muted);
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .cp-config-form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  .cp-config-form .fg label { display: block; font-size: .78rem; font-weight: 700; color: #64748b;
+                               margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .04em; }
+  .cp-config-form .fg input[type="text"],
+  .cp-config-form .fg textarea {
+    width: 100%; padding: .55rem .8rem; border: 1.5px solid #e2e8f0;
+    border-radius: 8px; font-size: .88rem; font-family: 'Nunito', sans-serif;
+    background: #fff; outline: none; transition: border-color .15s;
+  }
+  .cp-config-form .fg input[type="text"]:focus,
+  .cp-config-form .fg textarea:focus { border-color: var(--color-primary); }
+  .cp-config-form .fg textarea { resize: vertical; min-height: 60px; }
+  .cp-config-form .fg-full { grid-column: 1 / -1; }
+  .btn-cfg { padding: .55rem 1.2rem; background: var(--color-primary); color: #fff;
+             border: none; border-radius: 8px; font-size: .82rem; font-weight: 700;
+             cursor: pointer; white-space: nowrap; transition: background .15s; }
+  .btn-cfg:hover { background: var(--color-hover-primary); }
+
+  /* color pickers */
+  .color-row { display: flex; align-items: center; gap: .5rem; }
+  .color-swatch {
+    width: 32px; height: 32px; border-radius: 7px; border: 1.5px solid #e2e8f0;
+    cursor: pointer; flex-shrink: 0; overflow: hidden; padding: 0;
+  }
+  .color-swatch input[type="color"] {
+    width: 200%; height: 200%; margin: -25%; border: none; cursor: pointer; background: none;
+  }
+  .color-hex {
+    width: 90px; padding: .4rem .6rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
+    font-size: .82rem; font-family: monospace; outline: none; transition: border-color .15s;
+  }
+  .color-hex:focus { border-color: var(--color-primary); }
+  .corp-preview-strip {
+    height: 36px; border-radius: 10px; border: 1.5px solid #e2e8f0;
+    transition: background .2s; margin-top: .6rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 800; color: #fff; letter-spacing: .06em;
+  }
+
+  /* FILTERS */
+  .cp-filters { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+  .cp-filter-btn { padding: .38rem .9rem; border-radius: 20px; border: 1.5px solid var(--color-border);
+                   font-size: .82rem; font-weight: 700; cursor: pointer; text-decoration: none;
+                   color: var(--color-muted); background: #fff; transition: all .15s; }
+  .cp-filter-btn:hover, .cp-filter-btn.active { background: var(--color-primary); color: #fff;
+                                                border-color: var(--color-primary); }
+
+  /* TABLE */
+  .cp-card  { background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .cp-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  .cp-table th { background: #f8fafc; padding: .7rem 1rem; text-align: left;
+                 font-size: .7rem; font-weight: 800; color: var(--color-muted);
+                 text-transform: uppercase; letter-spacing: .07em;
+                 border-bottom: 1px solid var(--color-border); }
+  .cp-table td { padding: .75rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .cp-table tr:last-child td { border-bottom: none; }
+  .cp-table tr:hover td { background: #fafbfc; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: .22rem .65rem; border-radius: 20px;
+           font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+  .badge-novo         { background: #fef3c7; color: #92400e; }
+  .badge-em_andamento { background: #dbeafe; color: #1e40af; }
+  .badge-concluido    { background: #dcfce7; color: #166534; }
+  .badge-cancelado    { background: #fee2e2; color: #991b1b; }
+  .badge-tipo-personalizar { background: #f0fdf4; color: #15803d; font-size: .68rem; }
+  .badge-tipo-solicitar    { background: #eff6ff; color: #1d4ed8; font-size: .68rem; }
+
+  .status-form   { display: flex; gap: .4rem; align-items: center; }
+  .status-select { padding: .28rem .55rem; border-radius: 7px; border: 1.5px solid var(--color-border);
+                   font-size: .78rem; font-weight: 600; background: #fff; cursor: pointer; }
+  .btn-save      { padding: .28rem .7rem; border-radius: 7px; background: var(--color-primary);
+                   color: #fff; border: none; font-size: .76rem; font-weight: 700; cursor: pointer;
+                   transition: background .15s; }
+  .btn-save:hover { background: var(--color-hover-primary); }
+
+  .det-btn { background: none; border: none; color: var(--color-primary); cursor: pointer;
+             font-size: .78rem; font-weight: 700; text-decoration: underline; padding: 0; }
+  .det-box { display: none; margin-top: .4rem; font-size: .8rem; color: var(--color-muted);
+             background: #f8fafc; border-radius: 8px; padding: .6rem .8rem; }
+  .det-box.open { display: block; }
+
+  .empty-msg { text-align: center; padding: 3rem 1rem; color: var(--color-muted); font-size: .95rem; }
+
+  @media (max-width: 720px) {
+    .cp-config-form { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="cp-page">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.4rem; flex-wrap:wrap; gap:.8rem;">
+    <div class="cp-title" style="margin-bottom:0;">Pedidos <span>Corporativos</span></div>
+    <a href="{{ url_for('corporativo') }}" target="_blank"
+       style="display:inline-flex; align-items:center; gap:.4rem; padding:.5rem 1rem; background:#fff; color:#475569; border:1.5px solid #e2e8f0; border-radius:9px; font-size:.83rem; font-weight:700; text-decoration:none;"
+       onmouseover="this.style.borderColor='var(--color-primary)';this.style.color='var(--color-primary)'"
+       onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+      Ver página pública
+    </a>
+  </div>
+
+  <!-- STATS -->
+  <div class="cp-stats">
+    <div class="cp-stat">
+      <div class="cp-stat-val">{{ stats.total }}</div>
+      <div class="cp-stat-lbl">Total</div>
+    </div>
+    <div class="cp-stat s-novo">
+      <div class="cp-stat-val">{{ stats.novo }}</div>
+      <div class="cp-stat-lbl">Novos</div>
+    </div>
+    <div class="cp-stat s-em_andamento">
+      <div class="cp-stat-val">{{ stats.em_andamento }}</div>
+      <div class="cp-stat-lbl">Em andamento</div>
+    </div>
+    <div class="cp-stat s-concluido">
+      <div class="cp-stat-val">{{ stats.concluido }}</div>
+      <div class="cp-stat-lbl">Concluídos</div>
+    </div>
+    <div class="cp-stat s-cancelado">
+      <div class="cp-stat-val">{{ stats.cancelado }}</div>
+      <div class="cp-stat-lbl">Cancelados</div>
+    </div>
+  </div>
+
+  <!-- CONFIGURAÇÕES -->
+  <div class="cp-config-card">
+    <div class="cp-config-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Configurações da página corporativa
+    </div>
+    <form method="POST" action="{{ url_for('admin_corporativo') }}">
+      <input type="hidden" name="acao" value="config">
+      <div class="cp-config-form">
+
+        <div class="fg">
+          <label>Prazo de entrega</label>
+          <input type="text" name="prazo_texto"
+                 value="{{ config.prazo_texto or '' }}"
+                 placeholder="Ex: 15 dias úteis">
+        </div>
+
+        <div class="fg">
+          <label>Informações exibidas na página (opcional)</label>
+          <textarea name="informacoes"
+                    placeholder="Texto informativo exibido no topo da página corporativa...">{{ config.informacoes or '' }}</textarea>
+        </div>
+
+        <div class="fg-full" style="display:flex; justify-content:flex-end; margin-top:.5rem;">
+          <button type="submit" class="btn-cfg">Salvar configurações</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="cp-filters">
+    <a href="{{ url_for('admin_corporativo') }}"
+       class="cp-filter-btn {% if not status_filter %}active{% endif %}">Todos</a>
+    <a href="{{ url_for('admin_corporativo', status='novo') }}"
+       class="cp-filter-btn {% if status_filter=='novo' %}active{% endif %}">Novos</a>
+    <a href="{{ url_for('admin_corporativo', status='em_andamento') }}"
+       class="cp-filter-btn {% if status_filter=='em_andamento' %}active{% endif %}">Em andamento</a>
+    <a href="{{ url_for('admin_corporativo', status='concluido') }}"
+       class="cp-filter-btn {% if status_filter=='concluido' %}active{% endif %}">Concluídos</a>
+    <a href="{{ url_for('admin_corporativo', status='cancelado') }}"
+       class="cp-filter-btn {% if status_filter=='cancelado' %}active{% endif %}">Cancelados</a>
+  </div>
+
+  <!-- TABELA -->
+  <div class="cp-card">
+    {% if pedidos %}
+    <table class="cp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Detalhes</th>
+          <th>Status</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos %}
+        <tr>
+          <td><strong>#{{ p.id }}</strong></td>
+          <td>{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            <div style="font-weight:700">{{ p.nome }}</div>
+            <div style="font-size:.74rem;color:var(--color-muted)">{{ p.telefone }}</div>
+            {% if p.email %}<div style="font-size:.73rem;color:var(--color-muted)">{{ p.email }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-tipo-{{ p.tipo }}">
+              {{ 'Personalizar' if p.tipo == 'personalizar' else 'Solicitar' }}
+            </span>
+            {% if p.produto_nome %}
+            <div style="font-size:.75rem;color:#475569;margin-top:.2rem;">{{ p.produto_nome }}</div>
+            {% endif %}
+            {% if p.quantidade %}
+            <div style="font-size:.73rem;color:var(--color-muted)">Qtd: {{ p.quantidade }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <button class="det-btn" data-id="{{ p.id }}" onclick="toggleDet(+this.dataset.id)">Ver detalhes</button>
+            <div class="det-box" id="det-{{ p.id }}">
+              {% if p.logo_url %}
+              <div style="margin-bottom:.5rem;">
+                <strong>Logo enviada:</strong><br>
+                <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+                     style="max-height:60px;max-width:160px;border-radius:6px;border:1px solid #e2e8f0;margin-top:.3rem;">
+                <a href="{{ url_for('static', filename=p.logo_url) }}" target="_blank"
+                   style="display:block;font-size:.73rem;color:var(--color-primary);margin-top:.2rem;">Abrir em tamanho completo</a>
+              </div>
+              {% endif %}
+              {% if p.personalizacao %}
+              <div><strong>{{ 'Personalização:' if p.tipo == 'personalizar' else 'Descrição:' }}</strong><br>{{ p.personalizacao }}</div>
+              {% endif %}
+              {% if p.sabor %}
+              <div style="margin-top:.3rem;"><strong>Sabor:</strong> {{ p.sabor }}</div>
+              {% endif %}
+              {% if p.cor_fita %}
+              <div style="margin-top:.3rem;"><strong>Cor da fita:</strong> {{ p.cor_fita }}</div>
+              {% endif %}
+              {% if p.modelo_tag %}
+              <div style="margin-top:.3rem;"><strong>Modelo de tag:</strong> {{ p.modelo_tag }}</div>
+              {% endif %}
+              {% if p.frase_tag %}
+              <div style="margin-top:.3rem;"><strong>Frase na tag:</strong> {{ p.frase_tag }}</div>
+              {% endif %}
+              {% if p.data_desejada %}
+              <div style="margin-top:.3rem;"><strong>Data desejada:</strong> {{ p.data_desejada }}</div>
+              {% endif %}
+              {% if p.observacoes %}
+              <div style="margin-top:.3rem;"><strong>Obs:</strong> {{ p.observacoes }}</div>
+              {% endif %}
+            </div>
+          </td>
+          <td><span class="badge badge-{{ p.status }}">{{ p.status.replace('_', ' ') }}</span></td>
+          <td>
+            <form class="status-form" method="POST"
+                  action="{{ url_for('admin_corporativo_status', id=p.id) }}">
+              <input type="hidden" name="status_filter" value="{{ status_filter }}">
+              <select class="status-select" name="status">
+                {% for s in ['novo','em_andamento','concluido','cancelado'] %}
+                <option value="{{ s }}" {% if p.status == s %}selected{% endif %}>
+                  {{ s.replace('_', ' ').capitalize() }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn-save">Salvar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">Nenhuma solicitação corporativa encontrada.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function toggleDet(id) {
+    document.getElementById('det-' + id).classList.toggle('open');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,264 @@
+/* ══════════════════════════════════════════════════════════
+   ACESSIBILIDADE — Doces da Fhê (CSS puro, sem JavaScript)
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --acc-blue:       #1E5AA8;
+  --acc-blue-dark:  #154080;
+  --acc-blue-light: #dbeafe;
+}
+
+/* ── State inputs (ocultos, acessíveis pelo teclado) ──────── */
+.acc-state {
+  position: absolute;
+  opacity: 0;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Skip to content ──────────────────────────────────────── */
+.acc-skip {
+  position: fixed;
+  top: -100px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--acc-blue); color: #fff;
+  padding: .75rem 2rem;
+  border-radius: 0 0 12px 12px;
+  font-weight: 700; font-size: .95rem;
+  z-index: 100000; transition: top .22s;
+  text-decoration: none; white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+}
+.acc-skip:focus { top: 0; }
+
+/* ── FAB ─────────────────────────────────────────────────── */
+.acc-fab {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: var(--acc-blue); color: #fff;
+  border: 3px solid #fff;
+  cursor: pointer; z-index: 99990;
+  box-shadow: 0 4px 20px rgba(30,90,168,.45);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .2s, background .2s, box-shadow .2s;
+  user-select: none;
+}
+.acc-fab:hover { background: var(--acc-blue-dark); transform: scale(1.1); }
+body:has(#acc-open:focus-visible) .acc-fab { outline: 3px solid #fff; outline-offset: 4px; }
+body:has(#acc-open:checked)       .acc-fab { background: var(--acc-blue-dark); }
+
+/* ── Panel ────────────────────────────────────────────────── */
+.acc-panel {
+  position: fixed;
+  bottom: 96px; right: 24px;
+  width: 340px; max-height: 86vh;
+  background: #f1f5f9;
+  border-radius: 18px;
+  box-shadow: 0 16px 56px rgba(0,0,0,.2), 0 2px 8px rgba(0,0,0,.08);
+  z-index: 99989;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transform: translateY(18px) scale(.96);
+  opacity: 0; pointer-events: none;
+  transition: transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
+}
+body:has(#acc-open:checked) .acc-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1; pointer-events: all;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.acc-header {
+  background: var(--acc-blue); color: #fff;
+  padding: 1rem 1.1rem .9rem;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.acc-header-title {
+  font-size: .98rem; font-weight: 800;
+  display: flex; align-items: center; gap: .55rem;
+}
+.acc-wcag-badge {
+  background: rgba(255,255,255,.15);
+  font-size: .6rem; font-weight: 800; letter-spacing: .06em;
+  padding: .1rem .45rem; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,.3); margin-left: .3rem;
+}
+.acc-close-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.18); color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s; font-size: 1.1rem; user-select: none; line-height: 1;
+}
+.acc-close-btn:hover { background: rgba(255,255,255,.32); }
+
+/* ── Scroll body ──────────────────────────────────────────── */
+.acc-body {
+  overflow-y: auto; flex: 1;
+  scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+}
+.acc-body::-webkit-scrollbar { width: 4px; }
+.acc-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+/* ── Section ──────────────────────────────────────────────── */
+.acc-section {
+  padding: 1rem 1rem .9rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.acc-section:last-child { border-bottom: none; }
+.acc-section-label {
+  font-size: .82rem; font-weight: 800;
+  color: #1e293b; margin: 0 0 .75rem;
+}
+
+/* ── Card grid ────────────────────────────────────────────── */
+.acc-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+}
+
+/* ── Card ─────────────────────────────────────────────────── */
+.acc-card {
+  background: #fff;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: .9rem .85rem .8rem;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: .55rem;
+  transition: all .18s;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,.07);
+}
+.acc-card:hover { border-color: #94a3b8; }
+.acc-card-icon { color: #475569; line-height: 1; }
+.acc-card-label { font-size: .78rem; font-weight: 700; color: #334155; line-height: 1.3; }
+
+/* ── Cards active state ───────────────────────────────────── */
+body:has(#acc-color-contrast:checked)  label[for="acc-color-contrast"],
+body:has(#acc-color-intensity:checked) label[for="acc-color-intensity"],
+body:has(#acc-color-dalton:checked)    label[for="acc-color-dalton"],
+body:has(#acc-dyslexia:checked)        label[for="acc-dyslexia"],
+body:has(#acc-bold:checked)            label[for="acc-bold"],
+body:has(#acc-line-height:checked)     label[for="acc-line-height"],
+body:has(#acc-letter-sp:checked)       label[for="acc-letter-sp"] {
+  border-color: var(--acc-blue);
+  background: var(--acc-blue-light);
+}
+body:has(#acc-color-contrast:checked)  label[for="acc-color-contrast"]  .acc-card-icon,
+body:has(#acc-color-contrast:checked)  label[for="acc-color-contrast"]  .acc-card-label,
+body:has(#acc-color-intensity:checked) label[for="acc-color-intensity"] .acc-card-icon,
+body:has(#acc-color-intensity:checked) label[for="acc-color-intensity"] .acc-card-label,
+body:has(#acc-color-dalton:checked)    label[for="acc-color-dalton"]    .acc-card-icon,
+body:has(#acc-color-dalton:checked)    label[for="acc-color-dalton"]    .acc-card-label,
+body:has(#acc-dyslexia:checked)        label[for="acc-dyslexia"]        .acc-card-icon,
+body:has(#acc-dyslexia:checked)        label[for="acc-dyslexia"]        .acc-card-label,
+body:has(#acc-bold:checked)            label[for="acc-bold"]            .acc-card-icon,
+body:has(#acc-bold:checked)            label[for="acc-bold"]            .acc-card-label,
+body:has(#acc-line-height:checked)     label[for="acc-line-height"]     .acc-card-icon,
+body:has(#acc-line-height:checked)     label[for="acc-line-height"]     .acc-card-label,
+body:has(#acc-letter-sp:checked)       label[for="acc-letter-sp"]       .acc-card-icon,
+body:has(#acc-letter-sp:checked)       label[for="acc-letter-sp"]       .acc-card-label {
+  color: var(--acc-blue);
+}
+
+/* ── Cards focus state ────────────────────────────────────── */
+body:has(#acc-color-contrast:focus-visible)  label[for="acc-color-contrast"],
+body:has(#acc-color-intensity:focus-visible) label[for="acc-color-intensity"],
+body:has(#acc-color-dalton:focus-visible)    label[for="acc-color-dalton"],
+body:has(#acc-dyslexia:focus-visible)        label[for="acc-dyslexia"],
+body:has(#acc-bold:focus-visible)            label[for="acc-bold"],
+body:has(#acc-line-height:focus-visible)     label[for="acc-line-height"],
+body:has(#acc-letter-sp:focus-visible)       label[for="acc-letter-sp"] {
+  outline: 2px solid var(--acc-blue); outline-offset: 2px;
+}
+
+/* ── Font size row ────────────────────────────────────────── */
+.acc-font-row { display: flex; gap: .5rem; }
+.acc-font-btn {
+  flex: 1; padding: .55rem .3rem;
+  background: #fff; border: 2px solid transparent;
+  border-radius: 12px; cursor: pointer;
+  font-weight: 800; color: #475569; text-align: center;
+  transition: all .15s; user-select: none; display: block;
+  box-shadow: 0 1px 3px rgba(0,0,0,.07);
+}
+.acc-font-btn:hover { border-color: #94a3b8; }
+body:has(#acc-font-sm:checked)     label[for="acc-font-sm"],
+body:has(#acc-font-normal:checked) label[for="acc-font-normal"],
+body:has(#acc-font-lg:checked)     label[for="acc-font-lg"],
+body:has(#acc-font-xl:checked)     label[for="acc-font-xl"] {
+  border-color: var(--acc-blue);
+  background: var(--acc-blue-light); color: var(--acc-blue);
+}
+body:has(#acc-font-sm:focus-visible)     label[for="acc-font-sm"],
+body:has(#acc-font-normal:focus-visible) label[for="acc-font-normal"],
+body:has(#acc-font-lg:focus-visible)     label[for="acc-font-lg"],
+body:has(#acc-font-xl:focus-visible)     label[for="acc-font-xl"] {
+  outline: 2px solid var(--acc-blue); outline-offset: 2px;
+}
+
+/* ── Reset button ─────────────────────────────────────────── */
+.acc-reset-btn {
+  width: 100%; padding: .65rem;
+  border: 2px solid #e2e8f0; background: #fff;
+  border-radius: 12px; font-size: .84rem; font-weight: 700;
+  color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  transition: all .18s; font-family: inherit;
+  box-shadow: 0 1px 3px rgba(0,0,0,.07);
+}
+.acc-reset-btn:hover { border-color: #dc2626; color: #dc2626; background: #fff5f5; }
+.acc-reset-btn:focus { outline: 2px solid var(--acc-blue); outline-offset: 2px; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+.acc-footer {
+  background: #f8fafc; border-top: 1px solid #e2e8f0;
+  padding: .55rem 1rem; font-size: .65rem;
+  color: #94a3b8; text-align: center; flex-shrink: 0;
+}
+
+/* ── Content wrapper ──────────────────────────────────────── */
+.acc-content-wrap { min-height: 100vh; }
+
+/* ══ EFEITOS GLOBAIS (aplicados no wrapper, nunca no painel) ══ */
+
+/* Contraste de cores */
+body:has(#acc-color-contrast:checked)  .acc-content-wrap { filter: contrast(160%); }
+
+/* Intensidade de cores (dessatura — útil para sensibilidade sensorial) */
+body:has(#acc-color-intensity:checked) .acc-content-wrap { filter: saturate(0.2) brightness(1.04); }
+
+/* Modo daltônico (escala de cinza) */
+body:has(#acc-color-dalton:checked)    .acc-content-wrap { filter: grayscale(100%); }
+
+/* Tamanho de fonte */
+body:has(#acc-font-sm:checked) * { font-size:  95% !important; }
+body:has(#acc-font-lg:checked) * { font-size: 105% !important; }
+body:has(#acc-font-xl:checked) * { font-size: 110% !important; }
+
+/* Estilo de texto amigável para dislexia */
+body:has(#acc-dyslexia:checked) * {
+  font-family: Arial, Helvetica, sans-serif !important;
+  word-spacing: .18em !important;
+}
+
+/* Letras destacadas */
+body:has(#acc-bold:checked) * { font-weight: 700 !important; }
+
+/* Espaço entre linhas */
+body:has(#acc-line-height:checked) * { line-height: 2.1 !important; }
+
+/* Espaço entre letras */
+body:has(#acc-letter-sp:checked) * { letter-spacing: .12em !important; }
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 440px) {
+  .acc-panel { right: 0; bottom: 0; width: 100%; max-height: 90vh; border-radius: 18px 18px 0 0; }
+  .acc-fab   { bottom: 16px; right: 16px; }
+}

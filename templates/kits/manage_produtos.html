@@ -1,0 +1,215 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+  .manage-page { max-width: 760px; margin: 0 auto; }
+
+  .manage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.6rem;
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+  .manage-header h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 0;
+  }
+  .manage-header h2 span { color: var(--color-text, #1e293b); }
+
+  /* ── seção ── */
+  .secao-label {
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #94a3b8;
+    margin: 1.2rem 0 .5rem;
+    padding-left: .2rem;
+  }
+
+  /* ── card de produto ── */
+  .prod-row {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .7rem 1rem;
+    margin-bottom: .5rem;
+    transition: border-color .18s, box-shadow .18s;
+    cursor: pointer;
+  }
+  .prod-row:hover { border-color: var(--color-primary); }
+  .prod-row.ativo {
+    border-color: var(--color-primary);
+    background: #f6f9f2;
+    box-shadow: 0 2px 8px rgba(91,109,61,.10);
+  }
+
+  /* checkbox customizado */
+  .custom-cb { display: none; }
+  .cb-box {
+    width: 20px; height: 20px; min-width: 20px;
+    border: 2px solid #cbd5e1;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    background: #fff;
+  }
+  .prod-row.ativo .cb-box {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+  .cb-box svg { display: none; }
+  .prod-row.ativo .cb-box svg { display: block; }
+
+  .prod-info { flex: 1; min-width: 0; }
+  .prod-nome {
+    font-size: .88rem;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .prod-row:not(.ativo) .prod-nome { color: #94a3b8; font-weight: 500; }
+  .prod-preco {
+    font-size: .76rem;
+    color: #64748b;
+    margin-top: .1rem;
+  }
+
+  .qty-wrap {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s;
+  }
+  .prod-row.ativo .qty-wrap { opacity: 1; pointer-events: auto; }
+  .qty-label {
+    font-size: .72rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .qty-input {
+    width: 64px;
+    padding: .3rem .5rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: .85rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-primary);
+    background: #fff;
+    transition: border-color .18s;
+  }
+  .qty-input:focus { outline: none; border-color: var(--color-primary); }
+  .qty-input:disabled { background: #f1f5f9; color: #94a3b8; }
+
+  .manage-footer {
+    margin-top: 1.4rem;
+    display: flex;
+    gap: .75rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="manage-header">
+  <h2>Kit <span>"{{ kit.name }}"</span></h2>
+</div>
+
+<div class="manage-page">
+  <form method="POST" id="manageForm">
+
+    {# separa incluídos e não incluídos #}
+    {% set incluidos   = all_products | selectattr('id', 'in', kit_products.keys()) | list %}
+    {% set disponiveis = all_products | rejectattr('id', 'in', kit_products.keys()) | list %}
+
+    {% if incluidos %}
+      <div class="secao-label">✅ Incluídos no kit ({{ incluidos|length }})</div>
+      {% for product in incluidos %}
+        {% set kp = kit_products.get(product.id) %}
+        <label class="prod-row ativo" data-id="{{ product.id }}" onclick="toggleRow(event, +this.dataset.id)">
+          <input type="checkbox" class="custom-cb" name="product_id"
+                 id="cb_{{ product.id }}" value="{{ product.id }}" checked>
+          <div class="cb-box">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="prod-info">
+            <div class="prod-nome">{{ product.name }}</div>
+            <div class="prod-preco">R$ {{ "%.2f"|format(product.price) }} / unidade</div>
+          </div>
+          <div class="qty-wrap" onclick="event.stopPropagation()">
+            <span class="qty-label">Qtd:</span>
+            <input type="number" name="qty_{{ product.id }}" id="qty_{{ product.id }}"
+                   value="{{ kp.quantity if kp else 1 }}"
+                   min="1" step="1" class="qty-input">
+          </div>
+        </label>
+      {% endfor %}
+    {% endif %}
+
+    {% if disponiveis %}
+      <div class="secao-label">Disponíveis para adicionar ({{ disponiveis|length }})</div>
+      {% for product in disponiveis %}
+        <label class="prod-row" data-id="{{ product.id }}" onclick="toggleRow(event, +this.dataset.id)">
+          <input type="checkbox" class="custom-cb" name="product_id"
+                 id="cb_{{ product.id }}" value="{{ product.id }}">
+          <div class="cb-box">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="prod-info">
+            <div class="prod-nome">{{ product.name }}</div>
+            <div class="prod-preco">R$ {{ "%.2f"|format(product.price) }} / unidade</div>
+          </div>
+          <div class="qty-wrap" onclick="event.stopPropagation()">
+            <span class="qty-label">Qtd:</span>
+            <input type="number" name="qty_{{ product.id }}" id="qty_{{ product.id }}"
+                   value="1" min="1" step="1" class="qty-input" disabled>
+          </div>
+        </label>
+      {% endfor %}
+    {% endif %}
+
+    <div class="manage-footer">
+      <button type="submit" class="btn-primary">Salvar Alterações</button>
+      <a href="{{ url_for('view_kit', kit_id=kit.id) }}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+
+<script>
+  function toggleRow(e, pid) {
+    /* clique no campo de quantidade não togla o card */
+    if (e.target.classList.contains('qty-input')) return;
+    e.preventDefault(); /* impede o label de toglar o checkbox uma segunda vez */
+    var cb  = document.getElementById('cb_'  + pid);
+    var qty = document.getElementById('qty_' + pid);
+    var row = cb.closest('.prod-row');
+    cb.checked = !cb.checked;
+    if (cb.checked) {
+      row.classList.add('ativo');
+      qty.disabled = false;
+      qty.focus();
+    } else {
+      row.classList.remove('ativo');
+      qty.disabled = true;
+    }
+  }
+</script>
+{% endblock %}

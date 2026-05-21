@@ -1,0 +1,420 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<style>
+/* ── Hero ── */
+.ml-hero {
+  position: relative;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 60%, var(--color-accent) 100%);
+  padding: 3.5rem 2rem 4rem;
+  overflow: hidden;
+  text-align: center;
+}
+.ml-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+.ml-hero-back {
+  position: absolute; top: 1.4rem; left: 1.6rem;
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: rgba(255,255,255,.15); color: #fff;
+  padding: .45rem 1rem; border-radius: 50px;
+  text-decoration: none; font-size: .8rem; font-weight: 700;
+  border: 1px solid rgba(255,255,255,.25);
+  backdrop-filter: blur(8px);
+  transition: background .18s;
+}
+.ml-hero-back:hover { background: rgba(255,255,255,.25); }
+.ml-hero-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  border: 2px solid rgba(255,255,255,.35);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.1rem;
+  backdrop-filter: blur(6px);
+}
+.ml-hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem; font-weight: 700;
+  color: #fff; margin: 0 0 .4rem; letter-spacing: -.01em;
+}
+.ml-hero p { color: rgba(255,255,255,.75); font-size: .95rem; margin: 0; }
+
+/* ── Stats bar ── */
+.ml-stats {
+  display: flex; justify-content: center; gap: 2.5rem;
+  padding: 1.5rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ml-stat { text-align: center; }
+.ml-stat-num {
+  font-size: 1.6rem; font-weight: 800;
+  color: var(--color-primary); line-height: 1;
+}
+.ml-stat-label { font-size: .72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; margin-top: .2rem; }
+
+/* ── Tabs ── */
+.ml-wrap { max-width: 1000px; margin: 0 auto; padding: 2.5rem 1.4rem 4rem; }
+.ml-tabs {
+  display: flex; gap: .5rem; margin-bottom: 2.2rem;
+  background: #f8fafc; padding: .35rem; border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+}
+.ml-tab {
+  flex: 1; padding: .7rem 1rem; border: none; background: transparent;
+  border-radius: 10px; font-family: 'Nunito', sans-serif;
+  font-size: .88rem; font-weight: 700; color: #64748b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: .5rem; transition: all .18s;
+}
+.ml-tab.ativo {
+  background: #fff; color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.ml-tab-badge {
+  font-size: .7rem; font-weight: 800; padding: .15rem .5rem;
+  border-radius: 20px; min-width: 20px; text-align: center;
+  background: var(--color-primary); color: #fff;
+}
+.ml-tab:not(.ativo) .ml-tab-badge { background: #e2e8f0; color: #64748b; }
+
+/* ── Section ── */
+.ml-section { display: none; }
+.ml-section.ativo { display: block; animation: fadeUp .22s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Grid ── */
+.ml-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.6rem;
+}
+
+/* ── Card ── */
+.ml-card {
+  background: #fff; border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.06);
+  overflow: hidden; display: flex; flex-direction: column;
+  border: 1.5px solid #f1f5f9;
+  transition: transform .22s cubic-bezier(.4,0,.2,1), box-shadow .22s;
+  position: relative;
+}
+.ml-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(0,0,0,.12);
+  border-color: #e2e8f0;
+}
+.ml-card-img-wrap { position: relative; overflow: hidden; }
+.ml-card-img { width: 100%; height: 180px; object-fit: cover; display: block; transition: transform .4s ease; }
+.ml-card:hover .ml-card-img { transform: scale(1.04); }
+.ml-card-img-placeholder {
+  width: 100%; height: 180px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  display: flex; align-items: center; justify-content: center; color: #cbd5e1;
+}
+.ml-card-remove {
+  position: absolute; top: .7rem; right: .7rem;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,.9); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #94a3b8; backdrop-filter: blur(4px);
+  transition: all .18s; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  opacity: 0;
+}
+.ml-card:hover .ml-card-remove { opacity: 1; }
+.ml-card-remove:hover { background: #fff; color: #ef4444; transform: scale(1.1); }
+
+.ml-card-body { padding: 1.2rem; flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.ml-card-cat {
+  font-size: .67rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .07em; padding: .22rem .65rem; border-radius: 50px;
+  background: var(--color-primary); color: #fff;
+  text-decoration: none; align-self: flex-start;
+  transition: opacity .15s;
+}
+.ml-card-cat:hover { opacity: .85; }
+.ml-card-title {
+  font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
+  color: #1e293b; text-decoration: none; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ml-card-title:hover { color: var(--color-primary); }
+.ml-card-resumo {
+  font-size: .82rem; color: #64748b; line-height: 1.6;
+  flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ml-card-footer {
+  display: flex; align-items: center; gap: .5rem;
+  padding-top: .75rem; margin-top: .3rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: .75rem; color: #94a3b8;
+}
+.ml-card-dot { color: #cbd5e1; }
+.ml-read-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: .3rem;
+  background: var(--color-primary); color: #fff;
+  padding: .3rem .75rem; border-radius: 20px;
+  text-decoration: none; font-size: .72rem; font-weight: 700;
+  transition: opacity .15s;
+}
+.ml-read-btn:hover { opacity: .85; }
+
+/* ── Empty ── */
+.ml-empty {
+  text-align: center; padding: 4rem 1.5rem;
+  background: #fff; border-radius: 20px;
+  border: 1.5px dashed #e2e8f0;
+}
+.ml-empty-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: #f8fafc; display: flex; align-items: center;
+  justify-content: center; margin: 0 auto 1.2rem; color: #cbd5e1;
+}
+.ml-empty h3 { font-size: 1.1rem; font-weight: 700; color: #334155; margin: 0 0 .5rem; }
+.ml-empty p  { font-size: .88rem; color: #64748b; margin: 0 0 1.4rem; }
+.ml-empty-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: var(--color-primary); color: #fff;
+  padding: .6rem 1.4rem; border-radius: 50px;
+  text-decoration: none; font-size: .88rem; font-weight: 700;
+  transition: opacity .15s;
+}
+.ml-empty-btn:hover { opacity: .85; }
+
+@media (max-width: 600px) {
+  .ml-hero h1 { font-size: 1.8rem; }
+  .ml-stats { gap: 1.5rem; }
+  .ml-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="ml-hero">
+  <a href="{{ url_for('blog.index') }}" class="ml-hero-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Voltar ao Blog
+  </a>
+  <div class="ml-hero-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+  </div>
+  <h1>Minha Lista</h1>
+  <p>Posts que você salvou e curtiu</p>
+</div>
+
+<!-- Stats -->
+<div class="ml-stats">
+  <div class="ml-stat">
+    <div class="ml-stat-num">{{ salvos|length }}</div>
+    <div class="ml-stat-label">Salvos</div>
+  </div>
+  <div class="ml-stat" style="color:#e2e8f0; font-size:1.6rem; align-self:center;">·</div>
+  <div class="ml-stat">
+    <div class="ml-stat-num" style="color:var(--color-secondary);">{{ curtidos|length }}</div>
+    <div class="ml-stat-label">Curtidos</div>
+  </div>
+</div>
+
+<div class="ml-wrap">
+
+  <!-- Tabs -->
+  <div class="ml-tabs">
+    <button class="ml-tab ativo" onclick="trocarAba('salvos', this)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      Salvos
+      <span class="ml-tab-badge" id="badge-salvos">{{ salvos|length }}</span>
+    </button>
+    <button class="ml-tab" onclick="trocarAba('curtidos', this)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Curtidos
+      <span class="ml-tab-badge" id="badge-curtidos" style="background:var(--color-secondary);">{{ curtidos|length }}</span>
+    </button>
+  </div>
+
+  <!-- Aba Salvos -->
+  <div id="aba-salvos" class="ml-section ativo">
+    {% if salvos %}
+    <div class="ml-grid">
+      {% for post in salvos %}
+      <article class="ml-card" id="card-salvo-{{ post.id }}">
+        <div class="ml-card-img-wrap">
+          <a href="{{ url_for('blog.post', slug=post.slug) }}">
+            {% if post.capa_url %}
+            <img class="ml-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+            {% else %}
+            <div class="ml-card-img-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            {% endif %}
+          </a>
+          <button class="ml-card-remove" onclick="removerSalvo({{ post.id }})" title="Remover dos salvos">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="ml-card-body">
+          {% if post.categoria %}
+          <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="ml-card-cat"
+             style="background:{{ post.categoria.cor or 'var(--color-primary)' }};">{{ post.categoria.nome }}</a>
+          {% endif %}
+          <a href="{{ url_for('blog.post', slug=post.slug) }}" class="ml-card-title">{{ post.titulo }}</a>
+          {% if post.resumo %}
+          <p class="ml-card-resumo">{{ post.resumo }}</p>
+          {% elif post.conteudo %}
+          <p class="ml-card-resumo">{{ post.conteudo | striptags | truncate(110) }}</p>
+          {% endif %}
+          <div class="ml-card-footer">
+            <span>{{ post.created_at.strftime('%d/%m/%Y') }}</span>
+            <span class="ml-card-dot">&bull;</span>
+            <span>{{ post.tempo_leitura }} min</span>
+            <a href="{{ url_for('blog.post', slug=post.slug) }}" class="ml-read-btn">
+              Ler
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="ml-empty" id="empty-salvos">
+      <div class="ml-empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h3>Nenhum post salvo ainda</h3>
+      <p>Clique no marcador nos posts para salvá-los aqui.</p>
+      <a href="{{ url_for('blog.index') }}" class="ml-empty-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Explorar o blog
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Aba Curtidos -->
+  <div id="aba-curtidos" class="ml-section">
+    {% if curtidos %}
+    <div class="ml-grid">
+      {% for post in curtidos %}
+      <article class="ml-card" id="card-curtido-{{ post.id }}">
+        <div class="ml-card-img-wrap">
+          <a href="{{ url_for('blog.post', slug=post.slug) }}">
+            {% if post.capa_url %}
+            <img class="ml-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+            {% else %}
+            <div class="ml-card-img-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            {% endif %}
+          </a>
+          <button class="ml-card-remove" onclick="removerCurtido({{ post.id }})" title="Descurtir">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="ml-card-body">
+          {% if post.categoria %}
+          <a href="{{ url_for('blog.categoria', slug=post.categoria.slug) }}" class="ml-card-cat"
+             style="background:{{ post.categoria.cor or 'var(--color-primary)' }};">{{ post.categoria.nome }}</a>
+          {% endif %}
+          <a href="{{ url_for('blog.post', slug=post.slug) }}" class="ml-card-title">{{ post.titulo }}</a>
+          {% if post.resumo %}
+          <p class="ml-card-resumo">{{ post.resumo }}</p>
+          {% elif post.conteudo %}
+          <p class="ml-card-resumo">{{ post.conteudo | striptags | truncate(110) }}</p>
+          {% endif %}
+          <div class="ml-card-footer">
+            <span>{{ post.created_at.strftime('%d/%m/%Y') }}</span>
+            <span class="ml-card-dot">&bull;</span>
+            <span>{{ post.tempo_leitura }} min</span>
+            <a href="{{ url_for('blog.post', slug=post.slug) }}" class="ml-read-btn" style="background:var(--color-secondary);">
+              Ler
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="ml-empty" id="empty-curtidos">
+      <div class="ml-empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </div>
+      <h3>Nenhum post curtido ainda</h3>
+      <p>Clique no coração nos posts para curtir.</p>
+      <a href="{{ url_for('blog.index') }}" class="ml-empty-btn" style="background:var(--color-secondary);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Explorar o blog
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function trocarAba(nome, btn) {
+  document.querySelectorAll('.ml-tab').forEach(t => t.classList.remove('ativo'));
+  document.querySelectorAll('.ml-section').forEach(s => s.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  document.getElementById('aba-' + nome).classList.add('ativo');
+}
+
+async function removerSalvo(id) {
+  await fetch(`/blog/${id}/salvar`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  const card = document.getElementById('card-salvo-' + id);
+  if (card) {
+    card.style.transition = 'opacity .25s, transform .25s';
+    card.style.opacity = '0'; card.style.transform = 'scale(.95)';
+    setTimeout(() => {
+      card.remove();
+      atualizarContador('salvos', 'badge-salvos');
+    }, 250);
+  }
+}
+
+async function removerCurtido(id) {
+  await fetch(`/blog/${id}/curtir`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  const card = document.getElementById('card-curtido-' + id);
+  if (card) {
+    card.style.transition = 'opacity .25s, transform .25s';
+    card.style.opacity = '0'; card.style.transform = 'scale(.95)';
+    setTimeout(() => {
+      card.remove();
+      atualizarContador('curtidos', 'badge-curtidos');
+    }, 250);
+  }
+}
+
+function atualizarContador(aba, badgeId) {
+  const grid = document.querySelector(`#aba-${aba} .ml-grid`);
+  const badge = document.getElementById(badgeId);
+  const total = grid ? grid.querySelectorAll('.ml-card').length : 0;
+  if (badge) badge.textContent = total;
+  if (total === 0 && grid) {
+    grid.remove();
+    const section = document.getElementById('aba-' + aba);
+    section.innerHTML = `
+      <div class="ml-empty">
+        <div class="ml-empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <h3>Tudo limpo por aqui!</h3>
+        <p>Explore o blog e salve novos posts.</p>
+        <a href="/blog" class="ml-empty-btn">Explorar o blog</a>
+      </div>`;
+  }
+}
+</script>
+{% endblock %}

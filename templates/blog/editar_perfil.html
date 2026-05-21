@@ -1,0 +1,170 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="header-right">
+    <a href="{{ url_for('blog.perfil_autor', user_id=current_user.id) }}" style="color:white; font-size:.85rem; font-weight:700; text-decoration:none;">Ver Perfil Público</a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      {% if carrinho_total > 0 %}<span class="cart-badge">{{ carrinho_total }}</span>{% endif %}
+    </a>
+  </div>
+</header>
+
+<div class="perfil-wrap">
+  <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:1.5rem;">
+    <a href="{{ url_for('blog.perfil_autor', user_id=current_user.id) }}" style="color:var(--blog-muted); text-decoration:none; font-weight:700; font-size:.88rem; display:flex; align-items:center; gap:.4rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar ao Perfil
+    </a>
+    <h1 style="font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; color:var(--blog-text); margin:0;">Editar Perfil</h1>
+  </div>
+
+  <form method="post" action="{{ url_for('blog.editar_perfil') }}" enctype="multipart/form-data">
+
+    <!-- Avatar & Banner -->
+    <div class="perfil-section">
+      <h2 class="perfil-section-title">Fotos do Perfil</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+
+        <div class="editor-field">
+          <label>Avatar</label>
+          {% if perfil and perfil.avatar_url %}
+          <img class="perfil-avatar-preview show" id="avatarPreview" src="{{ url_for('static', filename=perfil.avatar_url) }}" alt="Avatar atual">
+          {% else %}
+          <img class="perfil-avatar-preview" id="avatarPreview" src="" alt="Preview">
+          {% endif %}
+          <input type="file" name="avatar" accept="image/*" onchange="previewImg(this, 'avatarPreview')" style="margin-top:.5rem;">
+        </div>
+
+        <div class="editor-field">
+          <label>Banner de Capa</label>
+          {% if perfil and perfil.banner_url %}
+          <img class="perfil-banner-preview show" id="bannerPreview" src="{{ url_for('static', filename=perfil.banner_url) }}" alt="Banner atual">
+          {% else %}
+          <img class="perfil-banner-preview" id="bannerPreview" src="" alt="Preview">
+          {% endif %}
+          <input type="file" name="banner" accept="image/*" onchange="previewImg(this, 'bannerPreview')" style="margin-top:.5rem;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="perfil-section">
+      <h2 class="perfil-section-title">Dados Pessoais</h2>
+
+      <div class="editor-field">
+        <label for="nomeInput">Nome</label>
+        <input type="text" name="nome" id="nomeInput" value="{{ current_user.name or '' }}" placeholder="Seu nome completo">
+      </div>
+
+      <div class="editor-field">
+        <label for="usernameInput">Nome de usuário (@)</label>
+        <input type="text" name="username" id="usernameInput"
+               value="{{ perfil.username if perfil and perfil.username else '' }}"
+               placeholder="seu_usuario" autocomplete="off">
+        <small style="color:var(--blog-muted); font-size:.75rem;">Sem espaços, apenas letras, números e underscore.</small>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="editor-field">
+          <label>Profissão</label>
+          <input type="text" name="profissao" placeholder="Ex: Confeiteira"
+                 value="{{ perfil.profissao if perfil and perfil.profissao else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Cidade</label>
+          <input type="text" name="cidade" placeholder="Ex: São Paulo - SP"
+                 value="{{ perfil.cidade if perfil and perfil.cidade else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>E-mail de contato</label>
+          <input type="email" name="email_contato" placeholder="contato@email.com"
+                 value="{{ perfil.email_contato if perfil and perfil.email_contato else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Telefone / WhatsApp</label>
+          <input type="text" name="telefone" placeholder="(11) 99999-9999"
+                 value="{{ perfil.telefone if perfil and perfil.telefone else '' }}">
+        </div>
+      </div>
+
+      <div class="editor-field">
+        <label for="bioInput">Portfólio <span style="color:var(--blog-muted); font-weight:400;">(máx. 300 caracteres)</span></label>
+        <textarea name="bio" id="bioInput" rows="4" maxlength="300"
+                  placeholder="Fale sobre seu trabalho, experiência e especialidades...">{{ perfil.bio if perfil and perfil.bio else '' }}</textarea>
+        <div class="bio-counter"><span id="bioCount">0</span>/300</div>
+      </div>
+    </div>
+
+    <!-- Redes sociais -->
+    <div class="perfil-section">
+      <h2 class="perfil-section-title">Redes Sociais</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="editor-field">
+          <label>Instagram</label>
+          <input type="text" name="instagram" placeholder="@nomedeusuario"
+                 value="{{ perfil.instagram if perfil and perfil.instagram else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>TikTok</label>
+          <input type="text" name="tiktok" placeholder="@nomedeusuario"
+                 value="{{ perfil.tiktok if perfil and perfil.tiktok else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Facebook</label>
+          <input type="text" name="facebook" placeholder="nomedepagina"
+                 value="{{ perfil.facebook if perfil and perfil.facebook else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>LinkedIn</label>
+          <input type="text" name="linkedin" placeholder="username"
+                 value="{{ perfil.linkedin if perfil and perfil.linkedin else '' }}">
+        </div>
+      </div>
+    </div>
+
+
+<div style="display:flex; gap:.85rem; justify-content:flex-end; flex-wrap:wrap;">
+      <a href="{{ url_for('blog.perfil_autor', user_id=current_user.id) }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">Cancelar</a>
+      <button type="submit" class="editor-btn editor-btn-primary">Salvar Alterações</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+function previewImg(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.classList.add('show');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// Bio counter
+const bioInput = document.getElementById('bioInput');
+const bioCount = document.getElementById('bioCount');
+if (bioInput) {
+  const update = () => bioCount.textContent = bioInput.value.length;
+  bioInput.addEventListener('input', update);
+  update();
+}
+</script>
+
+{% endblock %}

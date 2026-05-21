@@ -1,0 +1,683 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}" >
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<!-- FAIXA DE PROMOÇÕES -->
+{% if promocoes_loja %}
+<div class="promo-bar" id="promoBar">
+  <div class="promo-bar-track" id="promoBarTrack">
+    {% for p in promocoes_loja %}
+    <span class="promo-bar-item">
+      <span class="promo-bar-tag">🏷️ PROMO</span>
+      <strong>{{ p.nome }}</strong>
+      —
+      {% if p.tipo == 'percentual' %}
+        {{ "%.0f"|format(p.valor) }}% de desconto
+      {% else %}
+        R$ {{ "%.2f"|format(p.valor) }} de desconto
+      {% endif %}
+      {% if p.valor_minimo and p.valor_minimo > 0 %}
+        em pedidos acima de R$ {{ "%.2f"|format(p.valor_minimo) }}
+      {% endif %}
+      {% if p.descricao %} · {{ p.descricao }}{% endif %}
+    </span>
+    {% if not loop.last %}<span class="promo-bar-sep">✦</span>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+<style>
+.promo-bar {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-hover-primary) 100%);
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  z-index: 10;
+}
+.promo-bar-track {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: .55rem 3rem .55rem 1.4rem;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  animation: promoScroll 30s linear infinite;
+}
+.promo-bar-track::-webkit-scrollbar { display: none; }
+@keyframes promoScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.promo-bar-track:hover { animation-play-state: paused; }
+.promo-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .85rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.promo-bar-item strong { font-weight: 800; }
+.promo-bar-tag {
+  background: rgba(255,255,255,.22);
+  border-radius: 20px;
+  padding: .12rem .6rem;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.promo-bar-sep {
+  color: rgba(255,255,255,.45);
+  font-size: .85rem;
+  flex-shrink: 0;
+  padding: 0 .5rem;
+}
+</style>
+<script>
+/* duplicar itens para scroll infinito contínuo */
+(function() {
+  var track = document.getElementById('promoBarTrack');
+  if (track) {
+    var clone = track.innerHTML;
+    track.innerHTML += clone;
+  }
+})();
+</script>
+{% endif %}
+
+<!-- CARROSSEL -->
+<div class="carrossel-wrap">
+  <button class="carousel-btn prev" onclick="moverCarrossel(-1)">&#8249;</button>
+
+  <div class="carrossel-track" id="carrosselTrack">
+    {% if carrossel %}
+      {% for item in carrossel %}
+      <div class="carrossel-slide {% if loop.first %}active{% endif %}">
+        <img src="{{ url_for('static', filename='uploads/carrossel/' + item.imagem) }}"
+             alt="{{ item.titulo or 'Doces da Fhê' }}">
+        {% if item.titulo or item.subtitulo %}
+        <div class="carrossel-caption">
+          {% if item.titulo %}<h2>{{ item.titulo }}</h2>{% endif %}
+          {% if item.subtitulo %}<p>{{ item.subtitulo }}</p>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="carrossel-slide active carrossel-fallback">
+        <div class="hero-content">
+          <h1>Uma explosão de sabor<br><em>em cada detalhe</em></h1>
+          <p class="subtitle">Nossos doces são feitos artesanalmente, com ingredientes selecionados e muito carinho.</p>
+          <ul class="hero-list">
+            <li>🍫 Brigadeiros gourmet</li>
+            <li>🍓 Combinações irresistíveis</li>
+            <li>✨ Texturas que derretem na boca</li>
+          </ul>
+          <button class="hero-cta">Faça sua encomenda!</button>
+        </div>
+        <div class="hero-image-area">
+          <div style="font-size:5.5rem;line-height:1.1;text-align:center;">🍫<br>🍬🍰</div>
+          <div class="hero-badge">
+            <div class="brand">Doces<br>da Fhê</div>
+            <div class="tagline">feito com amor em<br>cada detalhe 💖</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <button class="carousel-btn next" onclick="moverCarrossel(1)">&#8250;</button>
+
+  {% if carrossel|length > 1 %}
+  <div class="carrossel-dots" id="carrosselDots">
+    {% for item in carrossel %}
+    <span class="dot {% if loop.first %}active{% endif %}"
+          onclick="irParaSlide({ loop,index0 })"></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- AGENDA -->
+{% if agenda_proximos %}
+<div id="agendaHeader" style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+  <h2 class="section-title" style="margin:0; padding:0;">Próximos Eventos</h2>
+</div>
+<div id="agendaWrap" style="position:relative; max-width:960px; margin:0 auto 2.5rem; padding:0 3.5rem;">
+  {% if agenda_proximos|length > 3 %}
+  <button onclick="agendaPage(-1)" class="cards-btn prev">&#8249;</button>
+  <button onclick="agendaPage(1)"  class="cards-btn next">&#8250;</button>
+  {% endif %}
+  <div id="agendaGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+    {% for ev in agenda_proximos %}
+    <div class="agenda-ev-card" data-cor="{{ ev.cor }}" style="background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden; display:none;">
+      <div class="ev-bar" style="height:5px;"></div>
+      <div style="padding:1rem 1.1rem;">
+        <div style="display:flex; align-items:center; gap:.8rem; margin-bottom:.7rem;">
+          <div class="ev-date-box" style="border-radius:10px; padding:.4rem .65rem; text-align:center; min-width:48px; flex-shrink:0;">
+            <div class="ev-day" style="font-size:1.35rem; font-weight:800; line-height:1;">{{ ev.data_inicio.strftime('%d') }}</div>
+            <div class="ev-month" style="font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;">{{ ev.data_inicio | mes_pt }}</div>
+          </div>
+          <h3 style="font-size:.92rem; font-weight:700; color:#1e293b; margin:0; line-height:1.3;">{{ ev.titulo }}</h3>
+        </div>
+        <p style="font-size:.78rem; color:#64748b; margin:0 0 .2rem;">🕐 {{ ev.data_inicio.strftime('%H:%M') }}{% if ev.data_fim %} – {{ ev.data_fim.strftime('%H:%M') }}{% endif %}</p>
+        {% if ev.local %}<p style="font-size:.78rem; color:#64748b; margin:0;">📍 {{ ev.local }}</p>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+<script>
+(function(){
+  const cards    = document.querySelectorAll('.agenda-ev-card');
+  const total    = cards.length;
+  let start = 0;
+  const agendaWrap = document.getElementById('agendaWrap');
+  const prevBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.prev');
+  const nextBtn = agendaWrap && agendaWrap.querySelector('.cards-btn.next');
+
+  function getVisible() {
+    return window.innerWidth <= 768 ? 2 : 3;
+  }
+
+  function setBtn(btn, show) {
+    if (!btn) return;
+    btn.style.opacity = show ? '1' : '0';
+    btn.style.pointerEvents = show ? 'auto' : 'none';
+  }
+
+  function render() {
+    const visible = getVisible();
+    cards.forEach((c, i) => c.style.display = (i >= start && i < start + visible) ? 'block' : 'none');
+    setBtn(prevBtn, start > 0);
+    setBtn(nextBtn, start + visible < total);
+  }
+  window.agendaPage = function(dir) {
+    const visible = getVisible();
+    start = Math.max(0, Math.min(start + dir, total - visible));
+    render();
+  };
+  window.addEventListener('resize', function() { start = 0; render(); });
+  render();
+})();
+</script>
+{% endif %}
+
+<!-- ══ EVENTOS ESPECIAIS ══ -->
+{% for evento in eventos %}
+  {% if evento.ativo %}
+    {% set produtos_visiveis = evento.produtos | selectattr('mostrar') | list %}
+    {% if produtos_visiveis %}
+    <h2 class="section-title">{{ evento.nome }}</h2>
+    <div class="cards-carrossel-wrap">
+      <button class="cards-btn prev" onclick="moverCards('evento-{{ loop.index }}', -1)">&#8249;</button>
+      <div class="cards-track" id="evento-{{ loop.index }}">
+        {% for p in produtos_visiveis %}
+        <div class="card produto-item" data-nome="{{ p.name | lower }}">
+          <button class="btn-fav {% if p.id in fav_e %}ativo{% endif %}"
+                  data-tipo="especial" data-id="{{ p.id }}"
+                  onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+          {% if site_config.new_badge_ativo != false and p.created_at and (now() - p.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+          <a href="{{ url_for('produto_especial_detalhe', id=p.id) }}" class="card-link-inner">
+            <div class="card-img">
+              {% if p.image_url %}
+                <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+              {% else %}🍰{% endif %}
+            </div>
+            <div class="card-body">
+              <h3>{{ p.name }}</h3>
+            </div>
+          </a>
+          <div class="card-footer">
+            <span class="price"><sup>R$</sup> {{ "%.2f"|format(p.price) }} <span class="per">/un</span></span>
+            <div class="qty" id="qty-e-{{ p.id }}">
+              <button onclick="changeQty('e-{{ p.id }}', -1)">−</button>
+              <span>1</span>
+              <button onclick="changeQty('e-{{ p.id }}', 1)">+</button>
+            </div>
+          </div>
+          <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+            <input type="hidden" name="especial_id" value="{{ p.id }}">
+            <input type="hidden" name="quantidade" id="qty-input-e-{{ p.id }}" value="1">
+            <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+            <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      <button class="cards-btn next" onclick="moverCards('evento-{{ loop.index }}', 1)">&#8250;</button>
+    </div>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+<!-- ══ MONTE SEU KIT ══ -->
+<h2 class="section-title">Kits</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('kitsGridAll', -1)">&#8249;</button>
+  <div class="cards-track" id="kitsGridAll">
+
+    {% for kit in kits %}
+    <div class="card produto-item" data-nome="{{ kit.name | lower }}">
+      <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}"
+              data-tipo="kit" data-id="{{ kit.id }}"
+              onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+      {% if site_config.new_badge_ativo != false and kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+      <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if kit.image_url %}
+            <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+          {% else %}🎁{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ kit.name }}</h3>
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }} <span class="per">/kit</span></span>
+        <div class="qty" id="qty-k-{{ kit.id }}">
+          <button onclick="changeQty('k-{{ kit.id }}', -1)">−</button>
+          <span>1</span>
+          <button onclick="changeQty('k-{{ kit.id }}', 1)">+</button>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+        <input type="hidden" name="quantidade" id="qty-input-k-{{ kit.id }}" value="1">
+        <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+        <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+      </form>
+    </div>
+    {% endfor %}
+
+    <!-- Card especial: Monte seu Kit (sempre por último) -->
+    <div class="card card-kit-especial">
+      <div class="kit-icon">🎁</div>
+      <h3>Monte seu Kit</h3>
+      <p>Escolha os produtos que você quer e crie seu kit personalizado!</p>
+      <a href="{{ url_for('montar_kit') }}" class="kit-cta">Montar agora ✨</a>
+    </div>
+
+  </div>
+  <button class="cards-btn next" onclick="moverCards('kitsGridAll', 1)">&#8250;</button>
+</div>
+
+<!-- ══ LINHA CORPORATIVA ══ -->
+{% if produtos_corp %}
+<h2 class="section-title">Linha Corporativa</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('corpGrid', -1)">&#8249;</button>
+  <div class="cards-track" id="corpGrid">
+    {% for produto in produtos_corp %}
+    <div class="card produto-item" data-nome="{{ produto.name | lower }}">
+      <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if produto.image_url %}
+            <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+          {% else %}🍫{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ produto.name }}</h3>
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+      </div>
+      <a href="{{ url_for('corporativo_personalizar') }}?produto_id={{ produto.id }}" class="btn-cart"
+         style="display:block;text-align:center;text-decoration:none;">Personalizar</a>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="cards-btn next" onclick="moverCards('corpGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
+<!-- ══ TODOS OS PRODUTOS ══ -->
+{% if produtos %}
+<h2 class="section-title">Nossos Produtos</h2>
+<div class="cards-carrossel-wrap">
+  <button class="cards-btn prev" onclick="moverCards('productGrid', -1)">&#8249;</button>
+  <div class="cards-track" id="productGrid">
+    {% for produto in produtos %}
+    <div class="card produto-item" data-nome="{{ produto.name | lower }}">
+      <button class="btn-fav {% if produto.id in fav_p %}ativo{% endif %}"
+              data-tipo="produto" data-id="{{ produto.id }}"
+              onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+      {% if site_config.new_badge_ativo != false and produto.created_at and (now() - produto.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+      <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+        <div class="card-img">
+          {% if produto.image_url %}
+            <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+          {% else %}🍰{% endif %}
+        </div>
+        <div class="card-body">
+          <h3>{{ produto.name }}</h3>
+          {% if medias_p and produto.id in medias_p %}
+          {% set m = medias_p[produto.id] %}
+          <div style="display:flex;align-items:center;gap:3px;margin-top:.2rem;">
+            {% for i in range(1,6) %}
+            <svg viewBox="0 0 24 24" width="13" height="13"
+                 fill="{{ '#f59e0b' if i <= m[0]|round(0,'ceil')|int else '#e2e8f0' }}"
+                 stroke="{{ '#f59e0b' if i <= m[0]|round(0,'ceil')|int else '#cbd5e1' }}" stroke-width="1.5">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+            </svg>
+            {% endfor %}
+            <span style="font-size:.72rem;color:#64748b;margin-left:2px;">{{ m[0] }} ({{ m[1] }})</span>
+          </div>
+          {% endif %}
+        </div>
+      </a>
+      <div class="card-footer">
+        <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+        <div class="qty" id="qty-p-{{ produto.id }}">
+          <button onclick="changeQty('p-{{ produto.id }}', -1)">−</button>
+          <span>1</span>
+          <button onclick="changeQty('p-{{ produto.id }}', 1)">+</button>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+        <input type="hidden" name="quantidade" id="qty-input-p-{{ produto.id }}" value="1">
+        <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+        <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="cards-btn next" onclick="moverCards('productGrid', 1)">&#8250;</button>
+</div>
+{% endif %}
+
+<!-- POSTS RECENTES DO BLOG -->
+{% if posts_recentes %}
+<div id="blogHeader" style="display:flex; align-items:baseline; justify-content:space-between; max-width:960px; margin:2rem auto .8rem; padding:0 3.5rem;">
+  <h2 class="section-title" style="margin:0; padding:0;">Do Blog</h2>
+  <a href="{{ url_for('blog.index') }}" style="font-size:.85rem; font-weight:700; color:var(--color-primary); text-decoration:none; white-space:nowrap;">Ver todos →</a>
+</div>
+<div id="blogGrid" style="max-width:960px; margin:0 auto 3rem; padding:0 3.5rem; display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem;">
+  {% for post in posts_recentes %}
+  <a href="{{ url_for('blog.post', slug=post.slug) }}" style="text-decoration:none; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; transition:transform .2s, box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'">
+    {% if post.capa_url %}
+    <img src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" style="width:100%; height:150px; object-fit:cover; display:block;">
+    {% else %}
+    <div style="width:100%; height:150px; background:linear-gradient(135deg,var(--color-primary),var(--color-dark)); display:flex; align-items:center; justify-content:center;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    {% endif %}
+    <div style="padding:.9rem 1rem 1rem; flex:1;">
+      {% if post.categoria %}
+      <span class="cat-badge" data-cor="{{ post.categoria.cor }}" style="display:inline-block; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fff; border-radius:4px; padding:.15rem .5rem; margin-bottom:.5rem;">{{ post.categoria.nome }}</span>
+      {% endif %}
+      <p style="font-size:.9rem; font-weight:700; color:#1e293b; margin:0 0 .4rem; line-height:1.35;">{{ post.titulo | truncate(60) }}</p>
+      <p style="font-size:.78rem; color:#64748b; margin:0;">{{ post.created_at.strftime('%d/%m/%Y') }} · {{ post.tempo_leitura }} min</p>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <!-- ENDEREÇO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
+    </div>
+
+    <!-- FUNCIONAMENTO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Sábado</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> de 11:00 às 20:30</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/?ref=NONE_xav_ig_profile_page_web" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.851 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.033.215.07.321.11 1.154.433 2.068 1.143 2.672 2.069 1.119 1.714 1.23 4.06.292 6.03-1.61 3.42-5.043 5.218-9.642 5.812z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- DOCES DA FHÊ -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a>
+  </div>
+</footer>
+
+<script>
+  // ── CARROSSEL ──
+  let slideAtual = 0;
+  const slides = document.querySelectorAll('.carrossel-slide');
+  const dots   = document.querySelectorAll('.dot');
+
+  function mostrarSlide(n) {
+    slides.forEach(s => s.classList.remove('active'));
+    dots.forEach(d => d.classList.remove('active'));
+    slideAtual = (n + slides.length) % slides.length;
+    slides[slideAtual].classList.add('active');
+    if (dots[slideAtual]) dots[slideAtual].classList.add('active');
+  }
+
+  function moverCarrossel(dir) { mostrarSlide(slideAtual + dir); }
+  function irParaSlide(n) { mostrarSlide(n); }
+
+  if (slides.length > 1) {
+    setInterval(() => moverCarrossel(1), 4000);
+  }
+
+  // ── CARROSSEL DE CARDS ──
+  const trackOffsets = {};
+
+  function _visCards() {
+    return window.innerWidth <= 480 ? 1 : (window.innerWidth <= 768 ? 2 : 3);
+  }
+
+  function _updateCardsBtns(track, offset, maxOffset) {
+    const wrap = track.closest('.cards-carrossel-wrap');
+    if (!wrap) return;
+    const prev = wrap.querySelector('.cards-btn.prev');
+    const next = wrap.querySelector('.cards-btn.next');
+    if (prev) { prev.style.opacity = offset > 0 ? '1' : '0'; prev.style.pointerEvents = offset > 0 ? 'auto' : 'none'; }
+    if (next) { next.style.opacity = offset < maxOffset ? '1' : '0'; next.style.pointerEvents = offset < maxOffset ? 'auto' : 'none'; }
+  }
+
+  function _initCarousel(wrap) {
+    const track = wrap.querySelector('.cards-track');
+    if (!track) return;
+    const cards    = track.querySelectorAll('.card');
+    const vis      = _visCards();
+    const trackId  = track.id;
+    if (cards.length <= vis) {
+      if (trackId) trackOffsets[trackId] = 0;
+      track.style.transform = 'translateX(0)';
+      _updateCardsBtns(track, 0, 0);
+      return;
+    }
+    const cardWidth = cards[0].offsetWidth + 16;
+    const maxOffset = (cards.length - vis) * cardWidth;
+    if (trackId) {
+      trackOffsets[trackId] = Math.min(trackOffsets[trackId] || 0, maxOffset);
+      track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
+      _updateCardsBtns(track, trackOffsets[trackId], maxOffset);
+    } else {
+      _updateCardsBtns(track, 0, maxOffset);
+    }
+  }
+
+  function moverCards(trackId, dir) {
+    const track = document.getElementById(trackId);
+    if (!track) return;
+    const cards      = track.querySelectorAll('.card');
+    const vis        = _visCards();
+    if (cards.length <= vis) return;
+    const cardWidth  = cards[0].offsetWidth + 16;
+    const maxOffset  = (cards.length - vis) * cardWidth;
+    if (!trackOffsets[trackId]) trackOffsets[trackId] = 0;
+    trackOffsets[trackId] += dir * cardWidth;
+    trackOffsets[trackId]  = Math.max(0, Math.min(trackOffsets[trackId], maxOffset));
+    track.style.transform = `translateX(-${trackOffsets[trackId]}px)`;
+    _updateCardsBtns(track, trackOffsets[trackId], maxOffset);
+  }
+
+  // Inicializa e re-inicializa no resize
+  function _initAllCarousels() {
+    document.querySelectorAll('.cards-carrossel-wrap').forEach(_initCarousel);
+  }
+  _initAllCarousels();
+  window.addEventListener('resize', _initAllCarousels);
+
+  // ── QTY ── ✅ função corrigida
+  function changeQty(id, delta) {
+    const qtyDiv   = document.getElementById('qty-' + id);
+    const qtyInput = document.getElementById('qty-input-' + id);
+    const span     = qtyDiv.querySelector('span');
+    let val = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val;
+    qtyInput.value   = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  function filtrarProdutos() {
+    const termo = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.produto-item').forEach(card => {
+      card.style.display = card.dataset.nome.includes(termo) ? '' : 'none';
+    });
+  }
+
+  // Aplica cores dinâmicas dos cards de agenda e badges de categoria do blog
+  document.querySelectorAll('.agenda-ev-card[data-cor]').forEach(function(card) {
+    var cor = card.dataset.cor;
+    var bar = card.querySelector('.ev-bar');
+    var box = card.querySelector('.ev-date-box');
+    var day = card.querySelector('.ev-day');
+    var mon = card.querySelector('.ev-month');
+    if (bar) bar.style.background = cor;
+    if (box) box.style.background = cor + '20';
+    if (day) day.style.color = cor;
+    if (mon) mon.style.color = cor;
+  });
+  document.querySelectorAll('.cat-badge[data-cor]').forEach(function(span) {
+    span.style.background = span.dataset.cor;
+  });
+
+
+  function toggleFav(btn) {
+    fetch('/favoritar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id})
+    })
+    .then(r => r.status === 401
+      ? r.json().then(d => { window.location.href = d.redirect; })
+      : r.json().then(data => {
+          btn.classList.toggle('ativo', data.favorito);
+          btn.classList.add('pulsando');
+          setTimeout(() => btn.classList.remove('pulsando'), 300);
+        })
+    );
+  }
+
+</script>
+{% endblock %}

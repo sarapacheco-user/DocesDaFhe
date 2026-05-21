@@ -1,0 +1,116 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="blog-admin-wrap">
+
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Newsletter</h1>
+    <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
+      <a href="{{ url_for('blog.admin') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle; margin-right:.3rem;"><polyline points="15 18 9 12 15 6"/></svg>
+        Painel do Blog
+      </a>
+      {% if inscritos %}
+      <a href="{{ url_for('blog.admin_newsletter_exportar') }}" class="editor-btn editor-btn-accent" style="text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle; margin-right:.3rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar PDF
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="admin-stats-grid" style="margin-bottom:1.5rem;">
+    <div class="admin-stat-card stat-primary">
+      <div class="admin-stat-label">Total de inscritos</div>
+      <div class="admin-stat-value">{{ inscritos|length }}</div>
+    </div>
+    {% if inscritos %}
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Mais recente</div>
+      <div class="admin-stat-value" style="font-size:1rem;">{{ inscritos[0].created_at.strftime('%d/%m/%Y') }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Primeiro inscrito</div>
+      <div class="admin-stat-value" style="font-size:1rem;">{{ inscritos[-1].created_at.strftime('%d/%m/%Y') }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if inscritos %}
+
+  <!-- Busca local -->
+  <div style="margin-bottom:1rem;">
+    <input type="text" id="busca-email" placeholder="Filtrar por e-mail..."
+           oninput="filtrarTabela(this.value)"
+           style="width:100%; max-width:360px; padding:.55rem .9rem; border:1.5px solid var(--blog-border); border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; outline:none;">
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table" id="tabela-inscritos">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>E-mail</th>
+          <th>Data de inscrição</th>
+          <th style="width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in inscritos %}
+        <tr data-email="{{ i.email }}">
+          <td style="color:#94a3b8; font-size:.8rem;">{{ loop.index }}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:.6rem;">
+              <div style="width:32px; height:32px; border-radius:50%; background:var(--color-primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:800; flex-shrink:0;">
+                {{ i.email[0].upper() }}
+              </div>
+              <span style="font-weight:600; color:#1e293b;">{{ i.email }}</span>
+            </div>
+          </td>
+          <td style="color:#64748b; font-size:.85rem;">{{ i.created_at.strftime('%d/%m/%Y às %H:%M') }}</td>
+          <td>
+            <form action="{{ url_for('blog.admin_newsletter_excluir', id=i.id) }}" method="post"
+                  onsubmit="return confirm('Remover {{ i.email }} da newsletter?')">
+              <button type="submit" class="action-btn action-btn-delete" style="padding:.3rem .7rem; font-size:.78rem;">
+                Remover
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p style="font-size:.78rem; color:#94a3b8; margin-top:.8rem;">
+    {{ inscritos|length }} inscrito(s) no total &nbsp;·&nbsp;
+    <a href="{{ url_for('blog.admin_newsletter_exportar') }}" style="color:var(--color-primary); font-weight:700; text-decoration:none;">Exportar PDF</a>
+  </p>
+
+  {% else %}
+  <div class="admin-table-wrap" style="padding:3.5rem; text-align:center;">
+    <div style="width:64px; height:64px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; color:#cbd5e1;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+    <h3 style="font-size:1rem; font-weight:700; color:#334155; margin:0 0 .4rem;">Nenhum inscrito ainda</h3>
+    <p style="font-size:.85rem; color:#64748b; margin:0;">Os e-mails aparecerão aqui quando alguém se inscrever pelo blog.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function filtrarTabela(q) {
+  const rows = document.querySelectorAll('#tabela-inscritos tbody tr');
+  const termo = q.toLowerCase();
+  rows.forEach(row => {
+    row.style.display = row.dataset.email.toLowerCase().includes(termo) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

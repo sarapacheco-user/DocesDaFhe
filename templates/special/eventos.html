@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+  .ev-status { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; font-weight: 700; padding: .28rem .75rem; border-radius: 20px; }
+  .ev-status.ativo      { background: #dcfce7; color: #166534; }
+  .ev-status.programado { background: #dbeafe; color: #1e40af; }
+  .ev-status.encerrado  { background: #f1f5f9; color: #64748b; }
+  .ev-status.inativo    { background: #fee2e2; color: #991b1b; }
+  .ev-agenda-info { font-size: .75rem; color: #64748b; margin-top: .25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="evento-header">
+  <div class="evento-titulo">
+    <h2>Eventos Especiais</h2>
+  </div>
+  <div class="evento-acoes">
+    <a href="{{ url_for('criar_evento') }}" class="btn-primary">+ Criar Evento</a>
+  </div>
+</div>
+
+{% if eventos %}
+<table cellpadding="10">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Descrição</th>
+      <th>Agendamento</th>
+      <th>Produtos</th>
+      <th>Status</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for evento in eventos %}
+    {% set st = evento.status_agendamento %}
+    <tr>
+      <td><strong>{{ evento.nome }}</strong></td>
+      <td>{{ evento.descricao[:50] ~ '…' if evento.descricao and evento.descricao|length > 50 else (evento.descricao or '—') }}</td>
+      <td>
+        {% if evento.data_inicio or evento.data_fim %}
+          <div class="ev-agenda-info">
+            {% if evento.data_inicio %}▶ {{ evento.data_inicio.strftime('%d/%m/%Y %H:%M') }}{% else %}▶ Agora{% endif %}
+          </div>
+          <div class="ev-agenda-info">
+            {% if evento.data_fim %}⏹ {{ evento.data_fim.strftime('%d/%m/%Y %H:%M') }}{% else %}⏹ Sem fim{% endif %}
+          </div>
+        {% else %}
+          <span style="color:#94a3b8; font-size:.78rem;">Sem agendamento</span>
+        {% endif %}
+      </td>
+      <td>{{ evento.produtos | length }} produto(s)</td>
+      <td>
+        {% if st == 'ativo' %}
+          <span class="ev-status ativo">● Ativo</span>
+        {% elif st == 'programado' %}
+          <span class="ev-status programado">⏰ Programado</span>
+        {% elif st == 'encerrado' %}
+          <span class="ev-status encerrado">✓ Encerrado</span>
+        {% else %}
+          <span class="ev-status inativo">✕ Inativo</span>
+        {% endif %}
+        <br>
+        <a href="{{ url_for('toggle_evento_ativo', id=evento.id) }}"
+           style="font-size:.72rem; color:var(--color-primary); text-decoration:underline; margin-top:.3rem; display:inline-block;">
+          {{ 'Desativar' if evento.ativo else 'Ativar' }}
+        </a>
+      </td>
+      <td>
+        <div class="acoes-wrap">
+          <a href="{{ url_for('editar_evento', id=evento.id) }}" class="btn-acao btn-toggle">Editar</a>
+          <a href="{{ url_for('listar_produtos_especiais', evento_id=evento.id) }}" class="btn-acao btn-editar">Produtos</a>
+          <form method="POST" action="{{ url_for('deletar_evento', id=evento.id) }}" style="display:inline;"
+                onsubmit="return confirm('Deletar o evento {{ evento.nome }}? Todos os produtos vinculados serão removidos.')">
+            <button type="submit" class="btn-acao btn-deletar">Deletar</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p style="color:#64748b; margin-top:1.5rem;">Nenhum evento criado ainda. Clique em <strong>+ Criar Evento</strong> para começar.</p>
+{% endif %}
+
+{% endblock %}

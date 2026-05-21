@@ -1,0 +1,119 @@
+{% extends "admin/base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">{% if product %}Editar Produto{% else %}Criar Produto{% endif %}</h3>
+        </div>
+
+        <div class="card-body">
+
+          <!-- ✅ UM SÓ FORM com enctype para suportar upload -->
+          <form method="POST" enctype="multipart/form-data">
+
+            <div class="mb-3">
+              <label for="name" class="form-label">Nome do Produto *</label>
+              <input type="text" class="form-control" id="name" name="name"
+                     value="{{ product.name if product else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="resumo" class="form-label">Resumo <small class="text-muted">(exibido no topo da página do produto)</small></label>
+              <textarea class="form-control" id="resumo" name="resumo"
+                        rows="3" maxlength="400"
+                        oninput="document.getElementById('resumo-count').textContent = this.value.length"
+                        placeholder="Breve descrição do produto (até 400 caracteres)">{{ product.resumo if product and product.resumo else '' }}</textarea>
+              <small class="text-muted">Aparece no painel lateral do produto. <span id="resumo-count">{{ (product.resumo|length) if product and product.resumo else 0 }}</span>/400 caracteres.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Descrição completa *</label>
+              <textarea class="form-control" id="description" name="description"
+                        rows="4" required>{{ product.description if product else '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="category" class="form-label">Categoria</label>
+              <select class="form-control" id="category" name="category">
+                <option value="bolos"       {% if product and product.category == 'bolos' %}selected{% endif %}>Bolos</option>
+                <option value="brigadeiros" {% if product and product.category == 'brigadeiros' %}selected{% endif %}>Brigadeiros</option>
+                <option value="chocolates"  {% if product and product.category == 'chocolates' %}selected{% endif %}>Chocolates</option>
+                <option value="trufas"        {% if product and product.category == 'trufas' %}selected{% endif %}>Trufas</option>
+                <option value="brownie"       {% if product and product.category == 'brownie' %}selected{% endif %}>Brownie</option>
+                <option value="corporativos"  {% if product and product.category == 'corporativos' %}selected{% endif %}>Corporativos</option>
+                <option value="geral"         {% if product and product.category == 'geral' %}selected{% endif %}>Geral</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="price" class="form-label">Preço (R$) *</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="number" class="form-control" id="price" name="price"
+                       step="0.01" min="0.01"
+                       value="{{ '%.2f'|format(product.price) if product else '' }}" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="quantidade_minima" class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" id="quantidade_minima" name="quantidade_minima"
+                     min="1" value="{{ product.quantidade_minima if product else 1 }}">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="quantidade_maxima" class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" id="quantidade_maxima" name="quantidade_maxima"
+                     min="1" value="{{ product.quantidade_maxima if product and product.quantidade_maxima else '' }}"
+                     placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
+            </div>
+
+            <!-- campo oculto recebe base64 do recortador (fallback Safari/mobile) -->
+            <input type="hidden" name="imagem_b64" id="imgB64Produto">
+
+            <!-- ✅ Upload dentro do mesmo form -->
+            <div class="mb-3">
+              <label for="arquivo" class="form-label">Imagem do Produto</label>
+              {% if product and product.image_url %}
+                <div id="imgBoxProduto" class="img-crop-box"
+                     data-src="{{ url_for('static', filename=product.image_url) }}"
+                     style="width:200px; height:200px; border:2px solid var(--color-primary, #5B6D3D); margin-bottom:.5rem;"
+                     onclick="abrirCropperImg(this.dataset.src,'imgB64Produto','imgBoxProduto')">
+                  <img src="{{ url_for('static', filename=product.image_url) }}" alt="Imagem atual" style="width:100%;height:100%;object-fit:cover;">
+                  <div class="crop-overlay"><span>Ajustar imagem</span></div>
+                </div>
+              {% endif %}
+              <input type="file" class="form-control" id="arquivo" name="arquivo"
+                     accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
+              <div id="previewWrap" style="margin-top:.7rem; display:none;">
+                <div style="width:200px; height:200px; border-radius:10px; overflow:hidden; border:2px solid var(--color-primary, #5B6D3D);">
+                  <img id="previewImg" src="" alt="preview">
+                </div>
+                <p style="font-size:.74rem; color:#64748b; margin-top:.4rem;">Nova imagem selecionada</p>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between gap-2" style="margin-top:1.2rem;">
+              <button type="submit" class="btn-primary">
+                {% if product %}Atualizar{% else %}Criar{% endif %} Produto
+              </button>
+              <a href="{{ url_for('list_products') }}" class="btn-secondary">Cancelar</a>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

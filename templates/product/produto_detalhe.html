@@ -1,0 +1,580 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='produto_detalhe.css') }}">
+<style>
+  .btn-fav-detalhe {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: #fff; border: 1.5px solid #e5e5e5; border-radius: 24px;
+    padding: .45rem 1rem; cursor: pointer; font-family: inherit;
+    font-size: .88rem; font-weight: 700; color: #4a90d9;
+    transition: all .2s; white-space: nowrap;
+  }
+  .btn-fav-detalhe svg {
+    fill: none; stroke: currentColor; stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round; transition: fill .2s;
+    flex-shrink: 0;
+  }
+  .btn-fav-detalhe:hover            { border-color: #e74c3c; color: #e74c3c; }
+  .btn-fav-detalhe.ativo            { border-color: #e74c3c; color: #e74c3c; background: #fff0ee; }
+  .btn-fav-detalhe.ativo svg        { fill: #e74c3c; }
+  .btn-fav-detalhe.pulsando         { animation: favPulse .3s ease; }
+  @keyframes favPulse {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.1); }
+  }
+
+  /* ═══════ AVALIAÇÕES ═══════ */
+  .av-wrap { max-width: 820px; margin: 2.5rem auto 0; padding: 0 1.2rem 2rem; }
+  .av-header { display:flex; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.4rem; }
+  .av-titulo { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:800; color:#1e293b; margin:0; }
+  .av-media-wrap { display:flex; align-items:center; gap:.5rem; }
+  .av-media-num { font-size:1.8rem; font-weight:800; color:#f59e0b; line-height:1; }
+  .av-stars-static { display:flex; gap:2px; }
+  .av-total { font-size:.85rem; color:#64748b; }
+
+  .av-form-card { background:#fff; border-radius:14px; box-shadow:0 1px 8px rgba(0,0,0,.07);
+                  padding:1.2rem 1.4rem; margin-bottom:1.6rem; }
+  .av-form-title { font-weight:800; color:#334155; margin:0 0 .9rem; font-size:.95rem; }
+
+  .av-star-picker { display:flex; gap:4px; margin-bottom:.9rem; }
+  .av-star-picker label input { display:none; }
+  .av-star-pick { fill:#e2e8f0; stroke:#cbd5e1; cursor:pointer; transition:fill .15s,transform .1s; }
+  .av-star-pick:hover, .av-star-pick.ativa { fill:#f59e0b; stroke:#f59e0b; transform:scale(1.15); }
+
+  .av-textarea { width:100%; border:1.5px solid #e2e8f0; border-radius:10px; padding:.7rem .9rem;
+                 font-size:.9rem; resize:vertical; outline:none; transition:border .15s;
+                 font-family:inherit; box-sizing:border-box; }
+  .av-textarea:focus { border-color:var(--color-primary); }
+  .av-btn-enviar { margin-top:.8rem; padding:.55rem 1.4rem; background:var(--color-primary); color:#fff;
+                   border:none; border-radius:10px; font-size:.9rem; font-weight:700;
+                   cursor:pointer; transition:background .15s; }
+  .av-btn-enviar:hover { background:var(--color-hover-primary); }
+
+  .av-ja-avaliou, .av-login-msg, .av-empty { font-size:.9rem; color:#64748b; margin-bottom:1.2rem; }
+  .av-login-msg a { color:var(--color-primary); font-weight:700; }
+
+  .av-lista { display:flex; flex-direction:column; gap:.9rem; }
+  .av-card { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.06);
+             padding:1rem 1.2rem; }
+  .av-card-top { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.5rem; }
+  .av-avatar { width:36px; height:36px; border-radius:50%; background:var(--color-primary); color:#fff;
+               display:flex; align-items:center; justify-content:center;
+               font-weight:800; font-size:.95rem; flex-shrink:0; }
+  .av-user-name { font-weight:700; font-size:.9rem; color:#1e293b; }
+  .av-date { font-size:.75rem; color:#94a3b8; }
+  .av-stars-row { display:flex; gap:2px; }
+  .av-comentario { font-size:.88rem; color:#475569; margin:0; line-height:1.5; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a href="{{ url_for('dashboard') }}">Início</a>
+  <span>›</span>
+  {% if is_kit %}
+    <a href="{{ url_for('kits_loja') }}">Kits</a>
+    <span>›</span>
+    <span>{{ kit.name }}</span>
+  {% else %}
+    <a href="{{ url_for('categoria', nome=produto.category) }}">{{ produto.category | capitalize }}</a>
+    <span>›</span>
+    <span>{{ produto.name }}</span>
+  {% endif %}
+</div>
+
+<!-- DETALHE -->
+<div class="produto-detalhe">
+
+  <!-- IMAGEM -->
+  <div class="produto-imagem">
+    {% if produto.image_url %}
+      <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}" class="produto-img-principal" />
+    {% else %}
+      <div class="produto-img-placeholder">{{ '🎁' if is_kit else '🍰' }}</div>
+    {% endif %}
+  </div>
+
+  <!-- INFORMAÇÕES -->
+  <div class="produto-info">
+
+    <span class="produto-categoria">{{ produto.category | capitalize }}</span>
+    <div style="display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;">
+      <h1 class="produto-nome" style="margin:0; flex:1;">{{ produto.name }}</h1>
+      <button class="btn-fav-detalhe {% if is_favorito %}ativo{% endif %}"
+              data-tipo="{{ fav_tipo }}" data-id="{{ fav_id }}"
+              onclick="toggleFavDetalhe(this)" title="Favoritar">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span class="btn-fav-txt">{% if is_favorito %}Favoritado{% else %}Favoritar{% endif %}</span>
+      </button>
+    </div>
+    {% if produto.resumo or produto.description %}
+    <div class="produto-resumo">
+      <p>{{ produto.resumo if produto.resumo else produto.description | truncate(220, True, '…') }}</p>
+      {% if produto.resumo and produto.description %}
+        <a href="#pd-descricao" class="pd-ver-mais">VER DESCRIÇÃO COMPLETA ↓</a>
+      {% elif not produto.resumo and produto.description | length > 220 %}
+        <a href="#pd-descricao" class="pd-ver-mais">VER DESCRIÇÃO COMPLETA ↓</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if is_kit and kit.products %}
+    <div class="kit-itens-lista">
+      <p class="kit-itens-titulo">Itens inclusos:</p>
+      {% for kp in kit.products %}
+      <div class="kit-item-linha">
+        <span>{{ kp.product.name }}</span>
+        <span class="kit-item-qty">x{{ kp.quantity }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="produto-preco-wrap">
+      <span class="produto-preco">
+        <sup>R$</sup>{{ "%.2f"|format(produto.price) }}
+        <span class="produto-preco-un">/{{ 'kit' if is_kit else 'un' }}</span>
+      </span>
+    </div>
+
+    {% set min_qty = produto.quantidade_minima if not is_kit else 1 %}
+    {% set max_qty = produto.quantidade_maxima if not is_kit else none %}
+    {% if min_qty > 1 or max_qty %}
+    <div style="background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:.6rem 1rem;margin-bottom:.8rem;font-size:.88rem;color:#854d0e;">
+      {% if min_qty > 1 %}⚠️ Mínimo: <strong>{{ min_qty }} unidades</strong>{% endif %}
+      {% if min_qty > 1 and max_qty %} &nbsp;|&nbsp; {% endif %}
+      {% if max_qty %}🔒 Máximo: <strong>{{ max_qty }} unidades</strong>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if not is_kit and produto.category == 'corporativos' %}
+    <!-- CORPORATIVO: botão personalizar -->
+    <a href="{{ url_for('corporativo_personalizar') }}?produto_id={{ produto.id }}"
+       class="produto-btn-cart"
+       style="text-decoration:none; flex:none; align-self:stretch;">
+      Personalizar
+    </a>
+    {% else %}
+    <!-- FORMULÁRIO CARRINHO -->
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}" class="produto-qty-wrap">
+
+      {% if is_kit %}
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      {% else %}
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      {% endif %}
+
+      <input type="hidden" name="next" value="{{ request.url }}">
+
+      <div class="produto-qty">
+        <button type="button" onclick="changeQty(-1)">−</button>
+        <span id="qtyValue">{{ min_qty }}</span>
+        <button type="button" onclick="changeQty(1)">+</button>
+      </div>
+      <input type="hidden" name="quantidade" id="qtyInput" value="{{ min_qty }}"
+             data-min="{{ min_qty }}" data-max="{{ max_qty if max_qty else '' }}">
+
+      <button type="submit" class="produto-btn-cart">
+        Adicionar ao carrinho 🛒
+      </button>
+    </form>
+    {% endif %}
+
+    {% if is_kit %}
+      <a href="{{ url_for('kits_loja') }}" class="produto-voltar">← Voltar para Kits</a>
+    {% else %}
+      <a href="{{ url_for('categoria', nome=produto.category) }}" class="produto-voltar">
+        ← Voltar para {{ produto.category | capitalize }}
+      </a>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DESCRIÇÃO COMPLETA                     -->
+<!-- ═══════════════════════════════════════ -->
+{% if produto.description and produto.description | length > 0 %}
+<section id="pd-descricao" class="pd-descricao-section">
+  <div class="pd-desc-inner">
+    <h2 class="pd-desc-titulo">Sobre o Produto</h2>
+    <div class="pd-desc-texto">{{ produto.description }}</div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ═══════════════════════════════════════ -->
+<!-- AVALIAÇÕES                             -->
+<!-- ═══════════════════════════════════════ -->
+<section class="av-wrap">
+
+  <!-- CABEÇALHO -->
+  <div class="av-header">
+    <h2 class="av-titulo">Avaliações</h2>
+    {% if avaliacoes %}
+    <div class="av-media-wrap">
+      <span class="av-media-num">{{ media }}</span>
+      <div class="av-stars-static">
+        {% for i in range(1,6) %}
+          <svg viewBox="0 0 24 24" width="22" height="22"
+               fill="{{ '#f59e0b' if i <= media|round(0,'ceil')|int else '#e2e8f0' }}"
+               stroke="{{ '#f59e0b' if i <= media|round(0,'ceil')|int else '#cbd5e1' }}" stroke-width="1.5">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+        {% endfor %}
+      </div>
+      <span class="av-total">({{ avaliacoes|length }} avaliação{{ 's' if avaliacoes|length != 1 }})</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- FORMULÁRIO -->
+  {% if current_user.is_authenticated and not ja_avaliou %}
+  <div class="av-form-card">
+    <p class="av-form-title">Deixe sua avaliação</p>
+    <form method="POST" action="{{ url_for('avaliar') }}">
+      {% if is_kit %}
+        <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      {% elif fav_tipo == 'especial' %}
+        <input type="hidden" name="especial_id" value="{{ produto.id }}">
+      {% else %}
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      {% endif %}
+      <input type="hidden" name="next" value="{{ request.url }}">
+
+      <!-- ESTRELAS INTERATIVAS -->
+      <div class="av-star-picker" id="starPicker">
+        {% for i in range(1,6) %}
+        <label>
+          <input type="radio" name="estrelas" value="{{ i }}" required>
+          <svg viewBox="0 0 24 24" width="32" height="32" class="av-star-pick" data-val="{{ i }}">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+        </label>
+        {% endfor %}
+      </div>
+
+      <textarea class="av-textarea" name="comentario"
+                placeholder="Conte como foi sua experiência (opcional)..." rows="3"></textarea>
+
+      <button type="submit" class="av-btn-enviar">Enviar avaliação</button>
+    </form>
+  </div>
+  {% elif current_user.is_authenticated and ja_avaliou %}
+  <p class="av-ja-avaliou">✅ Você já avaliou este produto.</p>
+  {% else %}
+  <p class="av-login-msg"><a href="{{ url_for('login') }}">Faça login</a> para avaliar este produto.</p>
+  {% endif %}
+
+  <!-- LISTA DE AVALIAÇÕES -->
+  {% if avaliacoes %}
+  <div class="av-lista">
+    {% for av in avaliacoes %}
+    <div class="av-card">
+      <div class="av-card-top">
+        <div class="av-avatar">{{ av.user.name[0].upper() if av.user.name else '?' }}</div>
+        <div>
+          <div class="av-user-name">{{ av.user.name or av.user.email }}</div>
+          <div class="av-date">{{ av.created_at.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div class="av-stars-row" style="margin-left:auto;">
+          {% for i in range(1,6) %}
+          <svg viewBox="0 0 24 24" width="16" height="16"
+               fill="{{ '#f59e0b' if i <= av.estrelas else '#e2e8f0' }}"
+               stroke="{{ '#f59e0b' if i <= av.estrelas else '#cbd5e1' }}" stroke-width="1.5">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+          {% endfor %}
+        </div>
+      </div>
+      {% if av.comentario %}
+      <p class="av-comentario">{{ av.comentario }}</p>
+      {% endif %}
+      {% if current_user.is_authenticated and current_user.is_admin %}
+      <form method="POST" action="{{ url_for('deletar_avaliacao', id=av.id) }}"
+            onsubmit="return confirm('Remover esta avaliação?')" style="margin-top:.5rem;">
+        <input type="hidden" name="next" value="{{ request.url }}">
+        <button type="submit" style="background:none;border:none;color:#ef4444;font-size:.75rem;cursor:pointer;padding:0;">
+          🗑 Remover
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="av-empty">Ainda sem avaliações. Seja o primeiro! ⭐</p>
+  {% endif %}
+
+</section>
+
+<!-- RELACIONADOS -->
+{% if relacionados %}
+<div class="relacionados-wrap">
+  <h2 class="section-title">Compre também</h2>
+  <div class="rel-carrossel-wrap">
+    <button class="rel-btn prev" id="relPrev" onclick="moverRel(-1)">&#8249;</button>
+    <div class="rel-track" id="relTrack">
+      {% for rel in relacionados %}
+      <div class="card-rel">
+        <a href="{{ url_for('kit_detalhe', kit_id=rel.id) if is_kit else url_for('produto_detalhe', id=rel.id) }}"
+           class="card-rel-link">
+          <div class="card-rel-img">
+            {% if rel.image_url %}
+              <img src="{{ url_for('static', filename=rel.image_url) }}" alt="{{ rel.name }}">
+            {% else %}
+              {{ '🎁' if is_kit else '🍰' }}
+            {% endif %}
+          </div>
+          <div class="card-rel-body">
+            <h3>{{ rel.name }}</h3>
+          </div>
+        </a>
+        <div class="card-rel-footer">
+          <span class="card-rel-price">
+            <sup>R$</sup> {{ "%.2f"|format(rel.price) }}
+            <span class="card-rel-per">/{{ 'kit' if is_kit else 'un' }}</span>
+          </span>
+          <div class="card-rel-qty" id="qty-rel-{{ rel.id }}">
+            <button type="button" onclick="changeQtyRel('{{ rel.id }}', -1)">−</button>
+            <span>{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}</span>
+            <button type="button" onclick="changeQtyRel('{{ rel.id }}', 1)">+</button>
+          </div>
+        </div>
+        <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+          {% if is_kit %}
+            <input type="hidden" name="kit_id" value="{{ rel.id }}">
+          {% else %}
+            <input type="hidden" name="produto_id" value="{{ rel.id }}">
+          {% endif %}
+          <input type="hidden" name="quantidade" id="qty-input-rel-{{ rel.id }}"
+                 value="{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}"
+                 data-min="{{ rel.quantidade_minima if not is_kit and rel.quantidade_minima else 1 }}">
+          <input type="hidden" name="next" value="{{ request.url }}">
+          <button type="submit" class="card-rel-btn-cart">Adicionar ao carrinho 🛒</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    <button class="rel-btn next" id="relNext" onclick="moverRel(1)">&#8250;</button>
+  </div>
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <!-- ENDEREÇO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
+    </div>
+
+    <!-- FUNCIONAMENTO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Sábado</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> de 11:00 às 20:30</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/?ref=NONE_xav_ig_profile_page_web" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.851 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.033.215.07.321.11 1.154.433 2.068 1.143 2.672 2.069 1.119 1.714 1.23 4.06.292 6.03-1.61 3.42-5.043 5.218-9.642 5.812z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- DOCES DA FHÊ -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a>
+  </div>
+</footer>
+
+<script>
+  // ✅ atualiza tanto o display quanto o input hidden
+  function changeQty(delta) {
+    const display = document.getElementById('qtyValue');
+    const input   = document.getElementById('qtyInput');
+    const minQty  = parseInt(input.dataset.min) || 1;
+    const maxQty  = input.dataset.max ? parseInt(input.dataset.max) : null;
+    let val = parseInt(display.textContent) + delta;
+    if (val < minQty) val = minQty;
+    if (maxQty && val > maxQty) val = maxQty;
+    display.textContent = val;
+    input.value = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  function toggleFavDetalhe(btn) {
+    fetch('/favoritar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id})
+    })
+    .then(r => r.status === 401
+      ? r.json().then(d => { window.location.href = d.redirect; })
+      : r.json().then(data => {
+          btn.classList.toggle('ativo', data.favorito);
+          btn.classList.add('pulsando');
+          setTimeout(() => btn.classList.remove('pulsando'), 300);
+          btn.querySelector('.btn-fav-txt').textContent = data.favorito ? 'Favoritado' : 'Favoritar';
+        })
+    );
+  }
+
+  // ── Carrossel de relacionados ──
+  (function(){
+    var track  = document.getElementById('relTrack');
+    var btnP   = document.getElementById('relPrev');
+    var btnN   = document.getElementById('relNext');
+    if (!track) return;
+    var offset = 0;
+    var total  = track.querySelectorAll('.card-rel').length;
+    function visRel() { return window.innerWidth <= 480 ? 1 : (window.innerWidth <= 768 ? 2 : 3); }
+    function cardW()  { var c = track.querySelector('.card-rel'); return c ? c.offsetWidth + 16 : 180; }
+    function maxOff() { return Math.max(0, (total - visRel()) * cardW()); }
+    function setBtn(btn, show) { if(btn){btn.style.opacity=show?'1':'0';btn.style.pointerEvents=show?'auto':'none';} }
+    function render() {
+      track.style.transform = 'translateX(-' + offset + 'px)';
+      var mx = maxOff();
+      setBtn(btnP, offset > 0);
+      setBtn(btnN, offset < mx);
+    }
+    window.moverRel = function(dir) {
+      var mx = maxOff();
+      offset = Math.max(0, Math.min(offset + dir * cardW(), mx));
+      render();
+    };
+    window.addEventListener('resize', function(){ offset = Math.min(offset, maxOff()); render(); });
+    requestAnimationFrame(render);
+  })();
+
+  // ── Qty nos cards relacionados ──
+  function changeQtyRel(id, delta) {
+    var qtyDiv   = document.getElementById('qty-rel-' + id);
+    var qtyInput = document.getElementById('qty-input-rel-' + id);
+    if (!qtyDiv || !qtyInput) return;
+    var span   = qtyDiv.querySelector('span');
+    var minVal = parseInt(qtyInput.dataset.min) || 1;
+    var val    = parseInt(span.textContent) + delta;
+    if (val < minVal) val = minVal;
+    span.textContent = val;
+    qtyInput.value   = val;
+  }
+
+  // ── Estrelas interativas ──
+  const picker = document.getElementById('starPicker');
+  if (picker) {
+    const stars = picker.querySelectorAll('.av-star-pick');
+    picker.querySelectorAll('input[type=radio]').forEach((radio, idx) => {
+      radio.addEventListener('change', () => {
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= idx));
+      });
+    });
+    stars.forEach((star, idx) => {
+      star.addEventListener('mouseenter', () =>
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= idx)));
+      star.addEventListener('mouseleave', () => {
+        const checked = picker.querySelector('input:checked');
+        const val = checked ? parseInt(checked.value) - 1 : -1;
+        stars.forEach((s, i) => s.classList.toggle('ativa', i <= val));
+      });
+    });
+  }
+</script>
+
+{% endblock %}

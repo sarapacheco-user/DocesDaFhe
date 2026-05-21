@@ -1,0 +1,627 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='carrinho.css') }}">
+<style>
+  .btn-pag {
+    flex: 1; padding: .55rem .4rem; border: 2px solid #e2e8f0;
+    border-radius: 10px; background: #f8fafc; color: #475569;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-pag:hover { border-color: var(--color-primary); color: var(--color-primary); background: #f0fdf4; }
+  .btn-pag.ativo { border-color: var(--color-primary); background: #f0fdf4; color: var(--color-primary); }
+
+  /* ── SELETOR DE PROMOÇÕES ── */
+  .promo-selector { margin-top: 1rem; border-top: 1.5px solid #e2e8f0; padding-top: 1rem; }
+  .promo-selector-title { font-size: .8rem; font-weight: 800; color: #64748b;
+                           text-transform: uppercase; letter-spacing: .06em; margin-bottom: .6rem; }
+  .promo-lista { display: flex; flex-direction: column; gap: .4rem; }
+  .promo-opcao {
+    display: flex; align-items: flex-start; gap: .6rem; padding: .65rem .75rem;
+    border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer;
+    transition: border-color .15s, background .15s; background: #fff;
+  }
+  .promo-opcao:hover:not(.promo-opcao-bloqueada) { border-color: var(--color-primary); background: #f6f9f0; }
+  .promo-opcao-ativa { border-color: var(--color-primary) !important; background: #f0f5e8 !important; }
+  .promo-opcao-bloqueada { opacity: .5; cursor: not-allowed; }
+  .promo-opcao input[type="radio"] { margin-top: .2rem; accent-color: var(--color-primary); flex-shrink: 0; }
+  .promo-opcao-info { display: flex; flex-direction: column; gap: .15rem; flex: 1; }
+  .promo-opcao-nome { font-size: .88rem; font-weight: 700; color: #1e293b; }
+  .promo-opcao-desc { font-size: .78rem; color: #64748b; }
+  .promo-opcao-economia { font-size: .75rem; font-weight: 700; color: #16a34a; }
+  .promo-opcao-bloq-msg { font-size: .75rem; color: #f59e0b; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<!-- CONTEÚDO -->
+<div class="carrinho-wrap">
+
+  <h2 class="carrinho-titulo">Carrinho de Compras</h2>
+
+  {% if brinde %}
+  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;border-radius:14px;padding:1rem 1.3rem;margin-bottom:1rem;display:flex;align-items:center;gap:.9rem;">
+    <span style="font-size:2rem;">🎁</span>
+    <div>
+      <div style="font-weight:800;color:#166534;font-size:1rem;">Você ganhou um brinde!</div>
+      <div style="color:#15803d;font-size:.9rem;margin-top:.15rem;">
+        {{ brinde.quantidade_brinde }} × {{ brinde.produto_nome }} (pedidos acima de R$ {{ "%.2f"|format(brinde.valor_minimo) }}) 🎉
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if itens %}
+
+  <div class="carrinho-layout">
+
+    <!-- LISTA DE ITENS -->
+    <div class="carrinho-itens">
+      {% for item in itens %}
+      <div class="carrinho-card">
+
+        <!-- IMAGEM -->
+        <div class="carrinho-img">
+          {% if item.imagem %}
+            <img src="{{ url_for('static', filename=item.imagem) }}" alt="{{ item.nome }}">
+          {% else %}
+            🍰
+          {% endif %}
+        </div>
+
+        <!-- INFO -->
+        <div class="carrinho-info">
+          <h3>{{ item.nome }}</h3>
+          <p class="carrinho-preco-unit">R$ {{ "%.2f"|format(item.preco_unit) }} /un</p>
+          {% if item.notas_corp %}
+          <div style="margin-top:.4rem;padding:.5rem .7rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.78rem;color:#166534;white-space:pre-line;">{{ item.notas_corp }}</div>
+          {% endif %}
+
+          <!-- QUANTIDADE -->
+          {% set min_item = item.quantidade_minima %}
+          {% set max_item = item.quantidade_maxima %}
+          <form method="POST" action="{{ url_for('atualizar_carrinho', item_id=item.id) }}"
+                class="carrinho-qty-form">
+            <button type="submit" name="quantidade"
+                    value="{{ [item.quantidade - 1, min_item]|max }}"
+                    {% if item.quantidade <= min_item %}style="opacity:.35;cursor:not-allowed;" title="Quantidade mínima: {{ min_item }}"{% endif %}>−</button>
+            <span>{{ item.quantidade }}</span>
+            <button type="submit" name="quantidade" value="{{ item.quantidade + 1 }}"
+                    {% if max_item and item.quantidade >= max_item %}style="opacity:.35;cursor:not-allowed;" title="Quantidade máxima: {{ max_item }}"{% endif %}>+</button>
+          </form>
+          {% if min_item > 1 or max_item %}
+          <div style="font-size:.72rem;color:#92400e;margin-top:.2rem;">
+            {% if min_item > 1 %}mín. {{ min_item }}{% endif %}
+            {% if min_item > 1 and max_item %} · {% endif %}
+            {% if max_item %}máx. {{ max_item }}{% endif %}
+            un
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- SUBTOTAL + REMOVER -->
+        <div class="carrinho-subtotal">
+          <p>R$ {{ "%.2f"|format(item.subtotal) }}</p>
+          <form method="POST" action="{{ url_for('remover_carrinho', item_id=item.id) }}">
+            <button type="submit" class="btn-remover">Remover</button>
+          </form>
+        </div>
+
+      </div>
+      {% endfor %}
+
+      <!-- ESVAZIAR -->
+      <form method="POST" action="{{ url_for('esvaziar_carrinho') }}" class="form-esvaziar"
+            onsubmit="return confirm('Esvaziar o carrinho?')">
+        <button type="submit" class="btn-esvaziar">Esvaziar carrinho</button>
+      </form>
+    </div>
+
+    <!-- RESUMO -->
+    <div class="carrinho-resumo">
+      <h3>Resumo do Pedido</h3>
+
+      <div class="resumo-linha">
+        <span>{{ quantidade_total }} produto(s)</span>
+        <span>R$ {{ "%.2f"|format(total) }}</span>
+      </div>
+
+      {% if promocao %}
+      <div class="resumo-linha" style="color:#166534;font-weight:700;">
+        <span>🏷️ {{ promocao.nome }}</span>
+        <span style="color:#16a34a;">- R$ {{ "%.2f"|format(desconto) }}</span>
+      </div>
+      {% endif %}
+
+      <div class="resumo-total">
+        <span>Total a pagar</span>
+        <span>R$ {{ "%.2f"|format(total_final) }}</span>
+      </div>
+
+      <!-- SELETOR DE PROMOÇÕES -->
+      {% if todas_promocoes %}
+      <div class="promo-selector">
+        <div class="promo-selector-title">🏷️ Promoções disponíveis</div>
+
+        <form method="POST" action="{{ url_for('aplicar_promocao') }}" id="formPromo">
+          <div class="promo-lista">
+
+            <!-- opção: sem promoção -->
+            <label class="promo-opcao {% if not promocao %}promo-opcao-ativa{% endif %}">
+              <input type="radio" name="promocao_id" value=""
+                     {% if not promocao %}checked{% endif %}
+                     onchange="this.form.submit()">
+              <div class="promo-opcao-info">
+                <span class="promo-opcao-nome">Sem promoção</span>
+              </div>
+            </label>
+
+            {% for p in todas_promocoes %}
+            {% set aplicavel = total >= p.valor_minimo|float %}
+            {% set desc_valor = p.desconto_para(total) if aplicavel else 0 %}
+            <label class="promo-opcao {% if promocao and promocao.id == p.id %}promo-opcao-ativa{% endif %} {% if not aplicavel %}promo-opcao-bloqueada{% endif %}">
+              <input type="radio" name="promocao_id" value="{{ p.id }}"
+                     {% if promocao and promocao.id == p.id %}checked{% endif %}
+                     {% if not aplicavel %}disabled{% endif %}
+                     onchange="this.form.submit()">
+              <div class="promo-opcao-info">
+                <span class="promo-opcao-nome">{{ p.nome }}</span>
+                <span class="promo-opcao-desc">
+                  {% if p.tipo == 'percentual' %}
+                    {{ "%.0f"|format(p.valor) }}% off
+                  {% else %}
+                    R$ {{ "%.2f"|format(p.valor) }} off
+                  {% endif %}
+                  {% if p.valor_minimo and p.valor_minimo > 0 %}
+                    · mín. R$ {{ "%.2f"|format(p.valor_minimo) }}
+                  {% endif %}
+                </span>
+                {% if aplicavel %}
+                <span class="promo-opcao-economia">você economiza R$ {{ "%.2f"|format(desc_valor) }}</span>
+                {% else %}
+                <span class="promo-opcao-bloq-msg">faltam R$ {{ "%.2f"|format(p.valor_minimo|float - total) }}</span>
+                {% endif %}
+              </div>
+            </label>
+            {% endfor %}
+
+          </div>
+        </form>
+      </div>
+      {% endif %}
+
+      <a href="#" onclick="abrirModalEntrega()" class="btn-finalizar">
+        Finalizar pelo WhatsApp 💬
+      </a>
+
+      <a href="{{ url_for('dashboard') }}" class="btn-continuar">
+        ← Continuar comprando
+      </a>
+    </div>
+
+  </div>
+
+  {% else %}
+
+  <!-- CARRINHO VAZIO -->
+  <div class="carrinho-vazio">
+    <div class="carrinho-vazio-icon">🛍️</div>
+    <h3>Seu carrinho está vazio!</h3>
+    <p>Adicione produtos para continuar.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn-finalizar">
+      Ver produtos
+    </a>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <!-- ENDEREÇO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
+    </div>
+
+    <!-- FUNCIONAMENTO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Sábado</strong> de 11:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> de 11:00 às 20:30</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/?ref=NONE_xav_ig_profile_page_web" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.851 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.033.215.07.321.11 1.154.433 2.068 1.143 2.672 2.069 1.119 1.714 1.23 4.06.292 6.03-1.61 3.42-5.043 5.218-9.642 5.812z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- DOCES DA FHÊ -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a>
+  </div>
+</footer>
+
+<!-- ══ MODAL PEDIDO ══ -->
+<div id="modalEntrega" style="display:none; position:fixed; inset:0;
+     background:rgba(43,43,43,.55); backdrop-filter:blur(3px);
+     z-index:9999; align-items:center; justify-content:center;">
+
+  <div class="modal-box" style="background:#fff; border-radius:20px; padding:2.2rem 2rem;
+              max-width:440px; width:90%; text-align:center;
+              box-shadow:0 8px 40px rgba(0,0,0,.18); border:1.5px solid #E5E5E5;
+              animation: popIn .25s cubic-bezier(.4,0,.2,1);">
+
+    <!-- ── STEP 1: escolher tipo ── -->
+    <div id="step1">
+      <div style="font-size:2.6rem; margin-bottom:.6rem;">🛍️</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem;
+                 color:var(--color-text); margin-bottom:.4rem;">Como deseja receber?</h3>
+      <p style="font-size:.88rem; color:var(--color-text-light); margin-bottom:1.6rem;">
+        Escolha a forma de entrega do seu pedido.
+      </p>
+
+      <div style="display:flex; gap:1rem; margin-bottom:1.4rem;">
+        <!-- Buscar -->
+        <button onclick="irStepBuscar()"
+                style="flex:1; background:#fdf8f0; border:2px solid var(--color-accent);
+                       border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
+                       transition:background .2s, transform .15s;"
+                onmouseover="this.style.background='#fef0d0'"
+                onmouseout="this.style.background='#fdf8f0'">
+          <div style="font-size:2rem; margin-bottom:.4rem;">🚶</div>
+          <div style="font-family:'Nunito',sans-serif; font-weight:800;
+                      font-size:.95rem; color:var(--color-text);">Retirar</div>
+        </button>
+
+        <!-- Entregar -->
+        <button onclick="irStepEntrega()"
+                style="flex:1; background:#f0f8f2; border:2px solid var(--color-primary);
+                       border-radius:14px; padding:1.1rem .8rem; cursor:pointer;
+                       transition:background .2s, transform .15s;"
+                onmouseover="this.style.background='#dff0e3'"
+                onmouseout="this.style.background='#f0f8f2'">
+          <div style="font-size:2rem; margin-bottom:.4rem;">🚗</div>
+          <div style="font-family:'Nunito',sans-serif; font-weight:800;
+                      font-size:.95rem; color:var(--color-text);">Entrega</div>
+        </button>
+      </div>
+
+      <button onclick="fecharModalEntrega()"
+              style="background:none; border:none; color:var(--color-text-light); font-size:.88rem;
+                     cursor:pointer; text-decoration:underline; font-family:'Nunito',sans-serif;">
+        Cancelar
+      </button>
+    </div>
+
+    <!-- ── STEP 2A: Buscar — aviso ── -->
+    <div id="stepBuscar" style="display:none;">
+      <div style="font-size:2.8rem; margin-bottom:.8rem;">🛵⚠️</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
+                 color:var(--color-dark); margin-bottom:.8rem;">Atenção sobre a entrega!</h3>
+      <p style="font-size:.92rem; color:var(--color-text); line-height:1.7; margin-bottom:.8rem;">
+        Os métodos via Uber / 99 Moto <strong>não são confiáveis</strong> para transporte de doces.
+      </p>
+      <p style="font-size:.88rem; color:var(--color-dark); font-weight:700;
+                background:#fdf0f3; border-radius:10px; padding:.7rem 1rem;
+                margin-bottom:1.2rem;">
+        ⚠️ Não garantimos a integridade do produto durante o transporte!
+      </p>
+
+      <!-- pagamento buscar -->
+      <p style="font-size:.88rem; font-weight:800; color:var(--color-text); margin-bottom:.6rem;">
+        💳 Forma de pagamento
+      </p>
+      <div style="display:flex; gap:.6rem; margin-bottom:1.2rem;" id="pgBuscar">
+        <button type="button" class="btn-pag" data-valor="Pix"     onclick="selecionarPag(this,'buscar')">Pix</button>
+        <button type="button" class="btn-pag" data-valor="Cartão"  onclick="selecionarPag(this,'buscar')">Cartão</button>
+        <button type="button" class="btn-pag" data-valor="Dinheiro" onclick="selecionarPag(this,'buscar')">Dinheiro</button>
+      </div>
+      <div id="erroPagBuscar" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
+        Selecione a forma de pagamento.
+      </div>
+
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button onclick="voltarStep1()"
+                style="background:transparent; border:2px solid var(--color-primary); color:var(--color-primary);
+                       border-radius:24px; padding:.65rem 1.4rem;
+                       font-family:'Nunito',sans-serif; font-size:.9rem;
+                       font-weight:700; cursor:pointer;">
+          ← Voltar
+        </button>
+        <button onclick="finalizarBuscar()"
+                style="background:#25D366; color:#fff; border:none; border-radius:24px;
+                       padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
+                       font-size:.9rem; font-weight:700; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:.4rem;">
+          Sim, finalizar 💬
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2B: Entregar — endereço ── -->
+    <div id="stepEntrega" style="display:none;">
+      <div style="font-size:2.6rem; margin-bottom:.6rem;">🚚📍</div>
+      <h3 style="font-family:'Playfair Display',serif; font-size:1.15rem;
+                 color:var(--color-text); margin-bottom:.5rem;">Endereço de entrega</h3>
+      <p style="font-size:.85rem; color:var(--color-text-light); margin-bottom:1rem;">
+        Informe o endereço completo para a entrega.
+      </p>
+
+      <!-- CEP + busca ViaCEP -->
+      <div style="position:relative; margin-bottom:.6rem;">
+        <input id="endCep" placeholder="CEP (ex: 01310-100)" maxlength="9"
+               oninput="mascaraCep(this)"
+               style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px;
+                      font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text);
+                      outline:none; width:100%; box-sizing:border-box;"
+               onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+        <span id="cepLoading" style="display:none; position:absolute; right:.8rem; top:50%;
+              transform:translateY(-50%); font-size:.78rem; color:var(--color-text-light);">buscando…</span>
+      </div>
+      <div id="cepErro" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
+        CEP não encontrado. Preencha o endereço manualmente.
+      </div>
+
+      <!-- Rua + Número -->
+      <div style="display:grid; grid-template-columns:1fr 90px; gap:.6rem; margin-bottom:.6rem;">
+        <input id="endRua" placeholder="Rua / Avenida" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endNumero" placeholder="Nº" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+      </div>
+
+      <!-- Bairro + Cidade -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:1rem;">
+        <input id="endBairro" placeholder="Bairro" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+        <input id="endCidade" placeholder="Cidade" style="padding:.7rem .9rem; border:1.5px solid #E5E5E5; border-radius:10px; font-family:'Nunito',sans-serif; font-size:.88rem; color:var(--color-text); outline:none; width:100%; box-sizing:border-box;" onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='#E5E5E5'">
+      </div>
+
+      <div id="erroEndereco" style="display:none; font-size:.82rem; color:var(--color-dark); margin-bottom:.8rem;">
+        Por favor, preencha pelo menos Rua, Número e Bairro.
+      </div>
+
+      <!-- pagamento entrega -->
+      <p style="font-size:.88rem; font-weight:800; color:var(--color-text); margin-bottom:.6rem;">
+        💳 Forma de pagamento
+      </p>
+      <div style="display:flex; gap:.6rem; margin-bottom:.8rem;" id="pgEntrega">
+        <button type="button" class="btn-pag" data-valor="Pix"      onclick="selecionarPag(this,'entrega')">Pix</button>
+        <button type="button" class="btn-pag" data-valor="Cartão"   onclick="selecionarPag(this,'entrega')">Cartão</button>
+        <button type="button" class="btn-pag" data-valor="Dinheiro"  onclick="selecionarPag(this,'entrega')">Dinheiro</button>
+      </div>
+      <div id="erroPagEntrega" style="display:none; font-size:.78rem; color:var(--color-dark); margin-bottom:.6rem;">
+        Selecione a forma de pagamento.
+      </div>
+
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button onclick="voltarStep1()"
+                style="background:transparent; border:2px solid var(--color-primary); color:var(--color-primary);
+                       border-radius:24px; padding:.65rem 1.4rem;
+                       font-family:'Nunito',sans-serif; font-size:.9rem;
+                       font-weight:700; cursor:pointer;">
+          ← Voltar
+        </button>
+        <button onclick="confirmarEntrega()"
+                style="background:#25D366; color:#fff; border:none; border-radius:24px;
+                       padding:.65rem 1.4rem; font-family:'Nunito',sans-serif;
+                       font-size:.9rem; font-weight:700; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:.4rem;">
+          Confirmar pedido 💬
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const modalEl = document.getElementById('modalEntrega');
+
+  function abrirModalEntrega() {
+    voltarStep1();
+    modalEl.style.display = 'flex';
+  }
+
+  function fecharModalEntrega() {
+    modalEl.style.display = 'none';
+  }
+
+  function voltarStep1() {
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('stepBuscar').style.display = 'none';
+    document.getElementById('stepEntrega').style.display = 'none';
+    document.getElementById('erroEndereco').style.display = 'none';
+    ['endRua','endNumero','endBairro','endCidade','endCep'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+  }
+
+  function irStepBuscar() {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('stepBuscar').style.display = 'block';
+  }
+
+  function irStepEntrega() {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('stepEntrega').style.display = 'block';
+  }
+
+  function mascaraCep(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+    el.value = v;
+    if (v.replace('-', '').length === 8) buscarCep(v.replace('-', ''));
+  }
+
+  async function buscarCep(cep) {
+    const loading = document.getElementById('cepLoading');
+    const erroEl  = document.getElementById('cepErro');
+    erroEl.style.display  = 'none';
+    loading.style.display = 'block';
+    try {
+      const res  = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+      const data = await res.json();
+      if (data.erro) {
+        erroEl.style.display = 'block';
+      } else {
+        document.getElementById('endRua').value    = data.logradouro || '';
+        document.getElementById('endBairro').value = data.bairro     || '';
+        document.getElementById('endCidade').value = data.localidade || '';
+        document.getElementById('endNumero').focus();
+      }
+    } catch {
+      erroEl.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  const pagSelecionado = { buscar: '', entrega: '' };
+
+  function selecionarPag(btn, step) {
+    document.querySelectorAll('#pg' + (step === 'buscar' ? 'Buscar' : 'Entrega') + ' .btn-pag')
+            .forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    pagSelecionado[step] = btn.dataset.valor;
+    document.getElementById('erroPag' + (step === 'buscar' ? 'Buscar' : 'Entrega')).style.display = 'none';
+  }
+
+  function finalizarBuscar() {
+    if (!pagSelecionado.buscar) {
+      document.getElementById('erroPagBuscar').style.display = 'block';
+      return;
+    }
+    const params = new URLSearchParams({ tipo: 'buscar', pagamento: pagSelecionado.buscar });
+    window.location.href = "{{ url_for('finalizar_pedido') }}?" + params.toString();
+  }
+
+  function confirmarEntrega() {
+    const rua    = document.getElementById('endRua').value.trim();
+    const numero = document.getElementById('endNumero').value.trim();
+    const bairro = document.getElementById('endBairro').value.trim();
+    const cidade = document.getElementById('endCidade').value.trim();
+    const cep    = document.getElementById('endCep').value.trim();
+
+    if (!rua || !numero || !bairro) {
+      document.getElementById('erroEndereco').style.display = 'block';
+      return;
+    }
+    document.getElementById('erroEndereco').style.display = 'none';
+
+    if (!pagSelecionado.entrega) {
+      document.getElementById('erroPagEntrega').style.display = 'block';
+      return;
+    }
+    document.getElementById('erroPagEntrega').style.display = 'none';
+
+    const params = new URLSearchParams({
+      tipo: 'entrega',
+      rua: rua + ', ' + numero,
+      bairro: bairro,
+      cidade: cidade,
+      cep: cep.replace(/\D/g, ''),
+      pagamento: pagSelecionado.entrega
+    });
+    window.location.href = "{{ url_for('finalizar_pedido') }}?" + params.toString();
+  }
+
+  // fecha clicando fora
+  modalEl.addEventListener('click', function(e) {
+    if (e.target === this) fecharModalEntrega();
+  });
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+  }
+</script>
+
+{% endblock %}
