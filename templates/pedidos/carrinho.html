@@ -190,6 +190,15 @@
         <span>R$ {{ "%.2f"|format(total) }}</span>
       </div>
 
+      {% if leve_pague_info %}
+      {% for info in leve_pague_info %}
+      <div style="background:#fdf4ff;border:1.5px solid #d8b4fe;border-radius:10px;padding:.6rem .85rem;margin:.5rem 0;display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+        <span style="font-size:.83rem;font-weight:800;color:#7e22ce;">🛒 {{ info.nome }}</span>
+        <span style="font-size:.9rem;font-weight:800;color:#7e22ce;white-space:nowrap;">- R$ {{ "%.2f"|format(info.desconto) }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+
       {% if promocao %}
       <div class="resumo-linha" style="color:#166534;font-weight:700;">
         <span>🏷️ {{ promocao.nome }}</span>

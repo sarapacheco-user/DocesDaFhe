@@ -73,6 +73,11 @@
   <div class="promo-bar-track" id="promoBarTrack">
     {% for p in promocoes_loja %}
     <span class="promo-bar-item">
+      {% if p.tipo == 'leve_pague' %}
+      <span class="promo-bar-tag">🛒 OFERTA</span>
+      <strong>{{ p.nome }}</strong>
+      — Leve {{ p.leve }}, pague {{ p.pague }}{% if p.produto %} de {{ p.produto.name }}{% endif %}!
+      {% else %}
       <span class="promo-bar-tag">🏷️ PROMO</span>
       <strong>{{ p.nome }}</strong>
       —
@@ -85,6 +90,7 @@
         em pedidos acima de R$ {{ "%.2f"|format(p.valor_minimo) }}
       {% endif %}
       {% if p.descricao %} · {{ p.descricao }}{% endif %}
+      {% endif %}
     </span>
     {% if not loop.last %}<span class="promo-bar-sep">✦</span>{% endif %}
     {% endfor %}
@@ -92,34 +98,27 @@
 </div>
 <style>
 .promo-bar {
-  position: relative;
   width: 100%;
   background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-hover-primary) 100%);
   color: #fff;
   overflow: hidden;
-  display: flex;
-  align-items: center;
   min-height: 40px;
   z-index: 10;
 }
 .promo-bar-track {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: .55rem 3rem .55rem 1.4rem;
+  gap: 2rem;
+  padding: .55rem 2rem;
   white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  flex: 1;
-  animation: promoScroll 30s linear infinite;
+  width: max-content;
+  animation: promoScroll 35s linear infinite;
 }
-.promo-bar-track::-webkit-scrollbar { display: none; }
+.promo-bar-track:hover { animation-play-state: paused; }
 @keyframes promoScroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-.promo-bar-track:hover { animation-play-state: paused; }
 .promo-bar-item {
   display: inline-flex;
   align-items: center;
@@ -149,10 +148,9 @@
 /* duplicar itens para scroll infinito contínuo */
 (function() {
   var track = document.getElementById('promoBarTrack');
-  if (track) {
-    var clone = track.innerHTML;
-    track.innerHTML += clone;
-  }
+  if (!track) return;
+  var sep = '<span class="promo-bar-sep">✦</span>';
+  track.innerHTML = track.innerHTML + sep + track.innerHTML;
 })();
 </script>
 {% endif %}

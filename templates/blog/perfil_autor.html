@@ -71,22 +71,28 @@
     {% if perfil %}
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
       {% if perfil.instagram %}
-      <a href="https://instagram.com/{{ perfil.instagram }}" class="autor-social-link" target="_blank">
+      {% set ig = perfil.instagram if perfil.instagram.startswith('http') else 'https://instagram.com/' + perfil.instagram.lstrip('@') %}
+      <a href="{{ ig }}" class="autor-social-link" target="_blank" rel="noopener">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>Instagram
       </a>
       {% endif %}
       {% if perfil.tiktok %}
-      <a href="https://tiktok.com/@{{ perfil.tiktok }}" class="autor-social-link" target="_blank">
+      {% set tt = perfil.tiktok if perfil.tiktok.startswith('http') else 'https://tiktok.com/@' + perfil.tiktok.lstrip('@') %}
+      <a href="{{ tt }}" class="autor-social-link" target="_blank" rel="noopener">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>TikTok
       </a>
       {% endif %}
       {% if perfil.facebook %}
-      <a href="https://facebook.com/{{ perfil.facebook }}" class="autor-social-link" target="_blank">
+      {% set fb = perfil.facebook if perfil.facebook.startswith('http') else 'https://facebook.com/' + perfil.facebook %}
+      <a href="{{ fb }}" class="autor-social-link" target="_blank" rel="noopener">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>Facebook
       </a>
       {% endif %}
       {% if perfil.linkedin %}
-      <a href="https://linkedin.com/in/{{ perfil.linkedin }}" class="autor-social-link" target="_blank">LinkedIn</a>
+      {% set li = perfil.linkedin if perfil.linkedin.startswith('http') else 'https://linkedin.com/in/' + perfil.linkedin %}
+      <a href="{{ li }}" class="autor-social-link" target="_blank" rel="noopener">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn
+      </a>
       {% endif %}
     </div>
     {% endif %}
@@ -120,6 +126,11 @@
     <div class="posts-grid">
       {% for post in posts %}
       <article class="blog-card">
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('blog.admin_editar', id=post.id) }}" class="blog-card-edit-btn" title="Editar post">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </a>
+        {% endif %}
         {% if post.capa_url %}
         <a href="{{ url_for('blog.post', slug=post.slug) }}">
           <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">

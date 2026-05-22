@@ -420,15 +420,20 @@ class Promocao(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     nome         = db.Column(db.String(200), nullable=False)
     descricao    = db.Column(db.String(500), default='')
-    tipo         = db.Column(db.String(20), nullable=False)   # 'percentual' ou 'fixo'
-    valor        = db.Column(db.Numeric(10, 2), nullable=False)
+    tipo         = db.Column(db.String(20), nullable=False)   # 'percentual' | 'fixo' | 'leve_pague'
+    valor        = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     valor_minimo = db.Column(db.Numeric(10, 2), default=0)
+    # campos para tipo leve_pague
+    leve         = db.Column(db.Integer, nullable=True)   # ex: 2
+    pague        = db.Column(db.Integer, nullable=True)   # ex: 1
+    produto_id   = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
     ativo            = db.Column(db.Boolean, default=True)
     mostrar_na_faixa = db.Column(db.Boolean, default=False)
     criado_em        = db.Column(db.DateTime, default=datetime.utcnow)
 
+    produto = db.relationship('Product', backref='promocoes_leve_pague', lazy=True)
+
     def desconto_para(self, total):
-        """Retorna o valor do desconto para um total dado."""
         if float(self.valor_minimo) > total:
             return 0.0
         if self.tipo == 'percentual':
@@ -632,6 +637,7 @@ class UserPerfil(db.Model):
     tiktok = db.Column(db.String(100), nullable=True)
     facebook = db.Column(db.String(100), nullable=True)
     linkedin = db.Column(db.String(100), nullable=True)
+    threads = db.Column(db.String(100), nullable=True)
     usuario = db.relationship('User', backref=db.backref('perfil', uselist=False))
 
     def __repr__(self):

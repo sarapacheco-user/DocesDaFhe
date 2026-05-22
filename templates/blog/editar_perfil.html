@@ -3,6 +3,25 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<style>
+.crop-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:9999; align-items:center; justify-content:center;
+}
+.crop-modal-overlay.open { display:flex; }
+.crop-modal {
+  background:#fff; border-radius:18px; padding:1.5rem;
+  max-width:520px; width:95%; box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.crop-modal-title { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; margin:0 0 1rem; color:#1e293b; }
+.crop-container { max-height:360px; overflow:hidden; border-radius:10px; background:#f1f5f9; }
+.crop-container img { max-width:100%; display:block; }
+.crop-actions { display:flex; gap:.7rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap; }
+.crop-btn { padding:.5rem 1.1rem; border-radius:10px; font-size:.85rem; font-weight:700; cursor:pointer; border:none; }
+.crop-btn-cancel  { background:#f1f5f9; color:#64748b; }
+.crop-btn-confirm { background:var(--color-primary,#5B6D3D); color:#fff; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -45,7 +64,8 @@
           {% else %}
           <img class="perfil-avatar-preview" id="avatarPreview" src="" alt="Preview">
           {% endif %}
-          <input type="file" name="avatar" accept="image/*" onchange="previewImg(this, 'avatarPreview')" style="margin-top:.5rem;">
+          <input type="file" id="avatarInput" name="avatar" accept="image/*"
+                 onchange="abrirCrop(this, 'avatarPreview', 1)" style="margin-top:.5rem;">
         </div>
 
         <div class="editor-field">
@@ -55,7 +75,8 @@
           {% else %}
           <img class="perfil-banner-preview" id="bannerPreview" src="" alt="Preview">
           {% endif %}
-          <input type="file" name="banner" accept="image/*" onchange="previewImg(this, 'bannerPreview')" style="margin-top:.5rem;">
+          <input type="file" id="bannerInput" name="banner" accept="image/*"
+                 onchange="abrirCrop(this, 'bannerPreview', 3)" style="margin-top:.5rem;">
         </div>
       </div>
     </div>
@@ -113,6 +134,26 @@
       <h2 class="perfil-section-title">Redes Sociais</h2>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
         <div class="editor-field">
+          <label>WhatsApp / Telefone</label>
+          <input type="text" name="telefone" placeholder="(11) 99999-9999"
+                 value="{{ perfil.telefone if perfil and perfil.telefone else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Threads</label>
+          <input type="text" name="threads" placeholder="@nomedeusuario"
+                 value="{{ perfil.threads if perfil and perfil.threads else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>LinkedIn</label>
+          <input type="text" name="linkedin" placeholder="username"
+                 value="{{ perfil.linkedin if perfil and perfil.linkedin else '' }}">
+        </div>
+        <div class="editor-field">
+          <label>Site / Link</label>
+          <input type="text" name="site" placeholder="https://seusite.com.br"
+                 value="{{ perfil.site if perfil and perfil.site else '' }}">
+        </div>
+        <div class="editor-field">
           <label>Instagram</label>
           <input type="text" name="instagram" placeholder="@nomedeusuario"
                  value="{{ perfil.instagram if perfil and perfil.instagram else '' }}">
@@ -127,11 +168,6 @@
           <input type="text" name="facebook" placeholder="nomedepagina"
                  value="{{ perfil.facebook if perfil and perfil.facebook else '' }}">
         </div>
-        <div class="editor-field">
-          <label>LinkedIn</label>
-          <input type="text" name="linkedin" placeholder="username"
-                 value="{{ perfil.linkedin if perfil and perfil.linkedin else '' }}">
-        </div>
       </div>
     </div>
 
@@ -144,17 +180,81 @@
   </form>
 </div>
 
+<!-- Modal de recorte -->
+<div class="crop-modal-overlay" id="cropOverlay">
+  <div class="crop-modal">
+    <p class="crop-modal-title" id="cropTitle">Ajustar imagem</p>
+    <div class="crop-container">
+      <img id="cropImage" src="" alt="Recortar">
+    </div>
+    <div class="crop-actions">
+      <button type="button" class="crop-btn crop-btn-cancel" onclick="cancelarCrop()">Cancelar</button>
+      <button type="button" class="crop-btn crop-btn-confirm" onclick="confirmarCrop()">Usar esta imagem</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
-function previewImg(input, previewId) {
-  const preview = document.getElementById(previewId);
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.classList.add('show');
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
+let cropper = null;
+let cropInput = null;
+let cropPreviewId = null;
+
+function abrirCrop(input, previewId, ratio) {
+  if (!input.files || !input.files[0]) return;
+  cropInput    = input;
+  cropPreviewId = previewId;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('cropImage');
+    img.src = e.target.result;
+
+    document.getElementById('cropTitle').textContent =
+      ratio === 1 ? 'Recortar Avatar (quadrado)' : 'Recortar Banner (largura)';
+
+    document.getElementById('cropOverlay').classList.add('open');
+
+    if (cropper) { cropper.destroy(); cropper = null; }
+    cropper = new Cropper(img, {
+      aspectRatio: ratio,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.9,
+      responsive: true,
+    });
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function confirmarCrop() {
+  if (!cropper) return;
+
+  const size = cropInput.id === 'avatarInput' ? 400 : 1200;
+  const canvas = cropper.getCroppedCanvas({ width: size, imageSmoothingQuality: 'high' });
+
+  canvas.toBlob(blob => {
+    const file = new File([blob], 'imagem.jpg', { type: 'image/jpeg' });
+    const dt   = new DataTransfer();
+    dt.items.add(file);
+    cropInput.files = dt.files;
+
+    const preview = document.getElementById(cropPreviewId);
+    preview.src = URL.createObjectURL(blob);
+    preview.classList.add('show');
+
+    fecharCrop();
+  }, 'image/jpeg', 0.92);
+}
+
+function cancelarCrop() {
+  cropInput.value = '';
+  fecharCrop();
+}
+
+function fecharCrop() {
+  document.getElementById('cropOverlay').classList.remove('open');
+  if (cropper) { cropper.destroy(); cropper = null; }
 }
 
 // Bio counter

@@ -85,6 +85,11 @@
       <div class="posts-grid">
         {% for post in posts.items %}
         <article class="blog-card">
+          {% if current_user.is_authenticated and current_user.is_admin %}
+          <a href="{{ url_for('blog.admin_editar', id=post.id) }}" class="blog-card-edit-btn" title="Editar post">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </a>
+          {% endif %}
           {% if post.capa_url %}
           <a href="{{ url_for('blog.post', slug=post.slug) }}">
             <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">

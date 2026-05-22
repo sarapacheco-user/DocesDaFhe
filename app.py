@@ -1149,25 +1149,57 @@ def carrinho():
                     .filter(Brinde.valor_minimo <= total)
                     .order_by(Brinde.valor_minimo.desc())
                     .first())
-    # todas promoções ativas — cliente escolhe uma
-    todas_promocoes = Promocao.query.filter_by(ativo=True).order_by(Promocao.valor_minimo).all()
-    # verificar se a promoção salva na sessão ainda é válida
+    # promoções manuais (percentual/fixo) — cliente escolhe uma; leve_pague é automático
+    todas_promocoes = Promocao.query.filter(
+        Promocao.ativo == True,
+        Promocao.tipo != 'leve_pague'
+    ).order_by(Promocao.valor_minimo).all()
+
+    # aplicar promoções leve_pague automáticas para os produtos no carrinho
+    desconto_leve_pague = 0.0
+    leve_pague_info = []
+    promo_lp = Promocao.query.filter_by(ativo=True, tipo='leve_pague').all()
+    for promo in promo_lp:
+        if not promo.produto_id or not promo.leve or not promo.pague:
+            continue
+        item_cart = next((i for i in itens if i.produto_id == promo.produto_id), None)
+        if not item_cart:
+            continue
+        qtd      = item_cart.quantidade
+        leve     = promo.leve
+        pague    = promo.pague
+        gratuitos = (qtd // leve) * (leve - pague)
+        if gratuitos > 0:
+            preco_unit = float(item_cart.preco_unit)
+            valor_desc = round(gratuitos * preco_unit, 2)
+            desconto_leve_pague += valor_desc
+            leve_pague_info.append({
+                'nome': promo.nome,
+                'produto': item_cart.nome,
+                'gratuitos': gratuitos,
+                'desconto': valor_desc,
+            })
+
+    # promoção manual escolhida pelo cliente
     promocao_aplicada = None
-    desconto = 0.0
+    desconto_manual = 0.0
     pid = flask_session.get('promocao_id')
     if pid:
         p = Promocao.query.get(pid)
-        if p and p.ativo and float(p.valor_minimo) <= total:
-            desconto = p.desconto_para(total)
+        if p and p.ativo and p.tipo != 'leve_pague' and float(p.valor_minimo) <= total:
+            desconto_manual = p.desconto_para(total)
             promocao_aplicada = p
         else:
             flask_session.pop('promocao_id', None)
+
+    desconto    = round(desconto_manual + desconto_leve_pague, 2)
     total_final = round(total - desconto, 2)
     return render_template('pedidos/carrinho.html', itens=itens,
                            total=total, quantidade_total=quantidade_total,
                            brinde=brinde, todas_promocoes=todas_promocoes,
                            promocao=promocao_aplicada,
-                           desconto=desconto, total_final=total_final)
+                           desconto=desconto_manual, total_final=total_final,
+                           leve_pague_info=leve_pague_info)
 
 
 @app.route('/carrinho/aplicar-promocao', methods=['POST'])
@@ -1342,22 +1374,37 @@ def finalizar_pedido():
                 for d in detalhes:
                     linhas.append(f'  • {d}')
 
-    # ── PROMOÇÃO DE DESCONTO (escolhida pelo cliente) ──
+    # ── PROMOÇÃO LEVE/PAGUE (automática por produto) ──
     from flask import session as flask_session
+    desconto_lp = 0.0
+    for promo in Promocao.query.filter_by(ativo=True, tipo='leve_pague').all():
+        if not promo.produto_id or not promo.leve or not promo.pague:
+            continue
+        item_cart = next((i for i in itens if i.produto_id == promo.produto_id), None)
+        if not item_cart:
+            continue
+        gratuitos = (item_cart.quantidade // promo.leve) * (promo.leve - promo.pague)
+        if gratuitos > 0:
+            desconto_lp += round(gratuitos * float(item_cart.preco_unit), 2)
+
+    # ── PROMOÇÃO DE DESCONTO (escolhida pelo cliente) ──
     promocao_aplicada = None
-    desconto = 0.0
+    desconto_manual = 0.0
     pid = flask_session.get('promocao_id')
     if pid:
         p = Promocao.query.get(pid)
-        if p and p.ativo and float(p.valor_minimo) <= total:
-            desconto = p.desconto_para(total)
+        if p and p.ativo and p.tipo != 'leve_pague' and float(p.valor_minimo) <= total:
+            desconto_manual = p.desconto_para(total)
             promocao_aplicada = p
+    desconto = round(desconto_manual + desconto_lp, 2)
     total_final = round(total - desconto, 2)
     flask_session.pop('promocao_id', None)
 
     linhas.append(f'\n*Subtotal: R$ {total:.2f}*')
+    if desconto_lp > 0:
+        linhas.append(f'*Desconto Leve/Pague: -R$ {desconto_lp:.2f}*')
     if promocao_aplicada:
-        linhas.append(f'*Promoção "{promocao_aplicada.nome}": -R$ {desconto:.2f}*')
+        linhas.append(f'*Promoção "{promocao_aplicada.nome}": -R$ {desconto_manual:.2f}*')
     linhas.append(f'*Total: R$ {total_final:.2f}*')
 
     # ── LEMBRANCINHA ──
@@ -2227,11 +2274,49 @@ def admin_promocoes():
                 db.session.commit()
                 flash('Promoção removida.', 'info')
 
-        return redirect(url_for('admin_promocoes'))
+        elif secao == 'leve_pague':
+            if acao == 'toggle_faixa':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                p.mostrar_na_faixa = not p.mostrar_na_faixa
+                db.session.commit()
+            elif acao == 'criar':
+                try:
+                    nome       = request.form.get('nome', '').strip()
+                    produto_id = int(request.form['produto_id'])
+                    leve_v     = int(request.form['leve'])
+                    pague_v    = int(request.form['pague'])
+                    if not produto_id or leve_v < 2 or pague_v < 1 or pague_v >= leve_v:
+                        raise ValueError
+                    prod = Product.query.get_or_404(produto_id)
+                    if not nome:
+                        nome = f'Leve {leve_v} Pague {pague_v} — {prod.name}'
+                    db.session.add(Promocao(nome=nome, tipo='leve_pague', valor=0,
+                                            valor_minimo=0, leve=leve_v, pague=pague_v,
+                                            produto_id=produto_id))
+                    db.session.commit()
+                    flash('Promoção Leve/Pague criada!', 'success')
+                except (ValueError, KeyError):
+                    flash('Preencha todos os campos corretamente.', 'error')
+            elif acao == 'toggle':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                p.ativo = not p.ativo
+                db.session.commit()
+                flash('Status atualizado.', 'success')
+            elif acao == 'deletar':
+                p = Promocao.query.get_or_404(int(request.form['id']))
+                db.session.delete(p)
+                db.session.commit()
+                flash('Promoção removida.', 'info')
 
-    brindes   = Brinde.query.order_by(Brinde.valor_minimo).all()
-    promocoes = Promocao.query.order_by(Promocao.valor_minimo).all()
-    return render_template('admin/promocoes.html', brindes=brindes, promocoes=promocoes)
+        dest = url_for('admin_promocoes') + ('#leve-pague' if secao == 'leve_pague' else '')
+        return redirect(dest)
+
+    brindes      = Brinde.query.order_by(Brinde.valor_minimo).all()
+    promocoes    = Promocao.query.filter(Promocao.tipo != 'leve_pague').order_by(Promocao.valor_minimo).all()
+    leve_pague   = Promocao.query.filter_by(tipo='leve_pague').order_by(Promocao.id).all()
+    produtos_ativos = Product.query.filter_by(ativo=True).order_by(Product.name).all()
+    return render_template('admin/promocoes.html', brindes=brindes, promocoes=promocoes,
+                           leve_pague=leve_pague, produtos_ativos=produtos_ativos)
 
 
 # ─────────────────────────────────────

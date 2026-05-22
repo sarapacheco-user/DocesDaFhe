@@ -189,6 +189,35 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--blog-border);
+  position: relative;
+}
+
+.blog-card-edit-btn {
+  position: absolute;
+  top: .6rem;
+  right: .6rem;
+  width: 34px;
+  height: 34px;
+  background: rgba(255,255,255,.95);
+  color: var(--color-primary, #5B6D3D);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  opacity: 0;
+  transform: scale(.85);
+  transition: opacity .18s, transform .18s;
+  z-index: 5;
+}
+.blog-card:hover .blog-card-edit-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+.blog-card-edit-btn:hover {
+  background: var(--color-primary, #5B6D3D);
+  color: #fff;
 }
 
 .blog-card:hover {

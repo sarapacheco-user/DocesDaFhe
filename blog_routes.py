@@ -1,8 +1,10 @@
 import os
 import re
 import time
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
+import threading
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, current_app
 from flask_login import current_user, login_required
+from flask_mail import Message
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
 
@@ -10,6 +12,76 @@ from models import (db, User, BlogPost, BlogCategoria, BlogTag, BlogComentario, 
                     BlogCurtida, BlogSalvo, BlogNewsletter, UserPerfil, blog_post_tags)
 
 blog_bp = Blueprint('blog', __name__, url_prefix='/blog')
+
+
+def _enviar_newsletter(post, app):
+    """Dispara e-mail para todos os inscritos da newsletter em background."""
+    def _send():
+        with app.app_context():
+            inscritos = BlogNewsletter.query.all()
+            if not inscritos:
+                return
+            cfg = SiteConfig.query.first()
+            site_nome = cfg.site_name if cfg else 'Doces da Fhê'
+            cor = cfg.color_primary if cfg else '#5B6D3D'
+            post_url = url_for('blog.post', slug=post.slug, _external=True)
+            resumo = post.resumo or ''
+
+            html = f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f5f0;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5f0;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:600px;width:100%;">
+
+        <!-- Header -->
+        <tr><td style="background:{cor};padding:28px 36px;text-align:center;">
+          <h1 style="margin:0;font-family:Georgia,serif;font-size:26px;color:#fff;font-weight:700;">{site_nome}</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;letter-spacing:.05em;">NOVO POST NO BLOG</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:36px 36px 28px;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:{cor};text-transform:uppercase;letter-spacing:.08em;">Acabou de sair!</p>
+          <h2 style="margin:0 0 16px;font-family:Georgia,serif;font-size:24px;color:#1e293b;line-height:1.35;">{post.titulo}</h2>
+          {'<p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.7;">' + resumo + '</p>' if resumo else ''}
+          <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+            <tr><td style="background:{cor};border-radius:10px;">
+              <a href="{post_url}" style="display:inline-block;padding:13px 32px;color:#fff;text-decoration:none;font-weight:700;font-size:15px;">Ler o post →</a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:13px;color:#94a3b8;">Ou copie o link: <a href="{post_url}" style="color:{cor};">{post_url}</a></p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f8fafc;padding:20px 36px;border-top:1px solid #e2e8f0;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#94a3b8;">Você está recebendo este e-mail porque se inscreveu na newsletter do {site_nome}.<br>
+          Para cancelar a inscrição, entre em contato conosco.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+            mail = current_app.extensions['mail']
+            for inscrito in inscritos:
+                try:
+                    msg = Message(
+                        subject=f'📝 Novo post: {post.titulo}',
+                        recipients=[inscrito.email],
+                        html=html,
+                    )
+                    mail.send(msg)
+                except Exception:
+                    pass  # não interrompe os outros envios se um falhar
+
+    t = threading.Thread(target=_send)
+    t.daemon = True
+    t.start()
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -271,6 +343,8 @@ def editar_perfil():
         perfil.tiktok = request.form.get('tiktok', '').strip() or None
         perfil.facebook = request.form.get('facebook', '').strip() or None
         perfil.linkedin = request.form.get('linkedin', '').strip() or None
+        perfil.threads = request.form.get('threads', '').strip() or None
+        perfil.site = request.form.get('site', '').strip() or None
 
         # avatar upload
         avatar = request.files.get('avatar')
@@ -547,6 +621,7 @@ def admin_novo():
         db.session.commit()
         flash(f'Post "{titulo}" criado com sucesso!', 'success')
         if status == 'publicado':
+            _enviar_newsletter(post, current_app._get_current_object())
             return redirect(url_for('blog.post', slug=slug))
         return redirect(url_for('blog.admin'))
 
@@ -574,6 +649,7 @@ def admin_editar(id):
         post.titulo = titulo
         post.conteudo = request.form.get('conteudo', '')
         post.resumo = request.form.get('resumo', '').strip() or None
+        status_anterior = post.status
         post.status = request.form.get('status', 'rascunho')
         post.categoria_id = request.form.get('categoria_id', type=int) or None
         post.meta_titulo = request.form.get('meta_titulo', '').strip() or None
@@ -608,6 +684,8 @@ def admin_editar(id):
 
         db.session.commit()
         flash(f'Post "{titulo}" atualizado com sucesso!', 'success')
+        if post.status == 'publicado' and status_anterior != 'publicado':
+            _enviar_newsletter(post, current_app._get_current_object())
         return redirect(url_for('blog.admin'))
 
     return render_template('blog/editor.html',
