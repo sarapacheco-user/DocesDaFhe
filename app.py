@@ -1134,7 +1134,7 @@ def pagina_evento(id):
 # CARRINHO
 # ─────────────────────────────────────
 
-WHATSAPP_NUMBER = '5511967630831'
+WHATSAPP_NUMBER = '5511952734219'
 
 
 @app.route('/carrinho')
@@ -1879,6 +1879,19 @@ def relatorio_estoque():
         data_ini=data_ini_str or data_ini.strftime('%Y-%m-%d'),
         data_fim=data_fim_str or data_fim.strftime('%Y-%m-%d'),
         tipo_filtro=tipo_filtro)
+
+
+@app.route('/admin/relatorio/limpar-historico', methods=['POST'])
+@login_required
+@admin_required
+def limpar_historico_vendas():
+    PedidoItem.query.delete()
+    Pedido.query.delete()
+    PedidoCorporativo.query.delete()
+    MovimentacaoEstoque.query.delete()
+    db.session.commit()
+    flash('Histórico de vendas e movimentações apagado com sucesso.', 'success')
+    return redirect(url_for('relatorio_estoque'))
 
 
 @app.route('/admin/estoque/editar-minimo/<tipo_item>/<int:item_id>', methods=['POST'])

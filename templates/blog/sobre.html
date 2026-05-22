@@ -353,16 +353,20 @@
       {% if perfil %}
       <div class="sobre-socials">
         {% if perfil.instagram %}
-        <a href="https://instagram.com/{{ perfil.instagram }}" class="sobre-social-btn instagram" target="_blank">Instagram</a>
+        {% set ig = perfil.instagram if perfil.instagram.startswith('http') else 'https://instagram.com/' + perfil.instagram.lstrip('@') %}
+        <a href="{{ ig }}" class="sobre-social-btn instagram" target="_blank" rel="noopener">Instagram</a>
         {% endif %}
         {% if perfil.tiktok %}
-        <a href="https://tiktok.com/@{{ perfil.tiktok }}" class="sobre-social-btn tiktok" target="_blank">TikTok</a>
+        {% set tt = perfil.tiktok if perfil.tiktok.startswith('http') else 'https://tiktok.com/@' + perfil.tiktok.lstrip('@') %}
+        <a href="{{ tt }}" class="sobre-social-btn tiktok" target="_blank" rel="noopener">TikTok</a>
         {% endif %}
         {% if perfil.facebook %}
-        <a href="https://facebook.com/{{ perfil.facebook }}" class="sobre-social-btn facebook" target="_blank">Facebook</a>
+        {% set fb = perfil.facebook if perfil.facebook.startswith('http') else 'https://facebook.com/' + perfil.facebook %}
+        <a href="{{ fb }}" class="sobre-social-btn facebook" target="_blank" rel="noopener">Facebook</a>
         {% endif %}
         {% if perfil.linkedin %}
-        <a href="https://linkedin.com/in/{{ perfil.linkedin }}" class="sobre-social-btn linkedin" target="_blank">LinkedIn</a>
+        {% set li = perfil.linkedin if perfil.linkedin.startswith('http') else 'https://linkedin.com/in/' + perfil.linkedin %}
+        <a href="{{ li }}" class="sobre-social-btn linkedin" target="_blank" rel="noopener">LinkedIn</a>
         {% endif %}
       </div>
       {% endif %}
