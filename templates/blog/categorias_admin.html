@@ -36,10 +36,11 @@
             {{ cat.posts | selectattr('status', 'equalto', 'publicado') | list | length }} post(s)
             &bull; slug: <code style="font-size:.75rem; background:#f1f5f9; padding:.1rem .3rem; border-radius:4px;">{{ cat.slug }}</code>
           </p>
-          <form action="{{ url_for('blog.admin_excluir_categoria', id=cat.id) }}" method="post"
-                data-nome="{{ cat.nome }}"
-                onsubmit="return confirm('Excluir a categoria &quot;'+this.dataset.nome+'&quot;? Os posts ficarão sem categoria.');">
-            <button type="submit" class="action-btn action-btn-delete" style="width:100%;">Excluir Categoria</button>
+          <form action="{{ url_for('blog.admin_excluir_categoria', id=cat.id) }}" method="post" id="form-del-cat-{{ cat.id }}">
+            <button type="button" class="action-btn action-btn-delete" style="width:100%;"
+                    onclick="adminConfirmar({titulo:'Excluir categoria',msg:'Deseja excluir a categoria &ldquo;{{ cat.nome }}&rdquo;? Os posts vinculados ficarão sem categoria.',textoConfirmar:'Excluir',aoConfirmar:function(){document.getElementById('form-del-cat-{{ cat.id }}').submit()}})">
+              Excluir Categoria
+            </button>
           </form>
         </div>
         {% endfor %}

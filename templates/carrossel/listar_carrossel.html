@@ -118,9 +118,11 @@
             {{ 'Visível' if item.ativo else 'Oculto' }}
           </a>
           <a href="{{ url_for('carrossel_editar', id=item.id) }}" class="btn-acao btn-editar">Editar</a>
-          <form method="POST" action="{{ url_for('carrossel_deletar', id=item.id) }}"
-                onsubmit="return confirm('Remover esta imagem?')" style="margin:0;">
-            <button type="submit" class="btn-acao btn-deletar">Remover</button>
+          <form method="POST" action="{{ url_for('carrossel_deletar', id=item.id) }}" style="margin:0;" id="form-del-carrossel-{{ item.id }}">
+            <button type="button" class="btn-acao btn-deletar"
+                    onclick="adminConfirmar({titulo:'Remover imagem',msg:'Deseja remover esta imagem do carrossel? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-carrossel-{{ item.id }}').submit()}})">
+              Remover
+            </button>
           </form>
         </div>
 

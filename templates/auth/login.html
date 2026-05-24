@@ -23,5 +23,22 @@
     <a href="{{ url_for('forgot_password') }}">Esqueceu a senha?</a>
     <a href="{{ url_for('signup') }}">Criar conta</a>
   </div>
+
+  {% if email_nao_verificado %}
+  <div style="margin-top:1.4rem; padding:1rem 1.2rem; background:#fef9c3; border:1.5px solid #fde047;
+              border-radius:12px; text-align:center;">
+    <p style="font-size:.88rem; color:#854d0e; margin:0 0 .8rem; font-weight:600;">
+      Sua conta ainda não foi verificada.
+    </p>
+    <form method="POST" action="{{ url_for('reenviar_verificacao') }}">
+      <input type="hidden" name="email" value="{{ email_usuario }}">
+      <button type="submit" style="
+        background:#5B6D3D; color:#fff; border:none; border-radius:20px;
+        padding:.45rem 1.2rem; font-size:.84rem; font-weight:700; cursor:pointer;">
+        Reenviar e-mail de confirmação
+      </button>
+    </form>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -19,7 +19,7 @@
       <div class="dp-header-btns">
         <button type="submit" name="action" value="save" class="dp-btn-save">Salvar</button>
         <button type="button" class="dp-btn-reset"
-                onclick="if(confirm('Resetar design para o padrão?')){document.getElementById('formReset').submit();}">Resetar</button>
+                onclick="adminConfirmar({titulo:'Resetar design',msg:'Deseja restaurar o design ao padrão? Todas as personalizações de cores, tipografia e layout serão perdidas.',textoConfirmar:'Resetar',aoConfirmar:function(){document.getElementById('formReset').submit()}})">Resetar</button>
       </div>
     </div>
 

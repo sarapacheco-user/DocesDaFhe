@@ -254,14 +254,15 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
 
           <td>
             {% if current_user.email == 'docesdafhe@gmail.com' and u.id != current_user.id %}
-            <form action="{{ url_for('admin_toggle_admin', uid=u.id) }}" method="post"
-                  onsubmit="return confirm('{{ 'Rebaixar ' + (u.name or u.email) + ' para cliente?' if u.is_admin else 'Promover ' + (u.name or u.email) + ' a admin?' }}')">
+            <form action="{{ url_for('admin_toggle_admin', uid=u.id) }}" method="post" id="form-toggle-admin-{{ u.id }}">
               {% if u.is_admin %}
-              <button type="submit" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #fbcfe8; background:#fdf2f8; color:#9d174d; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+              <button type="button" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #fbcfe8; background:#fdf2f8; color:#9d174d; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;"
+                      onclick="adminConfirmar({titulo:'Rebaixar usuário',msg:'Deseja rebaixar {{ (u.name or u.email)|e }} para cliente? O acesso administrativo será removido.',textoConfirmar:'Rebaixar',corBotao:'#9d174d',aoConfirmar:function(){document.getElementById('form-toggle-admin-{{ u.id }}').submit()}})">
                 Rebaixar
               </button>
               {% else %}
-              <button type="submit" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #bbf7d0; background:#f0fdf4; color:#166534; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+              <button type="button" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #bbf7d0; background:#f0fdf4; color:#166534; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;"
+                      onclick="adminConfirmar({titulo:'Promover a admin',msg:'Deseja promover {{ (u.name or u.email)|e }} a administrador? O usuário terá acesso total ao painel.',textoConfirmar:'Promover',corBotao:'#166534',aoConfirmar:function(){document.getElementById('form-toggle-admin-{{ u.id }}').submit()}})">
                 Tornar admin
               </button>
               {% endif %}

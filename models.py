@@ -24,6 +24,11 @@ class User(db.Model, UserMixin):
     reset_token        = db.Column(db.String(100), unique=True, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
+    # EMAIL VERIFICATION
+    email_verified            = db.Column(db.Boolean, default=False, nullable=False)
+    email_verification_token  = db.Column(db.String(100), nullable=True)
+    email_verification_expiry = db.Column(db.DateTime, nullable=True)
+
     # METADATA
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)

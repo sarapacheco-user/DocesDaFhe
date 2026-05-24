@@ -74,9 +74,9 @@
           </td>
           <td style="color:#64748b; font-size:.85rem;">{{ i.created_at.strftime('%d/%m/%Y às %H:%M') }}</td>
           <td>
-            <form action="{{ url_for('blog.admin_newsletter_excluir', id=i.id) }}" method="post"
-                  onsubmit="return confirm('Remover {{ i.email }} da newsletter?')">
-              <button type="submit" class="action-btn action-btn-delete" style="padding:.3rem .7rem; font-size:.78rem;">
+            <form action="{{ url_for('blog.admin_newsletter_excluir', id=i.id) }}" method="post" id="form-del-newsletter-{{ i.id }}">
+              <button type="button" class="action-btn action-btn-delete" style="padding:.3rem .7rem; font-size:.78rem;"
+                      onclick="adminConfirmar({titulo:'Remover da newsletter',msg:'Deseja remover {{ i.email }} da lista de newsletter?',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-newsletter-{{ i.id }}').submit()}})">
                 Remover
               </button>
             </form>

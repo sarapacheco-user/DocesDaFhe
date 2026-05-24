@@ -59,8 +59,11 @@
       <td>
         <div class="acoes-wrap">
           <a href="{{ url_for('editar_produto_especial', id=p.id) }}" class="btn-acao btn-editar">Editar</a>
-          <form method="POST" action="{{ url_for('deletar_produto_especial', id=p.id) }}" style="display:inline;" onsubmit="return confirm('Deletar {{ p.name }}?')">
-            <button type="submit" class="btn-acao btn-deletar">Deletar</button>
+          <form method="POST" action="{{ url_for('deletar_produto_especial', id=p.id) }}" style="display:inline;" id="form-del-pe-{{ p.id }}">
+            <button type="button" class="btn-acao btn-deletar"
+                    onclick="adminConfirmar({titulo:'Deletar produto',msg:'Deseja deletar o produto &ldquo;{{ p.name }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Deletar',aoConfirmar:function(){document.getElementById('form-del-pe-{{ p.id }}').submit()}})">
+              Deletar
+            </button>
           </form>
         </div>
       </td>

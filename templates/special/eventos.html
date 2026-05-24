@@ -73,9 +73,11 @@
         <div class="acoes-wrap">
           <a href="{{ url_for('editar_evento', id=evento.id) }}" class="btn-acao btn-toggle">Editar</a>
           <a href="{{ url_for('listar_produtos_especiais', evento_id=evento.id) }}" class="btn-acao btn-editar">Produtos</a>
-          <form method="POST" action="{{ url_for('deletar_evento', id=evento.id) }}" style="display:inline;"
-                onsubmit="return confirm('Deletar o evento {{ evento.nome }}? Todos os produtos vinculados serão removidos.')">
-            <button type="submit" class="btn-acao btn-deletar">Deletar</button>
+          <form method="POST" action="{{ url_for('deletar_evento', id=evento.id) }}" style="display:inline;" id="form-del-evento-sp-{{ evento.id }}">
+            <button type="button" class="btn-acao btn-deletar"
+                    onclick="adminConfirmar({titulo:'Deletar evento',msg:'Deseja deletar o evento &ldquo;{{ evento.nome }}&rdquo;? Todos os produtos vinculados serão removidos. Esta ação não pode ser desfeita.',textoConfirmar:'Deletar',aoConfirmar:function(){document.getElementById('form-del-evento-sp-{{ evento.id }}').submit()}})">
+              Deletar
+            </button>
           </form>
         </div>
       </td>

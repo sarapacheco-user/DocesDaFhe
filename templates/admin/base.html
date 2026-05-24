@@ -1010,5 +1010,87 @@
 {% endif %}
 
 {% block scripts %}{% endblock %}
+
+<!-- ── MODAL DE CONFIRMAÇÃO GLOBAL ── -->
+<div id="adminConfirmOverlay" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(15,23,42,.48); backdrop-filter:blur(4px);
+  z-index:99998; align-items:center; justify-content:center;">
+  <div id="adminConfirmBox" style="
+    background:#fff; border-radius:18px; padding:2rem 2.4rem;
+    max-width:420px; width:90%; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.18);
+    border:1px solid #e2e8f0;
+    animation:popIn .22s cubic-bezier(.4,0,.2,1);">
+    <div id="adminConfirmIcon" style="
+      width:52px; height:52px; border-radius:50%;
+      background:#fee2e2; color:#dc2626;
+      display:flex; align-items:center; justify-content:center;
+      margin:0 auto 1rem;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    </div>
+    <p id="adminConfirmTitle" style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-bottom:.5rem;"></p>
+    <p id="adminConfirmMsg" style="font-size:.92rem;color:#64748b;margin-bottom:1.6rem;line-height:1.5;"></p>
+    <div style="display:flex;gap:.75rem;justify-content:center;">
+      <button onclick="fecharAdminConfirm()" style="
+        padding:.55rem 1.5rem; border:1.5px solid #e2e8f0;
+        border-radius:10px; background:#f8fafc; color:#475569;
+        font-family:'Nunito',sans-serif; font-size:.92rem; font-weight:700;
+        cursor:pointer; transition:background .15s;">
+        Cancelar
+      </button>
+      <button id="adminConfirmBtn" style="
+        padding:.55rem 1.5rem; border:none;
+        border-radius:10px; background:#dc2626; color:#fff;
+        font-family:'Nunito',sans-serif; font-size:.92rem; font-weight:700;
+        cursor:pointer; transition:background .15s, transform .12s;">
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var overlay  = document.getElementById('adminConfirmOverlay');
+  var _pending = null;
+
+  window.adminConfirmar = function(opts){
+    /* opts: { titulo, msg, textoConfirmar, corBotao, aoConfirmar } */
+    document.getElementById('adminConfirmTitle').textContent = opts.titulo || 'Confirmar ação';
+    document.getElementById('adminConfirmMsg').textContent   = opts.msg    || 'Deseja continuar?';
+    var btn = document.getElementById('adminConfirmBtn');
+    btn.textContent         = opts.textoConfirmar || 'Confirmar';
+    btn.style.background    = opts.corBotao       || '#dc2626';
+    _pending = opts.aoConfirmar || null;
+    overlay.style.display   = 'flex';
+    setTimeout(function(){ btn.focus(); }, 50);
+  };
+
+  window.fecharAdminConfirm = function(){
+    overlay.style.display = 'none';
+    _pending = null;
+  };
+
+  document.getElementById('adminConfirmBtn').addEventListener('click', function(){
+    overlay.style.display = 'none';
+    if (_pending) { _pending(); _pending = null; }
+  });
+
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) fecharAdminConfirm();
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && overlay.style.display === 'flex') fecharAdminConfirm();
+  });
+})();
+</script>
 </body>
 </html>

@@ -119,11 +119,13 @@
               <input type="hidden" name="id" value="{{ l.id }}">
               <button class="btn-toggle">{{ 'Desativar' if l.ativo else 'Ativar' }}</button>
             </form>
-            <form method="POST" style="display:inline"
-                  onsubmit="return confirm('Remover esta brinde?')">
+            <form method="POST" style="display:inline" id="form-del-brinde2-{{ l.id }}">
               <input type="hidden" name="acao" value="deletar">
               <input type="hidden" name="id" value="{{ l.id }}">
-              <button class="btn-del">Excluir</button>
+              <button type="button" class="btn-del"
+                      onclick="adminConfirmar({titulo:'Remover brinde',msg:'Deseja remover o brinde &ldquo;{{ l.produto_nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-brinde2-{{ l.id }}').submit()}})">
+                Excluir
+              </button>
             </form>
           </td>
         </tr>

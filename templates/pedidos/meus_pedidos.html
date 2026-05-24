@@ -356,8 +356,8 @@
         <button type="button" class="btn-selecionar-todos" onclick="selecionarTodos()">Selecionar todos</button>
         <button type="button" class="btn-cancelar-sel" onclick="fecharModoSelecao()">Cancelar</button>
       </div>
-      <button type="submit" class="btn-apagar-sel" id="btnApagar" disabled
-              onclick="return confirm('Apagar os pedidos selecionados? Esta ação não pode ser desfeita.')">
+      <button type="button" class="btn-apagar-sel" id="btnApagar" disabled
+              onclick="adminConfirmar({titulo:'Apagar pedidos',msg:'Deseja apagar os pedidos selecionados? Esta ação não pode ser desfeita.',textoConfirmar:'Apagar',aoConfirmar:function(){document.getElementById('formApagar').submit()}})">
         Apagar selecionados
       </button>
     </div>
@@ -379,12 +379,19 @@
 
   function cancelarPedido(id, e) {
     e.stopPropagation();
-    if (!confirm('Deseja cancelar o pedido #' + id + '?')) return;
-    const f = document.createElement('form');
-    f.method = 'POST';
-    f.action = '/pedidos/' + id + '/cancelar';
-    document.body.appendChild(f);
-    f.submit();
+    adminConfirmar({
+      titulo: 'Cancelar pedido #' + id,
+      msg: 'Deseja cancelar o pedido #' + id + '? Esta ação não pode ser desfeita.',
+      textoConfirmar: 'Cancelar pedido',
+      corBotao: '#b45309',
+      aoConfirmar: function() {
+        var f = document.createElement('form');
+        f.method = 'POST';
+        f.action = '/pedidos/' + id + '/cancelar';
+        document.body.appendChild(f);
+        f.submit();
+      }
+    });
   }
 
   function todosOsDeletaveis() {

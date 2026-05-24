@@ -164,8 +164,11 @@
               <div class="comment-actions">
                 {% if current_user.is_authenticated and current_user.is_admin %}
                 <button class="comment-reply-btn" data-target="reply-{{ comentario.id }}" onclick="toggleReply(this.dataset.target)">Responder</button>
-                <form action="{{ url_for('blog.excluir_comentario', id=comentario.id) }}" method="post" style="display:inline;">
-                  <button class="comment-delete-btn" type="submit" onclick="return confirm('Excluir comentário?')">Excluir</button>
+                <form action="{{ url_for('blog.excluir_comentario', id=comentario.id) }}" method="post" style="display:inline;" id="form-del-coment-{{ comentario.id }}">
+                  <button class="comment-delete-btn" type="button"
+                          onclick="adminConfirmar({titulo:'Excluir comentário',msg:'Deseja excluir este comentário? Esta ação não pode ser desfeita.',textoConfirmar:'Excluir',aoConfirmar:function(){document.getElementById('form-del-coment-{{ comentario.id }}').submit()}})">
+                    Excluir
+                  </button>
                 </form>
                 {% endif %}
               </div>
@@ -198,8 +201,11 @@
                   <span class="comment-date">{{ resp.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
                   <p class="comment-text">{{ resp.conteudo }}</p>
                   {% if current_user.is_authenticated and current_user.is_admin %}
-                  <form action="{{ url_for('blog.excluir_comentario', id=resp.id) }}" method="post">
-                    <button class="comment-delete-btn" type="submit" onclick="return confirm('Excluir?')">Excluir</button>
+                  <form action="{{ url_for('blog.excluir_comentario', id=resp.id) }}" method="post" id="form-del-resp-{{ resp.id }}">
+                    <button class="comment-delete-btn" type="button"
+                            onclick="adminConfirmar({titulo:'Excluir resposta',msg:'Deseja excluir esta resposta? Esta ação não pode ser desfeita.',textoConfirmar:'Excluir',aoConfirmar:function(){document.getElementById('form-del-resp-{{ resp.id }}').submit()}})">
+                      Excluir
+                    </button>
                   </form>
                   {% endif %}
                 </div>

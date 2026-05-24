@@ -175,9 +175,11 @@
       {% endfor %}
 
       <!-- ESVAZIAR -->
-      <form method="POST" action="{{ url_for('esvaziar_carrinho') }}" class="form-esvaziar"
-            onsubmit="return confirm('Esvaziar o carrinho?')">
-        <button type="submit" class="btn-esvaziar">Esvaziar carrinho</button>
+      <form method="POST" action="{{ url_for('esvaziar_carrinho') }}" class="form-esvaziar" id="formEsvaziarCarrinho">
+        <button type="button" class="btn-esvaziar"
+                onclick="adminConfirmar({titulo:'Esvaziar carrinho',msg:'Deseja remover todos os itens do carrinho? Esta ação não pode ser desfeita.',textoConfirmar:'Esvaziar',aoConfirmar:function(){document.getElementById('formEsvaziarCarrinho').submit()}})">
+          Esvaziar carrinho
+        </button>
       </form>
     </div>
 

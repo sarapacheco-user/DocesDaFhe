@@ -126,8 +126,11 @@
             data-fim-hora="{{ ev.data_fim.strftime('%H:%M') if ev.data_fim else '' }}"
             data-cor="{{ ev.cor }}"
             onclick="abrirEdicaoBtn(this)">Editar</button>
-    <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" onsubmit="return confirm('Remover este evento?')">
-      <button type="submit" class="btn-agenda-del">Excluir</button>
+    <form method="POST" action="{{ url_for('admin_agenda_excluir', id=ev.id) }}" id="form-del-evento-{{ ev.id }}">
+      <button type="button" class="btn-agenda-del"
+              onclick="adminConfirmar({titulo:'Remover evento',msg:'Deseja remover o evento &ldquo;{{ ev.titulo }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-evento-{{ ev.id }}').submit()}})">
+        Excluir
+      </button>
     </form>
   </div>
 </div>

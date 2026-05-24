@@ -157,11 +157,14 @@
                 <input type="hidden" name="id" value="{{ l.id }}">
                 <button class="btn-toggle">{{ 'Desativar' if l.ativo else 'Ativar' }}</button>
               </form>
-              <form method="POST" style="display:inline" onsubmit="return confirm('Remover este brinde?')">
+              <form method="POST" style="display:inline" id="form-del-brinde-{{ l.id }}">
                 <input type="hidden" name="acao" value="deletar">
                 <input type="hidden" name="secao" value="brinde">
                 <input type="hidden" name="id" value="{{ l.id }}">
-                <button class="btn-del">Excluir</button>
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover brinde',msg:'Deseja remover o brinde &ldquo;{{ l.produto_nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-brinde-{{ l.id }}').submit()}})">
+                  Excluir
+                </button>
               </form>
             </td>
           </tr>
@@ -281,11 +284,14 @@
                 <input type="hidden" name="id" value="{{ p.id }}">
                 <button class="btn-toggle">{{ 'Desativar' if p.ativo else 'Ativar' }}</button>
               </form>
-              <form method="POST" style="display:inline" onsubmit="return confirm('Remover esta promoção?')">
+              <form method="POST" style="display:inline" id="form-del-promo-{{ p.id }}">
                 <input type="hidden" name="acao" value="deletar">
                 <input type="hidden" name="secao" value="promocao">
                 <input type="hidden" name="id" value="{{ p.id }}">
-                <button class="btn-del">Excluir</button>
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover promoção',msg:'Deseja remover a promoção &ldquo;{{ p.nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-promo-{{ p.id }}').submit()}})">
+                  Excluir
+                </button>
               </form>
             </td>
           </tr>
@@ -381,11 +387,14 @@
                 <input type="hidden" name="id" value="{{ p.id }}">
                 <button class="btn-toggle">{{ 'Desativar' if p.ativo else 'Ativar' }}</button>
               </form>
-              <form method="POST" style="display:inline" onsubmit="return confirm('Remover esta promoção?')">
+              <form method="POST" style="display:inline" id="form-del-lp-{{ p.id }}">
                 <input type="hidden" name="acao" value="deletar">
                 <input type="hidden" name="secao" value="leve_pague">
                 <input type="hidden" name="id" value="{{ p.id }}">
-                <button class="btn-del">Excluir</button>
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover promoção',msg:'Deseja remover a promoção &ldquo;{{ p.nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-lp-{{ p.id }}').submit()}})">
+                  Excluir
+                </button>
               </form>
             </td>
           </tr>

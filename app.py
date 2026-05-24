@@ -255,12 +255,24 @@ def signup():
             return redirect(url_for('signup'))
 
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        new_user = User(name=name, email=email,
-                        password=hashed_pw.decode('utf-8'),
-                        phone=phone, cep=cep)
+        token = secrets.token_urlsafe(32)
+        new_user = User(
+            name=name, email=email,
+            password=hashed_pw.decode('utf-8'),
+            phone=phone, cep=cep,
+            email_verified=False,
+            email_verification_token=token,
+            email_verification_expiry=datetime.utcnow() + timedelta(hours=24)
+        )
         db.session.add(new_user)
         db.session.commit()
-        flash("Conta criada! Por favor, faça login.")
+        verify_url = url_for('verificar_email', token=token, _external=True)
+        enviado = send_verification_email(email, verify_url)
+        if enviado:
+            flash("Conta criada! Enviamos um e-mail de confirmação. Verifique sua caixa de entrada antes de fazer login.", 'info')
+        else:
+            flash("Conta criada! Não conseguimos enviar o e-mail de confirmação. Use o link abaixo para verificar sua conta.", 'warning')
+            flash(f"Link de verificação: {verify_url}", 'info')
         return redirect(url_for('login'))
 
     return render_template('auth/signup.html')
@@ -273,13 +285,52 @@ def login():
         password = request.form['password']
         user     = User.query.filter_by(email=email).first()
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+            if not user.email_verified:
+                flash("Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada ou solicite um novo e-mail.", 'warning')
+                return render_template('auth/login.html', email_nao_verificado=True, email_usuario=email)
             user.last_login = datetime.utcnow()
             db.session.commit()
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
-            flash("Credenciais inválidas.")
+            flash("Credenciais inválidas.", 'error')
     return render_template('auth/login.html')
+
+
+@app.route('/verificar-email/<token>')
+def verificar_email(token):
+    user = User.query.filter_by(email_verification_token=token).first()
+    if not user:
+        flash("Link de verificação inválido ou já utilizado.", 'error')
+        return redirect(url_for('login'))
+    if user.email_verification_expiry and user.email_verification_expiry < datetime.utcnow():
+        flash("Link de verificação expirado. Solicite um novo e-mail de confirmação.", 'warning')
+        return redirect(url_for('login'))
+    user.email_verified = True
+    user.email_verification_token = None
+    user.email_verification_expiry = None
+    db.session.commit()
+    return render_template('auth/email_verificado.html')
+
+
+@app.route('/reenviar-verificacao', methods=['POST'])
+def reenviar_verificacao():
+    email = request.form.get('email', '').strip()
+    user = User.query.filter_by(email=email).first()
+    if user and not user.email_verified:
+        token = secrets.token_urlsafe(32)
+        user.email_verification_token = token
+        user.email_verification_expiry = datetime.utcnow() + timedelta(hours=24)
+        db.session.commit()
+        verify_url = url_for('verificar_email', token=token, _external=True)
+        enviado = send_verification_email(email, verify_url)
+        if enviado:
+            flash("E-mail de confirmação reenviado! Verifique sua caixa de entrada.", 'success')
+        else:
+            flash(f"Não conseguimos enviar o e-mail. Link direto: {verify_url}", 'warning')
+    else:
+        flash("Se esse e-mail existir e não estiver verificado, um novo link foi enviado.", 'info')
+    return redirect(url_for('login'))
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -312,6 +363,21 @@ def send_reset_email(user_email, reset_url):
         return True
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
+        return False
+
+
+def send_verification_email(user_email, verify_url):
+    try:
+        msg = Message(
+            subject="Confirme seu e-mail — Doces da Fhê",
+            recipients=[user_email],
+            html=render_template('auth/email_verificacao.html', verify_url=verify_url),
+            body=f"Acesse o link para confirmar sua conta: {verify_url}\n\nEste link expira em 24 horas."
+        )
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar e-mail de verificação: {e}")
         return False
 
 
@@ -1245,10 +1311,10 @@ def adicionar_carrinho():
             qtd_max = pe.quantidade_maxima
 
     if quantidade < qtd_min:
-        flash(f'A quantidade mínima para este produto é {qtd_min} unidade(s).', 'error')
+        flash(f'Quantidade mínima por pedido: {qtd_min} unidade(s). Por favor, ajuste a quantidade.', 'error')
         return redirect(proxima_url)
     if qtd_max and quantidade > qtd_max:
-        flash(f'A quantidade máxima para este produto é {qtd_max} unidade(s).', 'error')
+        flash(f'Quantidade máxima por pedido: {qtd_max} unidade(s). Por favor, ajuste a quantidade.', 'error')
         return redirect(proxima_url)
 
     item = CarrinhoItem.query.filter_by(
@@ -1293,12 +1359,12 @@ def atualizar_carrinho(item_id):
     elif quantidade < qtd_min:
         item.quantidade = qtd_min
         db.session.commit()
-        flash(f'A quantidade mínima de "{item.nome}" é {qtd_min} unidade(s).', 'warning')
+        flash(f'Quantidade mínima por pedido de "{item.nome}": {qtd_min} unidade(s).', 'warning')
         return redirect(url_for('carrinho'))
     elif qtd_max and quantidade > qtd_max:
         item.quantidade = qtd_max
         db.session.commit()
-        flash(f'A quantidade máxima de "{item.nome}" é {qtd_max} unidade(s).', 'warning')
+        flash(f'Quantidade máxima por pedido de "{item.nome}": {qtd_max} unidade(s).', 'warning')
         return redirect(url_for('carrinho'))
     else:
         item.quantidade = quantidade
