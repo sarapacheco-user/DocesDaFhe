@@ -152,8 +152,44 @@
 
   <!-- IMAGEM -->
   <div class="produto-imagem">
-    {% if produto.image_url %}
-      <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}" class="produto-img-principal" />
+    {% set todas_fotos = [] %}
+    {% if produto.image_url %}{% set _ = todas_fotos.append(produto.image_url) %}{% endif %}
+    {% for f in (fotos_extras or []) %}{% set _ = todas_fotos.append(f.url) %}{% endfor %}
+
+    {% if todas_fotos %}
+      <div class="foto-carrossel" id="fotoCarrossel">
+
+        <!-- tela principal -->
+        <div class="foto-stage-wrap">
+          <div class="foto-stage" id="fotoStage">
+            {% for u in todas_fotos %}
+            <div class="foto-slide">
+              <img src="{{ url_for('static', filename=u) }}" alt="{{ produto.name }}">
+            </div>
+            {% endfor %}
+          </div>
+          {% if todas_fotos|length > 1 %}
+          <button class="foto-nav foto-prev" onclick="moverFoto(-1)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="foto-nav foto-next" onclick="moverFoto(1)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          {% endif %}
+        </div>
+
+        <!-- miniaturas -->
+        {% if todas_fotos|length > 1 %}
+        <div class="foto-thumbs" id="fotoThumbs">
+          {% for u in todas_fotos %}
+          <div class="foto-thumb {% if loop.first %}ativa{% endif %}" onclick="irFoto({{ loop.index0 }})">
+            <img src="{{ url_for('static', filename=u) }}" alt="miniatura {{ loop.index }}">
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
     {% else %}
       <div class="produto-img-placeholder">{{ '🎁' if is_kit else '🍰' }}</div>
     {% endif %}
@@ -575,6 +611,36 @@
       });
     });
   }
+
+  /* ── carrossel de fotos ── */
+  (function() {
+    const stage  = document.getElementById('fotoStage');
+    const thumbs = document.querySelectorAll('.foto-thumb');
+    if (!stage) return;
+    const total = stage.querySelectorAll('.foto-slide').length;
+    let atual = 0;
+
+    function irFoto(idx) {
+      atual = (idx + total) % total;
+      stage.style.transform = 'translateX(-' + (atual * 100) + '%)';
+      thumbs.forEach(function(t, i) {
+        t.classList.toggle('ativa', i === atual);
+      });
+    }
+    function moverFoto(dir) { irFoto(atual + dir); }
+
+    /* expõe globalmente para os botões inline */
+    window.irFoto   = irFoto;
+    window.moverFoto = moverFoto;
+
+    /* swipe touch */
+    var _tx = 0;
+    stage.addEventListener('touchstart', function(e){ _tx = e.touches[0].clientX; }, {passive:true});
+    stage.addEventListener('touchend',   function(e){
+      var dx = e.changedTouches[0].clientX - _tx;
+      if (Math.abs(dx) > 40) moverFoto(dx < 0 ? 1 : -1);
+    }, {passive:true});
+  })();
 </script>
 
 {% endblock %}

@@ -660,6 +660,27 @@ class DesignPalette(db.Model):
         return f"<DesignPalette {self.nome}>"
 
 
+class ItemFoto(db.Model):
+    """Fotos extras de produtos, kits, especiais e eventos."""
+    __tablename__ = 'item_fotos'
+    id          = db.Column(db.Integer, primary_key=True)
+    produto_id  = db.Column(db.Integer, db.ForeignKey('products.id'),           nullable=True)
+    kit_id      = db.Column(db.Integer, db.ForeignKey('kits.id'),               nullable=True)
+    especial_id = db.Column(db.Integer, db.ForeignKey('produtos_especiais.id'), nullable=True)
+    evento_id   = db.Column(db.Integer, db.ForeignKey('eventos_especiais.id'),  nullable=True)
+    url         = db.Column(db.String(300), nullable=False)
+    ordem       = db.Column(db.Integer, default=0)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    produto  = db.relationship('Product',        backref='fotos_extras')
+    kit      = db.relationship('Kit',            backref='fotos_extras')
+    especial = db.relationship('ProdutoEspecial', backref='fotos_extras')
+    evento   = db.relationship('EventoEspecial', backref='fotos_extras')
+
+    def __repr__(self):
+        return f"<ItemFoto {self.url}>"
+
+
 class AgendaEvento(db.Model):
     __tablename__ = 'agenda_eventos'
     id          = db.Column(db.Integer, primary_key=True)

@@ -1,4 +1,5 @@
 {% extends "admin/base.html" %}
+{% from "macros/fotos_extras.html" import secao_fotos %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 {% endblock %}
@@ -113,6 +114,9 @@
             </div>
 
           </form>
+
+          {{ secao_fotos('especial', produto.id, fotos_extras or [], url_for('editar_produto_especial', id=produto.id)) }}
+
         </div>
       </div>
     </div>

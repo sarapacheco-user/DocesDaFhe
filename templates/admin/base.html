@@ -895,6 +895,11 @@
         var wrapEl = document.getElementById(_cropWrapId);
         if (wrapEl) wrapEl.style.display = 'block';
       }
+      /* callback para fotos extras (AJAX ou create) */
+      if (window._fotoExtraCallback) {
+        window._fotoExtraCallback(dataUrl);
+        window._fotoExtraCallback = null;
+      }
       adminCancelCrop();
     }, mime, 0.92);
   }

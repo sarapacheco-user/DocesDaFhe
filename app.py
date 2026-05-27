@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto
 import bcrypt
 import re
 import requests
@@ -37,11 +37,12 @@ UPLOAD_FOLDER_KITS      = os.path.join('static', 'uploads', 'kits')
 UPLOAD_FOLDER_ESPECIAIS = os.path.join('static', 'uploads', 'especiais')
 UPLOAD_FOLDER_LOGO      = os.path.join('static', 'uploads', 'logo')
 UPLOAD_FOLDER_CORP      = os.path.join('static', 'uploads', 'corporativo')
+UPLOAD_FOLDER_FOTOS     = os.path.join('static', 'uploads', 'fotos_extras')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 
 for folder in [UPLOAD_FOLDER_CARROSSEL, UPLOAD_FOLDER_PRODUTOS,
                UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO,
-               UPLOAD_FOLDER_CORP]:
+               UPLOAD_FOLDER_CORP, UPLOAD_FOLDER_FOTOS]:
     os.makedirs(folder, exist_ok=True)
 
 
@@ -572,6 +573,21 @@ def create_product():
                           price=price, category=category, image_url=image_url,
                           quantidade_minima=qtd_min, quantidade_maxima=qtd_max)
         db.session.add(product)
+        db.session.flush()  # gera o product.id antes do commit
+        # fotos extras via base64 (crop)
+        import base64 as _b64, re as _re
+        for b64data in request.form.getlist('fotos_extras_b64'):
+            if not b64data:
+                continue
+            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
+            if not m:
+                continue
+            mime, raw = m.groups()
+            ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}.get(mime,'jpg')
+            fname = f"{int(time.time())}_extra.{ext}"
+            with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as fout:
+                fout.write(_b64.b64decode(raw))
+            db.session.add(ItemFoto(produto_id=product.id, url=f"uploads/fotos_extras/{fname}"))
         db.session.commit()
         flash("Produto criado com sucesso!", 'success')
         return redirect(url_for('list_products'))
@@ -607,10 +623,21 @@ def edit_product(id):
             nova_imagem = salvar_imagem_produto(arquivo)
         if nova_imagem:
             product.image_url = nova_imagem
+        # fotos extras novas
+        for arq in request.files.getlist('fotos_extras'):
+            if not arq or arq.filename == '':
+                continue
+            ext = arq.filename.rsplit('.', 1)[-1].lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                continue
+            fname = f"{int(time.time())}_{secure_filename(arq.filename)}"
+            arq.save(os.path.join(UPLOAD_FOLDER_FOTOS, fname))
+            db.session.add(ItemFoto(produto_id=product.id, url=f"uploads/fotos_extras/{fname}"))
         db.session.commit()
         flash("Produto atualizado com sucesso!", 'success')
         return redirect(url_for('list_products'))
-    return render_template('product/produto_form.html', product=product)
+    fotos_extras = ItemFoto.query.filter_by(produto_id=product.id).order_by(ItemFoto.ordem).all()
+    return render_template('product/produto_form.html', product=product, fotos_extras=fotos_extras)
 
 
 @app.route('/products/delete/<int:id>')
@@ -733,7 +760,8 @@ def edit_kit(kit_id):
         db.session.commit()
         flash("Kit atualizado!", 'success')
         return redirect(url_for('view_kit', kit_id=kit.id))
-    return render_template('kits/edit.html', kit=kit)
+    fotos_extras = ItemFoto.query.filter_by(kit_id=kit.id).order_by(ItemFoto.ordem).all()
+    return render_template('kits/edit.html', kit=kit, fotos_extras=fotos_extras)
 
 
 @app.route('/kits/<int:kit_id>/delete', methods=['POST'])
@@ -862,13 +890,15 @@ def produto_detalhe(id):
     avaliacoes = Avaliacao.query.filter_by(produto_id=id).order_by(Avaliacao.created_at.desc()).all()
     media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
     ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
+    fotos_extras = ItemFoto.query.filter_by(produto_id=id).order_by(ItemFoto.ordem).all()
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False,
                            fav_tipo='produto', fav_id=produto.id,
                            is_favorito=(produto.id in fav_p),
-                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou,
+                           fotos_extras=fotos_extras)
 
 
 @app.route('/kit-detalhe/<int:kit_id>')
@@ -906,13 +936,15 @@ def kit_detalhe(kit_id):
     avaliacoes = Avaliacao.query.filter_by(kit_id=kit_id).order_by(Avaliacao.created_at.desc()).all()
     media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
     ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
+    fotos_extras = ItemFoto.query.filter_by(kit_id=kit_id).order_by(ItemFoto.ordem).all()
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=True, kit=kit,
                            fav_tipo='kit', fav_id=kit.id,
                            is_favorito=(kit.id in fav_k),
-                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou,
+                           fotos_extras=fotos_extras)
 
 
 @app.route('/produto-especial/<int:id>')
@@ -930,13 +962,15 @@ def produto_especial_detalhe(id):
     avaliacoes = Avaliacao.query.filter_by(especial_id=id).order_by(Avaliacao.created_at.desc()).all()
     media = round(sum(a.estrelas for a in avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
     ja_avaliou = any(a.user_id == current_user.id for a in avaliacoes) if current_user.is_authenticated else False
+    fotos_extras = ItemFoto.query.filter_by(especial_id=id).order_by(ItemFoto.ordem).all()
     return render_template('product/produto_detalhe.html',
                            produto=produto,
                            relacionados=relacionados,
                            is_kit=False,
                            fav_tipo='especial', fav_id=produto.id,
                            is_favorito=(produto.id in fav_e),
-                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou)
+                           avaliacoes=avaliacoes, media=media, ja_avaliou=ja_avaliou,
+                           fotos_extras=fotos_extras)
 
 
 @app.route('/busca')
@@ -1029,7 +1063,8 @@ def editar_evento(id):
         db.session.commit()
         flash(f'Evento "{nome}" atualizado!', 'success')
         return redirect(url_for('listar_eventos'))
-    return render_template('special/editar_evento.html', evento=evento)
+    fotos_extras = ItemFoto.query.filter_by(evento_id=evento.id).order_by(ItemFoto.ordem).all()
+    return render_template('special/editar_evento.html', evento=evento, fotos_extras=fotos_extras)
 
 
 @app.route('/special/eventos/<int:id>/toggle-ativo')
@@ -1161,7 +1196,8 @@ def editar_produto_especial(id):
         db.session.commit()
         flash(f'Produto "{produto.name}" atualizado!', 'success')
         return redirect(url_for('listar_produtos_especiais', evento_id=produto.evento_id))
-    return render_template('special/editar_produto_especial.html', produto=produto)
+    fotos_extras = ItemFoto.query.filter_by(especial_id=produto.id).order_by(ItemFoto.ordem).all()
+    return render_template('special/editar_produto_especial.html', produto=produto, fotos_extras=fotos_extras)
 
 
 @app.route('/special/produtos-especiais/<int:id>/deletar', methods=['POST'])
@@ -2743,6 +2779,140 @@ def admin_toggle_admin(uid):
     acao = 'promovido a admin' if u.is_admin else 'rebaixado para cliente'
     flash(f'{u.name or u.email} foi {acao}.', 'success')
     return redirect(url_for('admin_usuarios'))
+
+
+# ─────────────────────────────────────
+# FOTOS EXTRAS (admin)
+# ─────────────────────────────────────
+
+@app.route('/admin/foto/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_foto_add():
+    tipo     = request.form.get('tipo')          # produto | kit | especial | evento
+    item_id  = request.form.get('item_id', type=int)
+    arquivos = request.files.getlist('fotos')
+    redirect_url = request.form.get('next', url_for('dashboard'))
+
+    for arq in arquivos:
+        if not arq or arq.filename == '':
+            continue
+        ext = arq.filename.rsplit('.', 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            continue
+        fname = f"{int(time.time())}_{secure_filename(arq.filename)}"
+        arq.save(os.path.join(UPLOAD_FOLDER_FOTOS, fname))
+        url = f"uploads/fotos_extras/{fname}"
+
+        kwargs = {'url': url}
+        if tipo == 'produto':   kwargs['produto_id']  = item_id
+        elif tipo == 'kit':     kwargs['kit_id']      = item_id
+        elif tipo == 'especial':kwargs['especial_id'] = item_id
+        elif tipo == 'evento':  kwargs['evento_id']   = item_id
+        else:
+            continue
+
+        ordem = ItemFoto.query.filter_by(**{f'{tipo}_id': item_id}).count()
+        kwargs['ordem'] = ordem
+        db.session.add(ItemFoto(**kwargs))
+
+    db.session.commit()
+    flash('Foto(s) adicionada(s) com sucesso!', 'success')
+    return redirect(redirect_url)
+
+
+@app.route('/admin/foto/add-ajax', methods=['POST'])
+@login_required
+@admin_required
+def admin_foto_add_ajax():
+    """Recebe base64 de uma foto, salva e retorna JSON com id + url."""
+    import base64 as _b64, re as _re
+    data    = request.get_json(force=True)
+    tipo    = data.get('tipo')
+    item_id = data.get('item_id')
+    b64data = data.get('data', '')
+
+    m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
+    if not m:
+        return jsonify(error='Dados inválidos'), 400
+
+    mime, raw = m.groups()
+    ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime,'jpg')
+    fname = f"{int(time.time())}_extra.{ext}"
+    try:
+        with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as f:
+            f.write(_b64.b64decode(raw))
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+    url    = f"uploads/fotos_extras/{fname}"
+    kwargs = {'url': url}
+    if   tipo == 'produto':   kwargs['produto_id']  = item_id
+    elif tipo == 'kit':       kwargs['kit_id']      = item_id
+    elif tipo == 'especial':  kwargs['especial_id'] = item_id
+    elif tipo == 'evento':    kwargs['evento_id']   = item_id
+    else:
+        return jsonify(error='tipo inválido'), 400
+
+    foto = ItemFoto(**kwargs)
+    db.session.add(foto)
+    db.session.commit()
+    return jsonify(id=foto.id, url=url)
+
+
+@app.route('/admin/foto/<int:foto_id>/atualizar-ajax', methods=['POST'])
+@login_required
+@admin_required
+def admin_foto_atualizar_ajax(foto_id):
+    """Substitui o arquivo de uma foto existente por uma nova versão em base64."""
+    import base64 as _b64, re as _re
+    data    = request.get_json(force=True)
+    b64data = data.get('data', '')
+    m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
+    if not m:
+        return jsonify(error='Dados inválidos'), 400
+    foto = ItemFoto.query.get_or_404(foto_id)
+    # remove arquivo antigo
+    caminho_antigo = os.path.join('static', foto.url)
+    if os.path.exists(caminho_antigo):
+        os.remove(caminho_antigo)
+    mime, raw = m.groups()
+    ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}.get(mime,'jpg')
+    fname = f"{int(time.time())}_extra.{ext}"
+    with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as f:
+        f.write(_b64.b64decode(raw))
+    foto.url = f"uploads/fotos_extras/{fname}"
+    db.session.commit()
+    return jsonify(ok=True, url=foto.url)
+
+
+@app.route('/admin/foto/<int:foto_id>/excluir-ajax', methods=['POST'])
+@login_required
+@admin_required
+def admin_foto_excluir_ajax(foto_id):
+    foto = ItemFoto.query.get_or_404(foto_id)
+    caminho = os.path.join('static', foto.url)
+    if os.path.exists(caminho):
+        os.remove(caminho)
+    db.session.delete(foto)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.route('/admin/foto/<int:foto_id>/excluir', methods=['POST'])
+@login_required
+@admin_required
+def admin_foto_excluir(foto_id):
+    foto = ItemFoto.query.get_or_404(foto_id)
+    redirect_url = request.form.get('next', url_for('dashboard'))
+    # remove o arquivo físico
+    caminho = os.path.join('static', foto.url)
+    if os.path.exists(caminho):
+        os.remove(caminho)
+    db.session.delete(foto)
+    db.session.commit()
+    flash('Foto removida.', 'info')
+    return redirect(redirect_url)
 
 
 # ─────────────────────────────────────

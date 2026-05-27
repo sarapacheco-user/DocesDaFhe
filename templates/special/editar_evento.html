@@ -1,4 +1,5 @@
 {% extends "admin/base.html" %}
+{% from "macros/fotos_extras.html" import secao_fotos %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 <style>
@@ -112,6 +113,11 @@
       <button type="submit" class="ev-btn-submit">Salvar Alterações</button>
     </div>
   </form>
+
+  <div style="max-width:560px; margin: 0 auto;">
+    {{ secao_fotos('evento', evento.id, fotos_extras or [], url_for('editar_evento', id=evento.id)) }}
+  </div>
+
 </div>
 <script>
   document.getElementById('descricao').addEventListener('input', function() {
