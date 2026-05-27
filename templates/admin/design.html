@@ -94,7 +94,7 @@
           <p style="font-size:.78rem; color:#64748b; margin-bottom:.8rem;">
             Gradiente aplicado no cabeçalho, rodapé e nas páginas de Login, Cadastro e Recuperação de senha.
           </p>
-          {% for field, label in [('auth_bg_color1','Cor inicial'), ('auth_bg_color2','Cor final')] %}
+          {% for field, label in [('auth_bg_color1','Cor inicial do gradiente'), ('auth_bg_color2','Cor final do gradiente')] %}
           <div class="dp-field">
             <label class="dp-label">{{ label }}</label>
             <div class="dp-color-row">
@@ -107,13 +107,33 @@
             </div>
           </div>
           {% endfor %}
-          <div id="auth-bg-preview" style="margin-top:.7rem; height:40px; border-radius:10px; border:1px solid #e2e8f0;"></div>
+
+          <div class="dp-field">
+            <label class="dp-label">Cor do texto <small>Título, subtítulo e ícone sobre o gradiente</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_auth_text_color"
+                     value="{{ config.auth_text_color or '#ffffff' }}"
+                     oninput="syncAuthTextColor(this.value)">
+              <input type="text" class="dp-color-hex" id="hex_auth_text_color" name="auth_text_color"
+                     value="{{ config.auth_text_color or '#ffffff' }}"
+                     maxlength="7" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_auth_text_color').value=this.value; syncAuthTextColor(this.value);}">
+            </div>
+          </div>
+
+          <!-- mini preview mostrando gradiente + texto -->
+          <div id="auth-bg-preview" style="margin-top:.7rem; height:70px; border-radius:10px; border:1px solid #e2e8f0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; overflow:hidden;">
+            <div id="auth-preview-title" style="font-size:.8rem; font-weight:700; line-height:1;">Recuperar Senha</div>
+            <div id="auth-preview-sub" style="font-size:.65rem; opacity:.85;">Informe seu e-mail cadastrado</div>
+          </div>
           <script>
             (function(){
               var c1 = document.getElementById('hex_auth_bg_color1').value || '#e8eed8';
               var c2 = document.getElementById('hex_auth_bg_color2').value || '#8fa05a';
-              document.getElementById('auth-bg-preview').style.background =
-                'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+              var tc = document.getElementById('hex_auth_text_color').value || '#ffffff';
+              var prev = document.getElementById('auth-bg-preview');
+              prev.style.background = 'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+              document.getElementById('auth-preview-title').style.color = tc;
+              document.getElementById('auth-preview-sub').style.color = tc;
             })();
           </script>
         </div>
@@ -876,8 +896,14 @@ function switchTab(el, name) {
 
 // ── Color sync ──
 function _authBgPreview(c1, c2) {
-  document.getElementById('auth-bg-preview').style.background =
-    'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+  var prev = document.getElementById('auth-bg-preview');
+  if (prev) prev.style.background = 'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+}
+function _authTextPreview(tc) {
+  var t = document.getElementById('auth-preview-title');
+  var s = document.getElementById('auth-preview-sub');
+  if (t) t.style.color = tc;
+  if (s) s.style.color = tc;
 }
 function syncAuthBgFromPicker(field, value) {
   document.getElementById('hex_' + field).value = value;
@@ -894,6 +920,11 @@ function syncAuthBgFromHex(field, value) {
     document.getElementById('hex_auth_bg_color1').value,
     document.getElementById('hex_auth_bg_color2').value
   );
+}
+function syncAuthTextColor(value) {
+  document.getElementById('hex_auth_text_color').value = value;
+  document.getElementById('cp_auth_text_color').value  = value;
+  _authTextPreview(value);
 }
 
 function syncColor(field, value) {
@@ -1285,7 +1316,7 @@ function aplicarPaleta(cores) {
   var colorFields = [
     'color_primary', 'color_secondary', 'color_accent', 'color_dark',
     'color_bg', 'color_text', 'color_text_light',
-    'auth_bg_color1', 'auth_bg_color2',
+    'auth_bg_color1', 'auth_bg_color2', 'auth_text_color',
     'flash_success', 'flash_error', 'flash_info',
     'blog_primary', 'blog_accent', 'blog_bg', 'blog_card_bg', 'blog_text',
   ];
@@ -1306,6 +1337,8 @@ function aplicarPaleta(cores) {
         document.getElementById('hex_auth_bg_color1').value,
         document.getElementById('hex_auth_bg_color2').value
       );
+    } else if (field === 'auth_text_color') {
+      _authTextPreview(val);
     } else {
       applyColor(field, val);
     }

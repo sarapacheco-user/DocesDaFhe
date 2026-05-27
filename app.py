@@ -173,8 +173,9 @@ with app.app_context():
         for tbl, col, typedef in [
             ('eventos_especiais', 'data_inicio',    'DATETIME'),
             ('eventos_especiais', 'data_fim',       'DATETIME'),
-            ('site_config',       'auth_bg_color1', 'VARCHAR(20)'),
-            ('site_config',       'auth_bg_color2', 'VARCHAR(20)'),
+            ('site_config',       'auth_bg_color1',  'VARCHAR(20)'),
+            ('site_config',       'auth_bg_color2',  'VARCHAR(20)'),
+            ('site_config',       'auth_text_color', 'VARCHAR(20)'),
         ]:
             try:
                 conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typedef}'))
@@ -337,18 +338,31 @@ def reenviar_verificacao():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form['email']
+        email = request.form.get('email', '').strip().lower()
         user  = User.query.filter_by(email=email).first()
         if user:
+            # proteção anti-spam: só permite novo token após 5 minutos
+            if (user.reset_token_expiry and
+                    user.reset_token_expiry > datetime.utcnow() + timedelta(hours=23, minutes=55)):
+                flash('Um link de recuperação já foi enviado recentemente. Aguarde alguns minutos antes de tentar novamente.', 'warning')
+                return redirect(url_for('forgot_password'))
+
             token = secrets.token_urlsafe(32)
-            user.reset_token = token
+            user.reset_token        = token
             user.reset_token_expiry = datetime.utcnow() + timedelta(hours=24)
             db.session.commit()
             reset_url = url_for('reset_password', token=token, _external=True)
-            flash(f'Link para redefinição de senha: {reset_url}', 'info')
+            enviado   = send_reset_email(email, reset_url)
+            if enviado:
+                flash('Enviamos um link de recuperação para o seu e-mail. Verifique sua caixa de entrada.', 'success')
+            else:
+                # fallback: exibe o link direto se o e-mail falhar
+                flash('Não foi possível enviar o e-mail. Use o link abaixo para redefinir sua senha:', 'warning')
+                flash(reset_url, 'info')
         else:
-            flash('Se esse e-mail existir, um link de redefinição foi enviado.', 'info')
-        return redirect(url_for('login'))
+            # mensagem genérica para não vazar se o e-mail existe
+            flash('Se esse e-mail estiver cadastrado, você receberá um link de recuperação.', 'info')
+        return redirect(url_for('forgot_password'))
     return render_template('auth/forgot_password.html')
 
 
@@ -385,24 +399,32 @@ def send_verification_email(user_email, verify_url):
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     user = User.query.filter_by(reset_token=token).first()
-    if not user or user.reset_token_expiry < datetime.utcnow():
-        flash('Link de redefinição inválido ou expirado.', 'error')
+    # verifica token inválido ou expirado (trata None no expiry)
+    if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
+        flash('Link de redefinição inválido ou expirado. Solicite um novo link.', 'error')
         return redirect(url_for('forgot_password'))
     if request.method == 'POST':
-        password         = request.form['password']
-        confirm_password = request.form['confirm-password']
-        if len(password) < 6:
-            flash('A senha deve ter no mínimo 6 caracteres.', 'error')
-            return redirect(url_for('reset_password', token=token))
+        password         = request.form.get('password', '')
+        confirm_password = request.form.get('confirm-password', '')
+        erros = []
+        if len(password) < 8:
+            erros.append('A senha deve ter no mínimo 8 caracteres.')
+        if not any(c.isdigit() for c in password):
+            erros.append('A senha deve conter pelo menos um número.')
+        if not any(c.isalpha() for c in password):
+            erros.append('A senha deve conter pelo menos uma letra.')
         if password != confirm_password:
-            flash('As senhas não coincidem.', 'error')
+            erros.append('As senhas não coincidem.')
+        if erros:
+            for e in erros:
+                flash(e, 'error')
             return redirect(url_for('reset_password', token=token))
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        user.password = hashed_pw.decode('utf-8')
-        user.reset_token = None
+        user.password           = hashed_pw.decode('utf-8')
+        user.reset_token        = None
         user.reset_token_expiry = None
         db.session.commit()
-        flash('Senha redefinida com sucesso!', 'success')
+        flash('Senha redefinida com sucesso! Faça login com sua nova senha.', 'success')
         return redirect(url_for('login'))
     return render_template('auth/reset_password.html', token=token)
 
@@ -2192,8 +2214,9 @@ def admin_design():
         config.blog_bg          = request.form.get('blog_bg',       '#f8fafc')
         config.blog_card_bg     = request.form.get('blog_card_bg',  '#ffffff')
         config.blog_text        = request.form.get('blog_text',     '#1e293b')
-        config.auth_bg_color1   = request.form.get('auth_bg_color1', '#e8eed8')
-        config.auth_bg_color2   = request.form.get('auth_bg_color2', '#8fa05a')
+        config.auth_bg_color1   = request.form.get('auth_bg_color1',  '#e8eed8')
+        config.auth_bg_color2   = request.form.get('auth_bg_color2',  '#8fa05a')
+        config.auth_text_color  = request.form.get('auth_text_color', '#ffffff')
 
         logo_file = request.files.get('logo_file')
         if logo_file and logo_file.filename != '':
@@ -2224,7 +2247,7 @@ def admin_design():
 _PALETTE_FIELDS = [
     'color_primary', 'color_secondary', 'color_accent', 'color_dark',
     'color_bg', 'color_text', 'color_text_light',
-    'auth_bg_color1', 'auth_bg_color2',
+    'auth_bg_color1', 'auth_bg_color2', 'auth_text_color',
     'flash_success', 'flash_error', 'flash_info',
     'flash_success_text', 'flash_error_text', 'flash_info_text',
     'blog_primary', 'blog_accent', 'blog_bg', 'blog_card_bg', 'blog_text',

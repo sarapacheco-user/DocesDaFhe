@@ -320,6 +320,7 @@ class SiteConfig(db.Model):
     color_text_light = db.Column(db.String(20), default='#6B6B6B')
     auth_bg_color1   = db.Column(db.String(20), default='#e8eed8')
     auth_bg_color2   = db.Column(db.String(20), default='#8fa05a')
+    auth_text_color  = db.Column(db.String(20), default='#ffffff')
     # Typography
     font_title   = db.Column(db.String(100), default='Playfair Display')
     font_body    = db.Column(db.String(100), default='Nunito')

@@ -9,8 +9,9 @@
   --color-bg:              {{ config.color_bg }};
   --color-text:            {{ config.color_text }};
   --color-text-light:      {{ config.color_text_light }};
-  --auth-bg-color1:        {{ config.auth_bg_color1 or '#e8eed8' }};
-  --auth-bg-color2:        {{ config.auth_bg_color2 or '#8fa05a' }};
+  --auth-bg-color1:        {{ config.auth_bg_color1  or '#e8eed8' }};
+  --auth-bg-color2:        {{ config.auth_bg_color2  or '#8fa05a' }};
+  --auth-text-color:       {{ config.auth_text_color or '#ffffff' }};
   --color-primary-tint:    {{ config.color_primary | tint(0.82) }};
   --color-primary-medium:  {{ config.color_primary | tint(0.38) }};
   --sidebar-bg:            {{ config.color_secondary }};
