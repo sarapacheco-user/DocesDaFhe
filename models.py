@@ -1,9 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
+
+# Instância principal do banco de dados compartilhada com app.py
 db = SQLAlchemy()
 
 
+# Representa um usuário cadastrado no site (clientes e administradores)
 class User(db.Model, UserMixin):
     __tablename__ = "users"
     id       = db.Column(db.Integer, primary_key=True)
@@ -37,6 +40,7 @@ class User(db.Model, UserMixin):
         return f"<User {self.email}>"
 
 
+# Produto da loja (bolos, brigadeiros, chocolates etc.) com preço, categoria e estoque
 class Product(db.Model):
     __tablename__ = "products"
     id          = db.Column(db.Integer, primary_key=True)
@@ -55,6 +59,7 @@ class Product(db.Model):
 
     @property
     def status_estoque(self):
+        # Retorna 'zerado', 'baixo' ou 'ok' conforme o estoque atual
         if self.estoque == 0:
             return 'zerado'
         if self.estoque <= self.estoque_minimo:
@@ -65,6 +70,7 @@ class Product(db.Model):
         return f"<Product {self.name}>"
 
 
+# Kit montado com vários produtos; pode ser criado pelo admin ou pelo próprio cliente
 class Kit(db.Model):
     __tablename__ = 'kits'
 
@@ -89,6 +95,7 @@ class Kit(db.Model):
 
     @property
     def total_price(self):
+        # Calcula o preço total somando preço × quantidade de cada produto do kit
         return sum(kp.product.price * kp.quantity for kp in self.products)
 
     @property
@@ -101,6 +108,7 @@ class Kit(db.Model):
         return f'<Kit {self.name}>'
 
 
+# Tabela de associação entre Kit e Product com a quantidade de cada produto no kit
 class KitProduct(db.Model):
     __tablename__ = 'kit_products'
 
@@ -114,6 +122,7 @@ class KitProduct(db.Model):
     product = db.relationship('Product')
 
 
+# Evento especial com período de vigência (ex: Páscoa, Natal) que agrupa produtos especiais
 class EventoEspecial(db.Model):
     __tablename__ = "eventos_especiais"
     id          = db.Column(db.Integer, primary_key=True)
@@ -156,6 +165,7 @@ class EventoEspecial(db.Model):
         return f"<EventoEspecial {self.nome}>"
 
 
+# Produto exclusivo vinculado a um evento especial (aparece apenas durante o período do evento)
 class ProdutoEspecial(db.Model):
     __tablename__ = "produtos_especiais"
     id           = db.Column(db.Integer, primary_key=True)
@@ -182,6 +192,7 @@ class ProdutoEspecial(db.Model):
     def __repr__(self):
         return f"<ProdutoEspecial {self.name}>"
 
+# Registro de toda entrada ou saída de estoque (manual pelo admin ou automática ao finalizar pedido)
 class MovimentacaoEstoque(db.Model):
     __tablename__ = "movimentacoes_estoque"
     id               = db.Column(db.Integer, primary_key=True)
@@ -202,6 +213,7 @@ class MovimentacaoEstoque(db.Model):
         return f"<Movimentacao {self.tipo} {self.quantidade} - {self.produto_id}>"
 
 
+# Item no carrinho de compras de um usuário (pode ser produto, kit ou especial)
 class CarrinhoItem(db.Model):
     __tablename__ = "carrinho_itens"
     id          = db.Column(db.Integer, primary_key=True)
@@ -221,6 +233,7 @@ class CarrinhoItem(db.Model):
 
     @property
     def nome(self):
+        # Retorna o nome do item independente do tipo (produto, kit ou especial)
         if self.produto:
             return self.produto.name
         if self.kit:
@@ -231,6 +244,7 @@ class CarrinhoItem(db.Model):
 
     @property
     def preco_unit(self):
+        # Retorna o preço unitário do item independente do tipo
         if self.produto:
             return float(self.produto.price)
         if self.kit:
@@ -275,6 +289,7 @@ class CarrinhoItem(db.Model):
 
 
 
+# Item salvo como favorito pelo usuário (produto, kit ou especial)
 class Favorito(db.Model):
     __tablename__ = "favoritos"
     id          = db.Column(db.Integer, primary_key=True)
@@ -293,6 +308,7 @@ class Favorito(db.Model):
         return f"<Favorito user={self.user_id}>"
 
 
+# Imagem do carrossel exibido na página inicial com título, ordem e estado ativo/inativo
 class CarrosselItem(db.Model):
     __tablename__ = "carrossel_itens"
     id         = db.Column(db.Integer, primary_key=True)
@@ -307,6 +323,7 @@ class CarrosselItem(db.Model):
         return f"<CarrosselItem {self.titulo}>"
 
 
+# Configurações globais do site: cores, fontes, layout, logo, animações e identidade visual
 class SiteConfig(db.Model):
     __tablename__ = "site_config"
     id               = db.Column(db.Integer, primary_key=True)
@@ -372,6 +389,7 @@ class SiteConfig(db.Model):
         return f"<SiteConfig {self.site_name}>"
 
 
+# Pedido realizado pelo cliente via loja (buscar ou entrega), com status e total
 class Pedido(db.Model):
     __tablename__ = "pedidos"
     id         = db.Column(db.Integer, primary_key=True)
@@ -392,6 +410,7 @@ class Pedido(db.Model):
         return f"<Pedido #{self.id} {self.status}>"
 
 
+# Linha de item dentro de um pedido (nome, quantidade e preço registrados no momento da compra)
 class PedidoItem(db.Model):
     __tablename__ = "pedido_itens"
     id         = db.Column(db.Integer, primary_key=True)
@@ -409,6 +428,7 @@ class PedidoItem(db.Model):
         return f"<PedidoItem {self.nome} x{self.quantidade}>"
 
 
+# Brinde concedido automaticamente quando o pedido atinge um valor mínimo
 class Brinde(db.Model):
     __tablename__ = "brindes"
     id                = db.Column(db.Integer, primary_key=True)
@@ -421,6 +441,7 @@ class Brinde(db.Model):
         return f"<Brinde {self.produto_nome} a partir de R${self.valor_minimo}>"
 
 
+# Promoção de desconto (percentual, valor fixo ou leve X pague Y) aplicável ao carrinho
 class Promocao(db.Model):
     __tablename__ = "promocoes"
     id           = db.Column(db.Integer, primary_key=True)
@@ -440,6 +461,7 @@ class Promocao(db.Model):
     produto = db.relationship('Product', backref='promocoes_leve_pague', lazy=True)
 
     def desconto_para(self, total):
+        # Calcula o valor do desconto aplicável ao total do carrinho
         if float(self.valor_minimo) > total:
             return 0.0
         if self.tipo == 'percentual':
@@ -450,6 +472,7 @@ class Promocao(db.Model):
         return f"<Promocao {self.nome}>"
 
 
+# Avaliação de estrelas e comentário deixada por um cliente em produto, kit ou especial
 class Avaliacao(db.Model):
     __tablename__ = "avaliacoes"
     id          = db.Column(db.Integer, primary_key=True)
@@ -475,6 +498,7 @@ class Avaliacao(db.Model):
         return f"<Avaliacao {self.estrelas}★ by user {self.user_id}>"
 
 
+# Configurações da seção corporativa: prazo, informações e cores do hero
 class ConfigCorporativo(db.Model):
     __tablename__ = "config_corporativo"
     id          = db.Column(db.Integer, primary_key=True)
@@ -489,6 +513,7 @@ class ConfigCorporativo(db.Model):
         return f"<ConfigCorporativo prazo={self.prazo_texto}>"
 
 
+# Pedido corporativo com detalhes de personalização (sabor, cor de fita, tag, logo da empresa)
 class PedidoCorporativo(db.Model):
     __tablename__ = "pedidos_corporativos"
     id             = db.Column(db.Integer, primary_key=True)
@@ -523,6 +548,7 @@ class PedidoCorporativo(db.Model):
 # BLOG MODELS
 # ─────────────────────────────────────
 
+# Categoria de posts do blog (ex: Receitas, Dicas) com slug e cor para exibição
 class BlogCategoria(db.Model):
     __tablename__ = 'blog_categorias'
     id = db.Column(db.Integer, primary_key=True)
@@ -535,6 +561,7 @@ class BlogCategoria(db.Model):
         return f"<BlogCategoria {self.nome}>"
 
 
+# Tag para classificar posts do blog de forma mais granular que a categoria
 class BlogTag(db.Model):
     __tablename__ = 'blog_tags'
     id = db.Column(db.Integer, primary_key=True)
@@ -545,6 +572,7 @@ class BlogTag(db.Model):
         return f"<BlogTag {self.nome}>"
 
 
+# Tabela intermediária many-to-many entre posts e tags do blog
 blog_post_tags = db.Table(
     'blog_post_tags',
     db.Column('post_id', db.Integer, db.ForeignKey('blog_posts.id')),
@@ -552,6 +580,7 @@ blog_post_tags = db.Table(
 )
 
 
+# Post publicado no blog com conteúdo rico, SEO (meta tags), tempo de leitura e contagem de views
 class BlogPost(db.Model):
     __tablename__ = 'blog_posts'
     id = db.Column(db.Integer, primary_key=True)
@@ -577,6 +606,7 @@ class BlogPost(db.Model):
         return f"<BlogPost {self.titulo[:40]}>"
 
 
+# Comentário em um post do blog com suporte a respostas aninhadas (parent_id)
 class BlogComentario(db.Model):
     __tablename__ = 'blog_comentarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -594,6 +624,7 @@ class BlogComentario(db.Model):
         return f"<BlogComentario post={self.post_id} user={self.user_id}>"
 
 
+# Curtida de um usuário em um post do blog (único por usuário por post)
 class BlogCurtida(db.Model):
     __tablename__ = 'blog_curtidas'
     id = db.Column(db.Integer, primary_key=True)
@@ -605,6 +636,7 @@ class BlogCurtida(db.Model):
         return f"<BlogCurtida post={self.post_id} user={self.user_id}>"
 
 
+# Post salvo na lista de leitura de um usuário (único por usuário por post)
 class BlogSalvo(db.Model):
     __tablename__ = 'blog_salvos'
     id = db.Column(db.Integer, primary_key=True)
@@ -616,6 +648,7 @@ class BlogSalvo(db.Model):
         return f"<BlogSalvo post={self.post_id} user={self.user_id}>"
 
 
+# E-mail cadastrado para receber a newsletter do blog
 class BlogNewsletter(db.Model):
     __tablename__ = 'blog_newsletter'
     id = db.Column(db.Integer, primary_key=True)
@@ -626,6 +659,7 @@ class BlogNewsletter(db.Model):
         return f"<BlogNewsletter {self.email}>"
 
 
+# Perfil público do autor do blog com bio, avatar, redes sociais e informações de contato
 class UserPerfil(db.Model):
     __tablename__ = 'user_perfis'
     id = db.Column(db.Integer, primary_key=True)
@@ -650,6 +684,7 @@ class UserPerfil(db.Model):
         return f"<UserPerfil user={self.user_id}>"
 
 
+# Paleta de cores salva pelo admin para reutilização no painel de personalização do site
 class DesignPalette(db.Model):
     __tablename__ = 'design_palettes'
     id         = db.Column(db.Integer, primary_key=True)
@@ -661,8 +696,8 @@ class DesignPalette(db.Model):
         return f"<DesignPalette {self.nome}>"
 
 
+# Fotos extras de produtos, kits, especiais e eventos exibidas na galeria da página de detalhe
 class ItemFoto(db.Model):
-    """Fotos extras de produtos, kits, especiais e eventos."""
     __tablename__ = 'item_fotos'
     id          = db.Column(db.Integer, primary_key=True)
     produto_id  = db.Column(db.Integer, db.ForeignKey('products.id'),           nullable=True)
@@ -682,6 +717,7 @@ class ItemFoto(db.Model):
         return f"<ItemFoto {self.url}>"
 
 
+# Evento interno da agenda do admin (entregas, reuniões, datas importantes) com cor e período
 class AgendaEvento(db.Model):
     __tablename__ = 'agenda_eventos'
     id          = db.Column(db.Integer, primary_key=True)
@@ -700,3 +736,17 @@ class AgendaEvento(db.Model):
 
     def __repr__(self):
         return f"<AgendaEvento {self.titulo}>"
+
+
+# Banner de topo de cada categoria da loja com imagem, título, descrição e ponto focal
+class CategoriaBanner(db.Model):
+    __tablename__ = 'categoria_banners'
+    id         = db.Column(db.Integer, primary_key=True)
+    nome       = db.Column(db.String(100), nullable=False, unique=True)
+    imagem_url = db.Column(db.String(300), nullable=True)
+    titulo     = db.Column(db.String(150), nullable=True)
+    descricao  = db.Column(db.String(300), nullable=True)
+    posicao    = db.Column(db.String(30), nullable=True, default='center center')
+
+    def __repr__(self):
+        return f"<CategoriaBanner {self.nome}>"

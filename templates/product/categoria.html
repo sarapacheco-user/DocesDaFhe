@@ -19,6 +19,58 @@
     .cat-sidebar.open { display: block; }
   }
 
+  /* ── BANNER ── */
+  .cat-banner {
+    width: 100%;
+    height: 320px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+  .cat-banner img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* sem overlay — foto fica 100% limpa */
+  .cat-banner-overlay { display: none; }
+  .cat-banner-fade    { display: none; }
+
+  /* strip abaixo da foto — sem fundo, texto direto no fundo da página */
+  .cat-banner-strip {
+    padding: 1.4rem 3rem .2rem;
+  }
+  .cat-banner-titulo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 .4rem;
+    line-height: 1.15;
+  }
+  .cat-banner-linha {
+    width: 48px;
+    height: 3.5px;
+    background: var(--color-accent, #F3B651);
+    border-radius: 3px;
+    margin-bottom: .3rem;
+  }
+  .cat-banner-desc {
+    color: #64748b;
+    font-size: .92rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  @media (max-width: 768px) {
+    .cat-banner { height: 200px; }
+    .cat-banner-strip { padding: 1rem 1.4rem .2rem; }
+    .cat-banner-titulo { font-size: 1.5rem; }
+  }
+  @media (max-width: 480px) {
+    .cat-banner { height: 160px; }
+    .cat-banner-titulo { font-size: 1.3rem; }
+  }
+
   /* ── BREADCRUMB ── */
   .cat-breadcrumb {
     grid-column: 1 / -1;
@@ -125,15 +177,23 @@
   }
   .cat-main-title {
     font-family: 'Playfair Display', serif;
-    font-size: 1.6rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #1e293b;
-    margin: 0;
+    margin: 0 0 .4rem;
+    line-height: 1.15;
+  }
+  .cat-main-title-linha {
+    width: 48px;
+    height: 3.5px;
+    background: var(--color-accent, #F3B651);
+    border-radius: 3px;
+    margin-bottom: .35rem;
   }
   .cat-count {
     font-size: .82rem;
     color: #94a3b8;
-    margin-top: .15rem;
+    margin-top: .1rem;
   }
   .cat-sort-wrap {
     display: flex;
@@ -376,6 +436,15 @@
   <a href="{{ url_for('blog.index') }}">Blog</a>
 </nav>
 
+<!-- BANNER DA CATEGORIA -->
+{% if banner and banner.imagem_url %}
+<div class="cat-banner">
+  <img src="{{ url_for('static', filename=banner.imagem_url) }}"
+       alt="{{ categoria | capitalize }}"
+       style="object-position: {{ banner.posicao or 'center center' }};">
+</div>
+{% endif %}
+
 <!-- CONTEÚDO -->
 <div class="cat-wrap">
 
@@ -438,6 +507,7 @@
     <div class="cat-main-header">
       <div>
         <h1 class="cat-main-title">{{ categoria | capitalize }}</h1>
+        <div class="cat-main-title-linha"></div>
         <div class="cat-count" id="catCount">{{ produtos | length }} produto(s)</div>
       </div>
       <button class="btn-mobile-filtros" onclick="document.getElementById('catSidebar').classList.toggle('open')">

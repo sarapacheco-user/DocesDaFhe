@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto, CategoriaBanner
 import bcrypt
 import re
 import requests
@@ -38,14 +38,19 @@ UPLOAD_FOLDER_ESPECIAIS = os.path.join('static', 'uploads', 'especiais')
 UPLOAD_FOLDER_LOGO      = os.path.join('static', 'uploads', 'logo')
 UPLOAD_FOLDER_CORP      = os.path.join('static', 'uploads', 'corporativo')
 UPLOAD_FOLDER_FOTOS     = os.path.join('static', 'uploads', 'fotos_extras')
+UPLOAD_FOLDER_BANNERS   = os.path.join('static', 'uploads', 'banners_categoria')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 
 for folder in [UPLOAD_FOLDER_CARROSSEL, UPLOAD_FOLDER_PRODUTOS,
                UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO,
-               UPLOAD_FOLDER_CORP, UPLOAD_FOLDER_FOTOS]:
+               UPLOAD_FOLDER_CORP, UPLOAD_FOLDER_FOTOS, UPLOAD_FOLDER_BANNERS]:
     os.makedirs(folder, exist_ok=True)
 
 
+# ── FUNÇÕES AUXILIARES ──
+
+# Escurece uma cor hex multiplicando cada canal RGB por um fator
+# Escurece uma cor hexadecimal pelo fator informado (usado nos templates Jinja)
 def darken_hex(hex_color, factor=0.82):
     try:
         hex_color = hex_color.lstrip('#')
@@ -56,8 +61,8 @@ def darken_hex(hex_color, factor=0.82):
         return f"#{hex_color}"
 
 
+# Clareia uma cor misturando-a com branco (usado nos templates Jinja)
 def tint_hex(hex_color, amount=0.80):
-    """Mix color with white. amount=0 → original, amount=1 → white."""
     try:
         hex_color = hex_color.lstrip('#')
         r, g, b = (int(hex_color[i:i+2], 16) for i in (0, 2, 4))
@@ -69,10 +74,12 @@ def tint_hex(hex_color, amount=0.80):
         return f"#{hex_color}"
 
 
+# Verifica se a extensão do arquivo está na lista de formatos permitidos
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# Salva imagem de produto enviada via formulário e retorna o caminho relativo
 def salvar_imagem_produto(arquivo):
     if not arquivo or arquivo.filename == '':
         return None
@@ -103,6 +110,7 @@ def salvar_imagem_produto_b64(data_url):
         return None
 
 
+# Salva imagem de produto especial a partir de base64 dataURL e retorna o caminho relativo
 def salvar_imagem_especial_b64(data_url):
     import base64, re
     m = re.match(r'data:(image/[\w+]+);base64,(.+)', data_url, re.DOTALL)
@@ -136,9 +144,11 @@ app.jinja_env.globals['now'] = _dt.utcnow
 _MESES_PT       = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 _MESES_ABREV_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
+# Formata uma data no padrão brasileiro por extenso (ex: 01 de janeiro de 2025)
 def data_pt(dt, fmt='%d de {mes} de %Y'):
     return dt.strftime(fmt.replace('{mes}', _MESES_PT[dt.month - 1]))
 
+# Retorna a abreviação do mês em português (ex: jan, fev)
 def mes_pt(dt):
     return _MESES_ABREV_PT[dt.month - 1]
 
@@ -152,6 +162,7 @@ from blog_routes import blog_bp
 app.register_blueprint(blog_bp)
 
 
+# Decorador que restringe acesso a rotas apenas para administradores
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -161,6 +172,8 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Carrega o usuário a partir do ID armazenado na sessão (requisito do Flask-Login)
+# Carrega o usuário pelo ID para o gerenciador de sessão do Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -184,6 +197,8 @@ with app.app_context():
                 pass
 
 
+# Verifica se o usuário atual tem permissão para editar ou excluir um kit
+# Verifica se o usuário atual tem permissão para editar determinado kit
 def user_can_edit_kit(kit):
     if current_user.is_admin:
         return True
@@ -191,6 +206,7 @@ def user_can_edit_kit(kit):
 
 
 # ── CONTEXT PROCESSOR ──
+# Injeta variáveis globais (total do carrinho e config do site) em todos os templates
 @app.context_processor
 def inject_globals():
     if current_user.is_authenticated:
@@ -207,11 +223,15 @@ def inject_globals():
 # ROTAS GERAIS
 # ─────────────────────────────────────
 
+# Redireciona a raiz do site para o dashboard
+# Redireciona a raiz do site para o dashboard
 @app.route('/')
 def home():
     return redirect(url_for('dashboard'))
 
 
+# Exibe e processa o formulário de cadastro de novo usuário
+# Cadastro de novo usuário com validação de e-mail, CEP e telefone
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -280,6 +300,8 @@ def signup():
     return render_template('auth/signup.html')
 
 
+# Exibe e processa o formulário de login do usuário
+# Autenticação do usuário com e-mail e senha; bloqueia se o e-mail não foi verificado
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -299,6 +321,8 @@ def login():
     return render_template('auth/login.html')
 
 
+# Confirma o e-mail do usuário usando o token enviado por e-mail
+# Confirma o e-mail do usuário através do token enviado no cadastro
 @app.route('/verificar-email/<token>')
 def verificar_email(token):
     user = User.query.filter_by(email_verification_token=token).first()
@@ -315,6 +339,8 @@ def verificar_email(token):
     return render_template('auth/email_verificado.html')
 
 
+# Reenvia o e-mail de verificação de conta para o usuário solicitante
+# Reenvia o e-mail de verificação para o usuário que ainda não confirmou a conta
 @app.route('/reenviar-verificacao', methods=['POST'])
 def reenviar_verificacao():
     email = request.form.get('email', '').strip()
@@ -335,6 +361,8 @@ def reenviar_verificacao():
     return redirect(url_for('login'))
 
 
+# Exibe formulário e envia link de recuperação de senha por e-mail
+# Solicita recuperação de senha; gera token e envia link por e-mail (ou exibe na tela como fallback)
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -366,6 +394,8 @@ def forgot_password():
     return render_template('auth/forgot_password.html')
 
 
+# Envia e-mail com link para redefinição de senha
+# Envia o e-mail com link de redefinição de senha via Flask-Mail; retorna True se enviado
 def send_reset_email(user_email, reset_url):
     try:
         msg = Message(
@@ -381,6 +411,8 @@ def send_reset_email(user_email, reset_url):
         return False
 
 
+# Envia e-mail de confirmação de conta com link de verificação
+# Envia o e-mail de confirmação de conta ao novo usuário; retorna True se enviado
 def send_verification_email(user_email, verify_url):
     try:
         msg = Message(
@@ -396,6 +428,8 @@ def send_verification_email(user_email, verify_url):
         return False
 
 
+# Valida o token e permite ao usuário cadastrar uma nova senha
+# Redefine a senha do usuário validando o token e as regras de complexidade
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     user = User.query.filter_by(reset_token=token).first()
@@ -429,6 +463,8 @@ def reset_password(token):
     return render_template('auth/reset_password.html', token=token)
 
 
+# Permite ao usuário autenticado alterar sua senha atual
+# Permite ao usuário logado alterar sua própria senha informando a senha atual
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -453,6 +489,8 @@ def change_password():
     return render_template('auth/change_password.html')
 
 
+# Encerra a sessão do usuário e redireciona para o login
+# Encerra a sessão do usuário e redireciona para o login
 @app.route('/logout')
 @login_required
 def logout():
@@ -464,6 +502,8 @@ def logout():
 # FAVORITOS
 # ─────────────────────────────────────
 
+# Retorna três conjuntos com os IDs de produtos, kits e especiais favoritados pelo usuário
+# Retorna três conjuntos (sets) com os IDs dos produtos, kits e especiais favoritados pelo usuário
 def _fav_sets(user_id):
     favs = Favorito.query.filter_by(user_id=user_id).all()
     return (
@@ -473,6 +513,8 @@ def _fav_sets(user_id):
     )
 
 
+# Adiciona ou remove um item dos favoritos do usuário via AJAX
+# Adiciona ou remove um item dos favoritos do usuário (toggle via AJAX)
 @app.route('/favoritar', methods=['POST'])
 def favoritar():
     if not current_user.is_authenticated:
@@ -497,6 +539,8 @@ def favoritar():
     return jsonify(favorito=True)
 
 
+# Exibe a página com todos os itens favoritados pelo usuário logado
+# Exibe a lista de produtos, kits e especiais salvos como favoritos pelo usuário
 @app.route('/favoritos')
 @login_required
 def favoritos():
@@ -513,6 +557,8 @@ def favoritos():
 # DASHBOARD
 # ─────────────────────────────────────
 
+# Exibe a página principal da loja com produtos, kits, eventos ativos e carrossel
+# Página principal da loja: carrega produtos, kits, carrossel, eventos, blog e promoções
 @app.route('/dashboard')
 def dashboard():
     produtos      = Product.query.filter(Product.ativo == True, Product.category != 'corporativos').all()
@@ -558,12 +604,16 @@ def dashboard():
 # PRODUCTS
 # ─────────────────────────────────────
 
+# Lista todos os produtos cadastrados (painel administrativo)
+# Lista todos os produtos cadastrados (painel admin)
 @app.route('/products')
 def list_products():
     products = Product.query.all()
     return render_template('product/produtos.html', products=products)
 
 
+# Exibe o formulário e cria um novo produto no banco de dados
+# Cria um novo produto com imagem (upload direto ou base64) e fotos extras
 @app.route('/products/create', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -616,6 +666,8 @@ def create_product():
     return render_template('product/produto_form.html')
 
 
+# Exibe o formulário e salva as alterações de um produto existente
+# Edita os dados de um produto existente, incluindo troca de imagem e fotos extras
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -662,6 +714,8 @@ def edit_product(id):
     return render_template('product/produto_form.html', product=product, fotos_extras=fotos_extras)
 
 
+# Remove permanentemente um produto do banco de dados
+# Exclui permanentemente um produto do banco de dados
 @app.route('/products/delete/<int:id>')
 @login_required
 @admin_required
@@ -673,6 +727,8 @@ def delete_product(id):
     return redirect(url_for('list_products'))
 
 
+# Alterna a visibilidade (ativo/oculto) de um produto na loja
+# Alterna a visibilidade de um produto na loja (ativo/oculto)
 @app.route('/products/<int:id>/toggle-ativo')
 @login_required
 @admin_required
@@ -689,6 +745,8 @@ def toggle_product_ativo(id):
 # KITS
 # ─────────────────────────────────────
 
+# Lista os kits disponíveis para o usuário atual (admin vê todos, cliente vê os seus e os oficiais)
+# Lista todos os kits (admin vê todos; cliente vê apenas os seus e os da loja)
 @app.route('/kits')
 @login_required
 def list_kits():
@@ -701,6 +759,8 @@ def list_kits():
     return render_template('kits/list.html', kits=kits)
 
 
+# Exibe os detalhes de um kit específico para o usuário autorizado
+# Exibe os detalhes de um kit específico (somente para quem tem permissão)
 @app.route('/kits/<int:kit_id>')
 @login_required
 def view_kit(kit_id):
@@ -711,6 +771,7 @@ def view_kit(kit_id):
     return render_template('kits/view.html', kit=kit)
 
 
+# Cria um novo kit com nome, imagem e redireciona para adicionar produtos
 @app.route('/kits/create', methods=['GET', 'POST'])
 @login_required
 def create_kit():
@@ -750,6 +811,7 @@ def create_kit():
     return render_template('kits/create.html')
 
 
+# Edita nome, descrição e imagem de um kit existente
 @app.route('/kits/<int:kit_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_kit(kit_id):
@@ -786,6 +848,7 @@ def edit_kit(kit_id):
     return render_template('kits/edit.html', kit=kit, fotos_extras=fotos_extras)
 
 
+# Exclui um kit do banco de dados
 @app.route('/kits/<int:kit_id>/delete', methods=['POST'])
 @login_required
 def delete_kit(kit_id):
@@ -799,6 +862,7 @@ def delete_kit(kit_id):
     return redirect(url_for('list_kits'))
 
 
+# Alterna a visibilidade de um kit na loja (ativo/oculto)
 @app.route('/kits/<int:kit_id>/toggle-ativo', methods=['POST'])
 @login_required
 @admin_required
@@ -811,6 +875,7 @@ def toggle_kit_ativo(kit_id):
     return redirect(url_for('list_kits'))
 
 
+# Gerencia os produtos dentro de um kit (adicionar, remover e definir quantidades)
 @app.route('/kits/<int:kit_id>/products', methods=['GET', 'POST'])
 @login_required
 def edit_kit_products(kit_id):
@@ -848,25 +913,30 @@ def edit_kit_products(kit_id):
 # LOJA PÚBLICA
 # ─────────────────────────────────────
 
+# Exibe os produtos ativos de uma categoria com banner personalizado (se configurado)
 @app.route('/categoria/<nome>')
 def categoria(nome):
     if nome == 'corporativos':
         return redirect(url_for('corporativo'))
     produtos = Product.query.filter_by(category=nome, ativo=True).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    banner = CategoriaBanner.query.filter_by(nome=nome).first()
     return render_template('product/categoria.html', produtos=produtos, categoria=nome,
-                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e, banner=banner)
 
 
+# Página pública de kits da loja com banner e lista de produtos para montar kit
 @app.route('/kits_loja')
 def kits_loja():
     kits = Kit.query.filter_by(is_admin_kit=True, ativo=True).all()
     produtos = Product.query.filter_by(ativo=True).order_by(Product.category, Product.name).all()
     fav_p, fav_k, fav_e = _fav_sets(current_user.id) if current_user.is_authenticated else (set(), set(), set())
+    banner = CategoriaBanner.query.filter_by(nome='kits').first()
     return render_template('kits/kits_loja.html', kits=kits, produtos=produtos,
-                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e)
+                           fav_p=fav_p, fav_k=fav_k, fav_e=fav_e, banner=banner)
 
 
+# Página para o cliente montar seu próprio kit escolhendo produtos
 @app.route('/montar-kit')
 @login_required
 def montar_kit():
@@ -874,6 +944,7 @@ def montar_kit():
     return render_template('kits/montar_kit.html', produtos=produtos)
 
 
+# Adiciona os produtos selecionados no "montar kit" direto ao carrinho do usuário
 @app.route('/montar-kit/adicionar', methods=['POST'])
 @login_required
 def montar_kit_adicionar():
@@ -900,6 +971,7 @@ def montar_kit_adicionar():
     return redirect(url_for('carrinho'))
 
 
+# Exibe a página de detalhe de um produto com avaliações, fotos extras e relacionados
 @app.route('/produto/<int:id>')
 def produto_detalhe(id):
     produto = Product.query.get_or_404(id)
@@ -923,6 +995,7 @@ def produto_detalhe(id):
                            fotos_extras=fotos_extras)
 
 
+# Exibe a página de detalhe de um kit adaptando-o ao template de produto
 @app.route('/kit-detalhe/<int:kit_id>')
 def kit_detalhe(kit_id):
     kit = Kit.query.get_or_404(kit_id)
@@ -969,6 +1042,7 @@ def kit_detalhe(kit_id):
                            fotos_extras=fotos_extras)
 
 
+# Exibe a página de detalhe de um produto especial (vinculado a evento)
 @app.route('/produto-especial/<int:id>')
 def produto_especial_detalhe(id):
     produto = ProdutoEspecial.query.get_or_404(id)
@@ -995,6 +1069,7 @@ def produto_especial_detalhe(id):
                            fotos_extras=fotos_extras)
 
 
+# Busca global por nome em produtos, kits e especiais ativos
 @app.route('/busca')
 def busca():
     termo = request.args.get('q', '').strip()
@@ -1020,6 +1095,7 @@ def busca():
 # EVENTOS ESPECIAIS
 # ─────────────────────────────────────
 
+# Lista todos os eventos especiais cadastrados no painel admin
 @app.route('/special/eventos')
 @login_required
 @admin_required
@@ -1028,6 +1104,7 @@ def listar_eventos():
     return render_template('special/eventos.html', eventos=eventos)
 
 
+# Cria um novo evento especial com nome, período e descrição
 @app.route('/special/eventos/criar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -1056,6 +1133,7 @@ def criar_evento():
     return render_template('special/criar_evento.html')
 
 
+# Edita os dados de um evento especial existente
 @app.route('/special/eventos/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -1089,6 +1167,7 @@ def editar_evento(id):
     return render_template('special/editar_evento.html', evento=evento, fotos_extras=fotos_extras)
 
 
+# Ativa ou desativa um evento especial (controla a exibição na loja)
 @app.route('/special/eventos/<int:id>/toggle-ativo')
 @login_required
 @admin_required
@@ -1101,6 +1180,7 @@ def toggle_evento_ativo(id):
     return redirect(url_for('listar_eventos'))
 
 
+# Exclui permanentemente um evento e todos os seus produtos especiais
 @app.route('/special/eventos/<int:id>/deletar', methods=['POST'])
 @login_required
 @admin_required
@@ -1112,6 +1192,7 @@ def deletar_evento(id):
     return redirect(url_for('listar_eventos'))
 
 
+# Lista os produtos especiais vinculados a um evento
 @app.route('/special/eventos/<int:evento_id>/produtos')
 @login_required
 @admin_required
@@ -1121,6 +1202,7 @@ def listar_produtos_especiais(evento_id):
     return render_template('special/produtos_especiais.html', evento=evento, produtos=produtos)
 
 
+# Cria um produto especial vinculado a um evento com imagem e quantidades
 @app.route('/special/eventos/<int:evento_id>/produtos/criar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -1179,6 +1261,7 @@ def criar_produto_especial(evento_id):
     return render_template('special/criar_produto_especial.html', evento=evento)
 
 
+# Edita os dados de um produto especial existente
 @app.route('/special/produtos-especiais/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -1222,6 +1305,7 @@ def editar_produto_especial(id):
     return render_template('special/editar_produto_especial.html', produto=produto, fotos_extras=fotos_extras)
 
 
+# Exclui permanentemente um produto especial
 @app.route('/special/produtos-especiais/<int:id>/deletar', methods=['POST'])
 @login_required
 @admin_required
@@ -1234,6 +1318,7 @@ def deletar_produto_especial(id):
     return redirect(url_for('listar_produtos_especiais', evento_id=evento_id))
 
 
+# Alterna a visibilidade de um produto especial na página do evento
 @app.route('/special/produtos-especiais/<int:id>/toggle-mostrar')
 @login_required
 @admin_required
@@ -1244,6 +1329,7 @@ def toggle_mostrar(id):
     return redirect(url_for('listar_produtos_especiais', evento_id=produto.evento_id))
 
 
+# Página pública de um evento especial com seus produtos disponíveis
 @app.route('/evento/<int:id>')
 def pagina_evento(id):
     evento = EventoEspecial.query.get_or_404(id)
@@ -1261,6 +1347,7 @@ def pagina_evento(id):
 WHATSAPP_NUMBER = '5511952734219'
 
 
+# Exibe o carrinho com itens, total, brindes e promoções aplicáveis
 @app.route('/carrinho')
 @login_required
 def carrinho():
@@ -1326,6 +1413,7 @@ def carrinho():
                            leve_pague_info=leve_pague_info)
 
 
+# Salva o ID da promoção escolhida pelo cliente na sessão para aplicar no carrinho
 @app.route('/carrinho/aplicar-promocao', methods=['POST'])
 @login_required
 def aplicar_promocao():
@@ -1338,6 +1426,7 @@ def aplicar_promocao():
     return redirect(url_for('carrinho'))
 
 
+# Adiciona um produto, kit ou especial ao carrinho respeitando quantidade mínima e máxima
 @app.route('/carrinho/adicionar', methods=['POST'])
 @login_required
 def adicionar_carrinho():
@@ -1395,6 +1484,7 @@ def adicionar_carrinho():
     return redirect(proxima_url)
 
 
+# Remove um item do carrinho do usuário
 @app.route('/carrinho/remover/<int:item_id>', methods=['POST'])
 @login_required
 def remover_carrinho(item_id):
@@ -1405,6 +1495,7 @@ def remover_carrinho(item_id):
     return redirect(url_for('carrinho'))
 
 
+# Atualiza a quantidade de um item no carrinho respeitando os limites do produto
 @app.route('/carrinho/atualizar/<int:item_id>', methods=['POST'])
 @login_required
 def atualizar_carrinho(item_id):
@@ -1430,6 +1521,7 @@ def atualizar_carrinho(item_id):
     return redirect(url_for('carrinho'))
 
 
+# Remove todos os itens do carrinho e limpa a promoção da sessão
 @app.route('/carrinho/esvaziar', methods=['POST'])
 @login_required
 def esvaziar_carrinho():
@@ -1441,6 +1533,7 @@ def esvaziar_carrinho():
     return redirect(url_for('carrinho'))
 
 
+# Finaliza o pedido: salva no banco, baixa estoque e redireciona para o WhatsApp com resumo
 @app.route('/carrinho/finalizar')
 @login_required
 def finalizar_pedido():
@@ -1596,6 +1689,7 @@ def finalizar_pedido():
 #  PEDIDOS — CLIENTE
 # ══════════════════════════════════════════════
 
+# Exibe o histórico de pedidos normais e corporativos do cliente logado
 @app.route('/meus-pedidos')
 @login_required
 def meus_pedidos():
@@ -1607,6 +1701,7 @@ def meus_pedidos():
                            pedidos_corp=pedidos_corp)
 
 
+# Cancela um pedido do cliente se ainda estiver com status pendente
 @app.route('/pedidos/<int:id>/cancelar', methods=['POST'])
 @login_required
 def cancelar_pedido(id):
@@ -1623,6 +1718,7 @@ def cancelar_pedido(id):
     return redirect(url_for('meus_pedidos'))
 
 
+# Oculta pedidos concluídos ou cancelados do histórico visível do cliente
 @app.route('/pedidos/apagar', methods=['POST'])
 @login_required
 def apagar_pedidos():
@@ -1666,6 +1762,7 @@ def apagar_pedidos():
 #  PEDIDOS — ADMIN
 # ══════════════════════════════════════════════
 
+# Painel admin de pedidos com filtro por status, estatísticas e gráfico por dia
 @app.route('/admin/pedidos')
 @login_required
 @admin_required
@@ -1710,6 +1807,7 @@ def admin_pedidos():
                            brindes=brindes, pedidos_por_dia=pedidos_por_dia)
 
 
+# Atualiza o status de um pedido (pendente, confirmado, entregue, cancelado)
 @app.route('/admin/pedidos/<int:id>/status', methods=['POST'])
 @login_required
 @admin_required
@@ -1727,6 +1825,7 @@ def admin_pedido_status(id):
 #  ESTOQUE
 # ══════════════════════════════════════════════
 
+# Exibe painel de estoque com todos os produtos, kits e especiais com status de quantidade
 @app.route('/admin/estoque')
 @login_required
 @admin_required
@@ -1759,6 +1858,7 @@ def estoque():
         estoque_baixo=estoque_baixo)
 
 
+# Retorna o objeto (produto, kit ou especial) pelo tipo e ID para operações de estoque
 def _get_item_estoque(tipo, item_id):
     if tipo == 'produto':  return Product.query.get(item_id)
     if tipo == 'kit':      return Kit.query.get(item_id)
@@ -1766,6 +1866,7 @@ def _get_item_estoque(tipo, item_id):
     return None
 
 
+# Registra uma entrada ou saída manual de estoque para um produto/kit/especial
 @app.route('/admin/estoque/movimentar', methods=['POST'])
 @login_required
 @admin_required
@@ -1803,6 +1904,7 @@ def movimentar_estoque():
     return jsonify(ok=True, estoque_novo=item.estoque, status=item.status_estoque)
 
 
+# Retorna as últimas 50 movimentações de estoque de um item em formato JSON
 @app.route('/admin/estoque/historico/<tipo_item>/<int:item_id>')
 @login_required
 @admin_required
@@ -1820,6 +1922,7 @@ def historico_estoque(tipo_item, item_id):
     } for m in movs])
 
 
+# Relatório completo de estoque, vendas e pedidos corporativos por período; suporta exportação CSV
 @app.route('/admin/estoque/relatorio')
 @login_required
 @admin_required
@@ -2005,6 +2108,7 @@ def relatorio_estoque():
         tipo_filtro=tipo_filtro)
 
 
+# Apaga todo o histórico de pedidos e movimentações de estoque (ação irreversível)
 @app.route('/admin/relatorio/limpar-historico', methods=['POST'])
 @login_required
 @admin_required
@@ -2018,6 +2122,7 @@ def limpar_historico_vendas():
     return redirect(url_for('relatorio_estoque'))
 
 
+# Atualiza o estoque mínimo de alerta de um produto/kit/especial via AJAX
 @app.route('/admin/estoque/editar-minimo/<tipo_item>/<int:item_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -2035,6 +2140,7 @@ def editar_minimo_estoque(tipo_item, item_id):
 # CARROSSEL ADMIN
 # ─────────────────────────────────────
 
+# Exibe o formulário de adição de imagem ao carrossel da página inicial
 @app.route('/carrossel')
 @login_required
 @admin_required
@@ -2042,6 +2148,7 @@ def carrossel_admin():
     return render_template('carrossel/carrossel_form.html')
 
 
+# Lista todas as imagens do carrossel com opções de editar, reordenar e ativar/desativar
 @app.route('/carrossel/listar')
 @login_required
 @admin_required
@@ -2050,6 +2157,57 @@ def carrossel_listar():
     return render_template('carrossel/listar_carrossel.html', itens=itens)
 
 
+CATEGORIAS_LOJA = ['bolos', 'brigadeiros', 'chocolates', 'trufas', 'brownie', 'kits']
+
+# Gerencia os banners de topo de cada categoria (upload, título, descrição e ponto focal)
+@app.route('/admin/banners-categoria', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_banners_categoria():
+    if request.method == 'POST':
+        nome     = request.form.get('nome', '').strip()
+        titulo   = request.form.get('titulo', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        arquivo  = request.files.get('imagem')
+
+        banner = CategoriaBanner.query.filter_by(nome=nome).first()
+        if not banner:
+            banner = CategoriaBanner(nome=nome)
+            db.session.add(banner)
+
+        banner.titulo    = titulo or None
+        banner.descricao = descricao or None
+        banner.posicao   = request.form.get('posicao', 'center center')
+
+        if arquivo and arquivo.filename:
+            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
+            if ext in ALLOWED_EXTENSIONS:
+                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
+                arquivo.save(os.path.join(UPLOAD_FOLDER_BANNERS, filename))
+                banner.imagem_url = f"uploads/banners_categoria/{filename}"
+
+        db.session.commit()
+        flash(f'Banner da categoria "{nome}" salvo com sucesso!', 'success')
+        return redirect(url_for('admin_banners_categoria'))
+
+    banners = {b.nome: b for b in CategoriaBanner.query.all()}
+    return render_template('admin/banners_categoria.html',
+                           categorias=CATEGORIAS_LOJA, banners=banners)
+
+
+# Remove o banner de uma categoria do banco de dados
+@app.route('/admin/banners-categoria/remover/<int:bid>', methods=['POST'])
+@login_required
+@admin_required
+def admin_banner_remover(bid):
+    banner = CategoriaBanner.query.get_or_404(bid)
+    db.session.delete(banner)
+    db.session.commit()
+    flash('Banner removido.', 'info')
+    return redirect(url_for('admin_banners_categoria'))
+
+
+# Faz upload de uma nova imagem e adiciona ao carrossel com título e ordem
 @app.route('/carrossel/adicionar', methods=['POST'])
 @login_required
 @admin_required
@@ -2077,6 +2235,7 @@ def carrossel_adicionar():
     return redirect(url_for('carrossel_listar'))
 
 
+# Ativa ou desativa uma imagem do carrossel sem removê-la
 @app.route('/carrossel/<int:id>/toggle')
 @login_required
 @admin_required
@@ -2087,6 +2246,7 @@ def carrossel_toggle(id):
     return redirect(url_for('carrossel_listar'))
 
 
+# Remove uma imagem do carrossel e apaga o arquivo físico do servidor
 @app.route('/carrossel/<int:id>/deletar', methods=['POST'])
 @login_required
 @admin_required
@@ -2101,6 +2261,7 @@ def carrossel_deletar(id):
     return redirect(url_for('carrossel_listar'))
 
 
+# Atualiza a ordem de exibição de uma imagem no carrossel
 @app.route('/carrossel/<int:id>/ordem', methods=['POST'])
 @login_required
 @admin_required
@@ -2111,6 +2272,7 @@ def carrossel_ordem(id):
     return redirect(url_for('carrossel_listar'))
 
 
+# Edita o título, ordem e imagem de um item do carrossel
 @app.route('/carrossel/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -2142,12 +2304,14 @@ def carrossel_editar(id):
 # DESIGN / PERSONALIZAÇÃO
 # ─────────────────────────────────────
 
+# Gera dinamicamente o arquivo CSS do site com base nas configurações de design salvas
 @app.route('/dynamic-styles.css')
 def dynamic_styles():
     config = SiteConfig.query.first()
     css = render_template('dynamic_styles.jinja2', config=config)
     return css, 200, {'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'no-cache'}
 
+# Painel de personalização do site: cores, fontes, layout, logo e animações
 @app.route('/admin/design', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -2254,6 +2418,7 @@ _PALETTE_FIELDS = [
 ]
 
 
+# Salva a paleta de cores atual do site com um nome para reutilização futura
 @app.route('/admin/design/paleta/salvar', methods=['POST'])
 @login_required
 @admin_required
@@ -2272,6 +2437,7 @@ def admin_paleta_salvar():
     return redirect(url_for('admin_design') + '#tab-paletas')
 
 
+# Exclui uma paleta de cores salva
 @app.route('/admin/design/paleta/<int:id>/excluir', methods=['POST'])
 @login_required
 @admin_required
@@ -2288,6 +2454,7 @@ def admin_paleta_excluir(id):
 #  AVALIAÇÕES
 # ══════════════════════════════════════════════
 
+# Registra a avaliação de estrelas e comentário de um cliente para produto, kit ou especial
 @app.route('/avaliar', methods=['POST'])
 @login_required
 def avaliar():
@@ -2321,6 +2488,7 @@ def avaliar():
     return redirect(next_url)
 
 
+# Remove uma avaliação do banco de dados (somente admin)
 @app.route('/avaliar/<int:id>/deletar', methods=['POST'])
 @login_required
 @admin_required
@@ -2337,6 +2505,7 @@ def deletar_avaliacao(id):
 #  LEMBRANCINHAS
 # ══════════════════════════════════════════════
 
+# Redireciona para a página de promoções (brindes e promoções são gerenciados juntos)
 @app.route('/admin/brindes')
 @login_required
 @admin_required
@@ -2344,6 +2513,7 @@ def admin_brindes():
     return redirect(url_for('admin_promocoes'))
 
 
+# Gerencia brindes, promoções de desconto (percentual/fixo) e promoções leve/pague
 @app.route('/admin/promocoes', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -2461,6 +2631,7 @@ def admin_promocoes():
 # CORPORATIVO
 # ─────────────────────────────────────
 
+# Retorna a configuração corporativa; cria um registro padrão se ainda não existir
 def _corp_config():
     cfg = ConfigCorporativo.query.first()
     if not cfg:
@@ -2470,6 +2641,7 @@ def _corp_config():
     return cfg
 
 
+# Página pública da seção corporativa com produtos e informações de personalização
 @app.route('/corporativo')
 def corporativo():
     config = _corp_config()
@@ -2481,6 +2653,7 @@ def corporativo():
                            categoria='corporativos')
 
 
+# Formulário de personalização corporativa: cliente escolhe produto, sabor, fita, tag e logo
 @app.route('/corporativo/personalizar', methods=['GET', 'POST'])
 @login_required
 def corporativo_personalizar():
@@ -2557,6 +2730,7 @@ def corporativo_personalizar():
                            user_data=user_data, categoria='corporativos')
 
 
+# Formulário de solicitação livre de produto corporativo; gera pedido para contato posterior
 @app.route('/corporativo/solicitar', methods=['GET', 'POST'])
 @login_required
 def corporativo_solicitar():
@@ -2601,6 +2775,7 @@ def corporativo_solicitar():
                            user_data=user_data, categoria='corporativos')
 
 
+# Painel admin de pedidos corporativos com filtro de status, estatísticas e configurações
 @app.route('/admin/corporativo', methods=['GET', 'POST'])
 @login_required
 def admin_corporativo():
@@ -2653,6 +2828,7 @@ def admin_corporativo():
                            pedidos_por_dia=pedidos_por_dia)
 
 
+# Atualiza o status e o valor de um pedido corporativo
 @app.route('/admin/corporativo/<int:id>/status', methods=['POST'])
 @login_required
 def admin_corporativo_status(id):
@@ -2676,6 +2852,7 @@ def admin_corporativo_status(id):
 # AGENDA
 # ─────────────────────────────────────
 
+# Gerencia a agenda de eventos internos; faz auto-limpeza de eventos expirados
 @app.route('/admin/agenda', methods=['GET', 'POST'])
 @login_required
 def admin_agenda():
@@ -2740,6 +2917,7 @@ def admin_agenda():
                            dias_arquivar=dias_arquivar)
 
 
+# Remove um evento da agenda
 @app.route('/admin/agenda/<int:id>/excluir', methods=['POST'])
 @login_required
 def admin_agenda_excluir(id):
@@ -2752,6 +2930,7 @@ def admin_agenda_excluir(id):
     return redirect(url_for('admin_agenda'))
 
 
+# Edita os dados de um evento da agenda (título, data, local e cor)
 @app.route('/admin/agenda/<int:id>/editar', methods=['POST'])
 @login_required
 def admin_agenda_editar(id):
@@ -2778,6 +2957,7 @@ def admin_agenda_editar(id):
 # ─────────────────────────────────────
 # ADMIN — USUÁRIOS
 # ─────────────────────────────────────
+# Lista todos os usuários cadastrados ordenados pelo último acesso
 @app.route('/admin/usuarios')
 @login_required
 @admin_required
@@ -2786,6 +2966,7 @@ def admin_usuarios():
     return render_template('admin/usuarios.html', usuarios=usuarios)
 
 
+# Promove ou rebaixa um usuário para admin; restrito à proprietária da conta
 @app.route('/admin/usuarios/<int:uid>/toggle-admin', methods=['POST'])
 @login_required
 @admin_required
@@ -2808,6 +2989,7 @@ def admin_toggle_admin(uid):
 # FOTOS EXTRAS (admin)
 # ─────────────────────────────────────
 
+# Faz upload de uma ou mais fotos extras para produto, kit, especial ou evento
 @app.route('/admin/foto/add', methods=['POST'])
 @login_required
 @admin_required
@@ -2844,11 +3026,11 @@ def admin_foto_add():
     return redirect(redirect_url)
 
 
+# Recebe uma foto em base64 via AJAX, salva no servidor e retorna id + URL em JSON
 @app.route('/admin/foto/add-ajax', methods=['POST'])
 @login_required
 @admin_required
 def admin_foto_add_ajax():
-    """Recebe base64 de uma foto, salva e retorna JSON com id + url."""
     import base64 as _b64, re as _re
     data    = request.get_json(force=True)
     tipo    = data.get('tipo')
@@ -2883,11 +3065,11 @@ def admin_foto_add_ajax():
     return jsonify(id=foto.id, url=url)
 
 
+# Substitui a imagem de uma foto existente por uma nova versão em base64 via AJAX
 @app.route('/admin/foto/<int:foto_id>/atualizar-ajax', methods=['POST'])
 @login_required
 @admin_required
 def admin_foto_atualizar_ajax(foto_id):
-    """Substitui o arquivo de uma foto existente por uma nova versão em base64."""
     import base64 as _b64, re as _re
     data    = request.get_json(force=True)
     b64data = data.get('data', '')
@@ -2909,6 +3091,7 @@ def admin_foto_atualizar_ajax(foto_id):
     return jsonify(ok=True, url=foto.url)
 
 
+# Remove uma foto extra e apaga o arquivo do servidor via AJAX
 @app.route('/admin/foto/<int:foto_id>/excluir-ajax', methods=['POST'])
 @login_required
 @admin_required
@@ -2922,6 +3105,7 @@ def admin_foto_excluir_ajax(foto_id):
     return jsonify(ok=True)
 
 
+# Remove uma foto extra via formulário (redirect) e apaga o arquivo do servidor
 @app.route('/admin/foto/<int:foto_id>/excluir', methods=['POST'])
 @login_required
 @admin_required

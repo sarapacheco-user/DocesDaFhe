@@ -11,11 +11,12 @@ from sqlalchemy import func
 from models import (db, User, BlogPost, BlogCategoria, BlogTag, BlogComentario, SiteConfig,
                     BlogCurtida, BlogSalvo, BlogNewsletter, UserPerfil, blog_post_tags)
 
+# Blueprint do blog — todas as rotas usam o prefixo /blog
 blog_bp = Blueprint('blog', __name__, url_prefix='/blog')
 
 
+# Dispara e-mail para todos os inscritos da newsletter em thread separada (não bloqueia o servidor)
 def _enviar_newsletter(post, app):
-    """Dispara e-mail para todos os inscritos da newsletter em background."""
     def _send():
         with app.app_context():
             inscritos = BlogNewsletter.query.all()
@@ -94,10 +95,12 @@ for _f in [UPLOAD_FOLDER_BLOG, UPLOAD_FOLDER_AVATARES, UPLOAD_FOLDER_BANNERS]:
     os.makedirs(_f, exist_ok=True)
 
 
+# Verifica se a extensão do arquivo está na lista de formatos permitidos
 def _allowed(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# Salva um arquivo de upload na pasta indicada e retorna o nome do arquivo gerado
 def _save_file(arquivo, folder, prefix=''):
     if not arquivo or arquivo.filename == '':
         return None
@@ -109,6 +112,7 @@ def _save_file(arquivo, folder, prefix=''):
     return fname
 
 
+# Converte um texto em slug URL-amigável removendo acentos e caracteres especiais
 def _slugify(text):
     text = text.lower().strip()
     text = re.sub(r'[àáâãä]', 'a', text)
@@ -124,6 +128,7 @@ def _slugify(text):
     return text
 
 
+# Gera um slug único para o modelo informado, adicionando sufixo numérico se já existir
 def _unique_slug(base, model, exclude_id=None):
     slug = _slugify(base)
     candidate = slug
@@ -138,11 +143,13 @@ def _unique_slug(base, model, exclude_id=None):
         n += 1
 
 
+# Estima o tempo de leitura em minutos baseado na contagem de palavras do conteúdo HTML
 def _calc_tempo(conteudo):
     words = len(re.sub(r'<[^>]+>', '', conteudo or '').split())
     return max(1, words // 200 + (1 if words % 200 else 0))
 
 
+# Decorador local do blog que restringe rotas a administradores autenticados
 def _admin_required(f):
     from functools import wraps
     @wraps(f)
@@ -157,6 +164,7 @@ def _admin_required(f):
     return decorated
 
 
+# Retorna as categorias e os 5 posts mais vistos para a sidebar do blog
 def _get_sidebar_data():
     categorias = BlogCategoria.query.all()
     populares = (BlogPost.query
@@ -168,6 +176,7 @@ def _get_sidebar_data():
 
 # ── PUBLIC ROUTES ─────────────────────────────────────────────────────────────
 
+# Página inicial do blog com paginação, filtro por categoria e busca por texto
 @blog_bp.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
@@ -212,6 +221,7 @@ def index():
     )
 
 
+# Exibe um post publicado com comentários, posts relacionados e contagem de visualizações
 @blog_bp.route('/<slug>')
 def post(slug):
     p = BlogPost.query.filter_by(slug=slug, status='publicado').first_or_404()
@@ -263,6 +273,7 @@ def post(slug):
     )
 
 
+# Lista os posts publicados de uma categoria específica do blog
 @blog_bp.route('/categoria/<slug>')
 def categoria(slug):
     cat = BlogCategoria.query.filter_by(slug=slug).first_or_404()
@@ -277,6 +288,7 @@ def categoria(slug):
                            categorias=categorias, populares=populares)
 
 
+# Lista os posts publicados que possuem uma determinada tag
 @blog_bp.route('/tag/<slug>')
 def tag(slug):
     from models import BlogTag as BT
@@ -293,6 +305,7 @@ def tag(slug):
                            categorias=categorias, populares=populares)
 
 
+# Exibe o perfil público de um autor com seus posts, total de curtidas e comentários
 @blog_bp.route('/autor/<int:user_id>')
 def perfil_autor(user_id):
     autor = User.query.get_or_404(user_id)
@@ -309,6 +322,7 @@ def perfil_autor(user_id):
                            total_comentarios=total_comentarios)
 
 
+# Permite ao usuário logado editar seu perfil público (bio, avatar, redes sociais etc.)
 @blog_bp.route('/perfil/editar', methods=['GET', 'POST'])
 @login_required
 def editar_perfil():
@@ -369,6 +383,7 @@ def editar_perfil():
 
 # ── SOBRE (página especial do admin) ─────────────────────────────────────────
 
+# Página "Sobre" do blog com perfil do admin, estatísticas e posts em destaque
 @blog_bp.route('/sobre')
 def sobre():
     admin = User.query.filter_by(is_admin=True).first()
@@ -392,6 +407,7 @@ def sobre():
 
 # ── INTERACTION ROUTES ────────────────────────────────────────────────────────
 
+# Adiciona ou remove curtida de um post via AJAX (toggle); retorna estado e total
 @blog_bp.route('/<int:id>/curtir', methods=['POST'])
 @login_required
 def curtir(id):
@@ -409,6 +425,7 @@ def curtir(id):
     return jsonify({'curtiu': curtiu, 'total': total})
 
 
+# Adiciona ou remove um post da lista de salvos do usuário via AJAX (toggle)
 @blog_bp.route('/<int:id>/salvar', methods=['POST'])
 @login_required
 def salvar_post(id):
@@ -425,6 +442,7 @@ def salvar_post(id):
     return jsonify({'salvou': salvou})
 
 
+# Exibe os posts salvos e curtidos pelo usuário logado
 @blog_bp.route('/minha-lista')
 @login_required
 def minha_lista():
@@ -449,6 +467,7 @@ def minha_lista():
                            curtidos_ids=curtidos_ids)
 
 
+# Publica um comentário (ou resposta) em um post do blog
 @blog_bp.route('/<int:id>/comentar', methods=['POST'])
 @login_required
 def comentar(id):
@@ -470,6 +489,7 @@ def comentar(id):
     return redirect(url_for('blog.post', slug=p.slug) + '#comentarios')
 
 
+# Remove um comentário; o autor do comentário ou o admin podem excluir
 @blog_bp.route('/comentario/<int:id>/excluir', methods=['POST'])
 @login_required
 def excluir_comentario(id):
@@ -484,6 +504,7 @@ def excluir_comentario(id):
     return redirect(url_for('blog.post', slug=post.slug) + '#comentarios')
 
 
+# Inscreve um e-mail na newsletter do blog se ainda não estiver cadastrado
 @blog_bp.route('/newsletter', methods=['POST'])
 def newsletter():
     email = request.form.get('email', '').strip().lower()
@@ -502,6 +523,7 @@ def newsletter():
 
 # ── ADMIN ROUTES ──────────────────────────────────────────────────────────────
 
+# Painel admin do blog com lista de posts, estatísticas e gráfico de visualizações
 @blog_bp.route('/admin')
 @_admin_required
 def admin():
@@ -552,6 +574,7 @@ def admin():
                            posts_chart_json=posts_chart_json)
 
 
+# Cria um novo post com título, conteúdo, capa, tags e envia newsletter se publicado
 @blog_bp.route('/admin/novo', methods=['GET', 'POST'])
 @_admin_required
 def admin_novo():
@@ -630,6 +653,7 @@ def admin_novo():
                            action=url_for('blog.admin_novo'))
 
 
+# Edita um post existente; dispara newsletter se for publicado pela primeira vez
 @blog_bp.route('/admin/<int:id>/editar', methods=['GET', 'POST'])
 @_admin_required
 def admin_editar(id):
@@ -693,6 +717,7 @@ def admin_editar(id):
                            action=url_for('blog.admin_editar', id=id))
 
 
+# Exclui um post e todos os seus dados relacionados (curtidas, salvos, comentários)
 @blog_bp.route('/admin/<int:id>/excluir', methods=['POST'])
 @_admin_required
 def admin_excluir(id):
@@ -708,6 +733,7 @@ def admin_excluir(id):
     return redirect(url_for('blog.admin'))
 
 
+# Alterna o status de um post entre publicado e rascunho
 @blog_bp.route('/admin/<int:id>/status', methods=['POST'])
 @_admin_required
 def admin_toggle_status(id):
@@ -720,6 +746,7 @@ def admin_toggle_status(id):
 
 # ── CATEGORY ADMIN ────────────────────────────────────────────────────────────
 
+# Lista e cria categorias do blog; gera slug automático a partir do nome
 @blog_bp.route('/admin/categorias', methods=['GET', 'POST'])
 @_admin_required
 def admin_categorias():
@@ -744,6 +771,7 @@ def admin_categorias():
     return render_template('blog/categorias_admin.html', categorias=categorias)
 
 
+# Exclui uma categoria do blog e desvincula os posts que a utilizavam
 @blog_bp.route('/admin/categorias/<int:id>/excluir', methods=['POST'])
 @_admin_required
 def admin_excluir_categoria(id):
@@ -758,6 +786,7 @@ def admin_excluir_categoria(id):
 
 # ── NEWSLETTER ADMIN ──────────────────────────────────────────────────────────
 
+# Lista todos os e-mails inscritos na newsletter do blog
 @blog_bp.route('/admin/newsletter')
 @_admin_required
 def admin_newsletter():
@@ -765,6 +794,7 @@ def admin_newsletter():
     return render_template('blog/admin_newsletter.html', inscritos=inscritos)
 
 
+# Remove um e-mail da lista de inscritos da newsletter
 @blog_bp.route('/admin/newsletter/<int:id>/excluir', methods=['POST'])
 @_admin_required
 def admin_newsletter_excluir(id):
@@ -775,6 +805,7 @@ def admin_newsletter_excluir(id):
     return redirect(url_for('blog.admin_newsletter'))
 
 
+# Exporta a lista de inscritos da newsletter em PDF formatado com as cores do site
 @blog_bp.route('/admin/newsletter/exportar')
 @_admin_required
 def admin_newsletter_exportar():

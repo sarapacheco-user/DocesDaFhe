@@ -225,16 +225,23 @@ function adicionarFotoNaGradeLocal(dataUrl, uid, hiddenInput) {
 
 /* ── Excluir foto via AJAX ── */
 function excluirFotoAjax(fotoId, uid) {
-  if (!confirm('Remover esta foto?')) return;
-  fetch('/admin/foto/' + fotoId + '/excluir-ajax', {method:'POST'})
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    if (d.ok) {
-      var el = document.getElementById('fotoItem_' + fotoId);
-      if (el) el.remove();
-      var grid = document.getElementById('fotosGrid_' + uid);
-      var sem  = document.getElementById('semFotos_' + uid);
-      if (grid && sem && grid.children.length === 0) sem.style.display = '';
+  adminConfirmar({
+    titulo: 'Remover foto',
+    msg: 'Deseja remover esta foto? Essa ação não pode ser desfeita.',
+    textoConfirmar: 'Remover',
+    corBotao: '#dc2626',
+    aoConfirmar: function() {
+      fetch('/admin/foto/' + fotoId + '/excluir-ajax', {method:'POST'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ok) {
+            var el = document.getElementById('fotoItem_' + fotoId);
+            if (el) el.remove();
+            var grid = document.getElementById('fotosGrid_' + uid);
+            var sem  = document.getElementById('semFotos_' + uid);
+            if (grid && sem && grid.children.length === 0) sem.style.display = '';
+          }
+        });
     }
   });
 }

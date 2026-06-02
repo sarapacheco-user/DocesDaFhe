@@ -677,7 +677,8 @@
               <div style="display:flex; gap:.5rem;">
                 <button type="button"
                         data-cores="{{ p.cores | e }}"
-                        onclick="aplicarPaleta(JSON.parse(this.dataset.cores))"
+                        data-nome="{{ p.nome | e }}"
+                        onclick="aplicarPaleta(JSON.parse(this.dataset.cores), this.dataset.nome)"
                         style="flex:1; padding:.4rem; background:var(--color-primary); color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
                   Aplicar
                 </button>
@@ -1293,6 +1294,36 @@ function setDevice(device, btn) {
 }
 
 // ── Palette form helpers ──
+
+// Paleta que foi aplicada por último (rastreia modificações)
+var _ultimaPaletaAplicada = null;
+
+// Campos principais usados para comparação de similaridade
+var _camposSimilaridade = ['color_primary','color_secondary','color_accent','color_dark','color_bg'];
+
+// Retorna as cores atuais do formulário
+function _coresAtuais() {
+  var cores = {};
+  _camposSimilaridade.forEach(function(campo) {
+    var el = document.querySelector('[name="' + campo + '"]');
+    if (el) cores[campo] = el.value.toLowerCase();
+  });
+  return cores;
+}
+
+// Conta quantos campos batem entre duas paletas
+function _similaridade(coresA, coresB) {
+  var iguais = 0;
+  _camposSimilaridade.forEach(function(campo) {
+    if (coresA[campo] && coresB[campo] &&
+        coresA[campo].toLowerCase() === coresB[campo].toLowerCase()) iguais++;
+  });
+  return iguais; // max = 5
+}
+
+// Paletas salvas disponíveis para comparação (injetadas via template)
+var _paletasSalvas = [{% for p in palettes %}{"id":{{ p.id }},"nome":{{ p.nome | tojson }},"cores":{{ p.cores | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}];
+
 function submitSalvarPaleta() {
   var nome = document.getElementById('paletaNomeInput').value.trim();
   if (!nome) {
@@ -1300,19 +1331,103 @@ function submitSalvarPaleta() {
     document.getElementById('paletaNomeInput').focus();
     return;
   }
+
+  var atual = _coresAtuais();
+  var mesmoNome  = null;
+  var coresParecidas = null;
+
+  _paletasSalvas.forEach(function(p) {
+    try {
+      var coresP = typeof p.cores === 'string' ? JSON.parse(p.cores) : p.cores;
+      var normP = {};
+      _camposSimilaridade.forEach(function(c){ normP[c] = (coresP[c]||'').toLowerCase(); });
+
+      // Verifica nome igual (case-insensitive)
+      if (p.nome.trim().toLowerCase() === nome.toLowerCase()) {
+        mesmoNome = p;
+      }
+      // Verifica cores parecidas com nome DIFERENTE
+      if (!mesmoNome && _similaridade(atual, normP) >= 4 && !coresParecidas) {
+        coresParecidas = p;
+      }
+    } catch(e) {}
+  });
+
+  // Caso 1: mesmo nome → avisa conflito de nome
+  if (mesmoNome) {
+    adminConfirmar({
+      titulo: 'Nome já existe',
+      msg: 'Já existe uma paleta chamada "' + mesmoNome.nome + '". Deseja substituí-la pelas cores atuais?',
+      textoConfirmar: 'Substituir',
+      corBotao: '#d97706',
+      aoConfirmar: function() {
+        document.getElementById('formPaletaNome').value = nome;
+        document.getElementById('formSalvarPaleta').submit();
+      }
+    });
+    return;
+  }
+
+  // Caso 2: nome diferente, mas cores parecidas → avisa semelhança de cores
+  if (coresParecidas) {
+    adminConfirmar({
+      titulo: 'Cores semelhantes',
+      msg: 'As cores escolhidas são muito parecidas com a paleta "' + coresParecidas.nome + '", mas o nome é diferente. Deseja salvar como uma paleta nova chamada "' + nome + '"?',
+      textoConfirmar: 'Salvar como nova',
+      corBotao: 'var(--color-primary)',
+      aoConfirmar: function() {
+        document.getElementById('formPaletaNome').value = nome;
+        document.getElementById('formSalvarPaleta').submit();
+      }
+    });
+    return;
+  }
+
+  // Caso 3: paleta modificada após ser aplicada
+  if (_ultimaPaletaAplicada) {
+    var sim = _similaridade(atual, _ultimaPaletaAplicada.cores);
+    if (sim < _camposSimilaridade.length) {
+      adminConfirmar({
+        titulo: 'Paleta modificada',
+        msg: 'Você modificou as cores da paleta "' + _ultimaPaletaAplicada.nome + '". Deseja salvar as mudanças como nova paleta chamada "' + nome + '"?',
+        textoConfirmar: 'Salvar como nova',
+        corBotao: 'var(--color-primary)',
+        aoConfirmar: function() {
+          document.getElementById('formPaletaNome').value = nome;
+          document.getElementById('formSalvarPaleta').submit();
+        }
+      });
+      return;
+    }
+  }
+
+  // Sem conflito — salva direto
   document.getElementById('formPaletaNome').value = nome;
   document.getElementById('formSalvarPaleta').submit();
 }
 
 function submitExcluirPaleta(id, nome) {
-  if (!confirm('Excluir a paleta "' + nome + '"?')) return;
-  var f = document.getElementById('formExcluirPaleta');
-  f.action = '/admin/design/paleta/' + id + '/excluir';
-  f.submit();
+  adminConfirmar({
+    titulo: 'Excluir paleta',
+    msg: 'Tem certeza que deseja excluir a paleta "' + nome + '"? Esta ação não pode ser desfeita.',
+    textoConfirmar: 'Excluir',
+    corBotao: '#dc2626',
+    aoConfirmar: function() {
+      var f = document.getElementById('formExcluirPaleta');
+      f.action = '/admin/design/paleta/' + id + '/excluir';
+      f.submit();
+    }
+  });
 }
 
 // ── Apply saved palette ──
-function aplicarPaleta(cores) {
+function aplicarPaleta(cores, nomePaleta) {
+  // Rastreia a última paleta aplicada para detectar modificações ao salvar
+  if (nomePaleta) {
+    var normCores = {};
+    _camposSimilaridade.forEach(function(c){ normCores[c] = (cores[c]||'').toLowerCase(); });
+    _ultimaPaletaAplicada = { nome: nomePaleta, cores: normCores };
+  }
   var colorFields = [
     'color_primary', 'color_secondary', 'color_accent', 'color_dark',
     'color_bg', 'color_text', 'color_text_light',
