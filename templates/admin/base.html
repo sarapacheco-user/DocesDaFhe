@@ -1,13 +1,18 @@
 <!DOCTYPE html>
+<!-- Template base herdado por todas as páginas do painel administrativo -->
 <html>
 <head>
   <title>{{ site_config.site_name if site_config else 'Doces da Fhê' }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap 5 para grid e utilitários -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Fontes padrão do projeto: Nunito (corpo) + Playfair Display (títulos) -->
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <!-- Carrega fontes personalizadas se o admin alterou no painel de design -->
   {% if site_config and (site_config.font_title != 'Playfair Display' or site_config.font_body != 'Nunito') %}
   <link href="https://fonts.googleapis.com/css2?family={{ site_config.font_title | replace(' ', '+') }}:wght@400;700&family={{ site_config.font_body | replace(' ', '+') }}:wght@400;600;700;800&display=swap" rel="stylesheet">
   {% endif %}
+  <!-- Variáveis CSS do tema, topbar, sidebar e componentes globais -->
   <style>
     :root {
       --color-primary:    #5B6D3D;
@@ -247,6 +252,7 @@
     }
   </style>
 
+  <!-- Variáveis de cor do blog, injetadas dinamicamente a partir do SiteConfig -->
   {% if site_config %}
   <style>
     :root {
@@ -258,7 +264,9 @@
     }
   </style>
   {% endif %}
+  <!-- Cropper.js: biblioteca de recorte de imagens -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+  <!-- Estilos do modal de recorte de imagem -->
   <style>
     #adminCropModal{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;}
     #adminCropModal.open{display:flex;}
@@ -299,8 +307,10 @@
 <input type="checkbox" id="acc-open" class="acc-state">
 {% endif %}
 
+<!-- Topbar e sidebar: exibidos apenas para administradores autenticados -->
 {% if current_user.is_authenticated and current_user.is_admin %}
 
+<!-- TOPBAR: barra superior fixa com botão de menu e nome do site -->
 <div class="topbar">
   <button class="topbar-menu-btn" id="drawerToggle" aria-label="Menu">
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -313,8 +323,10 @@
   <span class="topbar-brand">{{ site_config.site_name if site_config else 'Doces da Fhê' }}</span>
 </div>
 
+<!-- Overlay escuro que aparece por trás da sidebar quando ela está aberta -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
 
+<!-- SIDEBAR: gaveta de navegação lateral com todos os links do painel admin -->
 <div class="drawer" id="drawer">
   <div class="drawer-header">
     <div class="drawer-brand">
@@ -505,6 +517,7 @@
   </div>
 </div>
 
+<!-- Script: abre/fecha a sidebar e marca o link ativo com base na URL atual -->
 <script>
   const toggle  = document.getElementById('drawerToggle');
   const drawer  = document.getElementById('drawer');
@@ -519,7 +532,7 @@
   close.addEventListener('click', closeDrawer);
   overlay.addEventListener('click', closeDrawer);
 
-  // marca link ativo
+  // marca o link correspondente à página atual como ativo
   const currentPath = window.location.pathname;
   document.querySelectorAll('.drawer-nav a').forEach(a => {
     if (a.getAttribute('href') === currentPath) a.classList.add('active');
@@ -530,6 +543,7 @@
 
 <div class="acc-content-wrap">
 
+<!-- FLASH MESSAGES: exibidas como modal centralizado após ações do servidor -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, msg in messages %}
@@ -593,6 +607,7 @@
 
 </div>
 
+<!-- PAINEL DE ACESSIBILIDADE: botão flutuante e controles WCAG 2.1 (apenas páginas públicas) -->
 {% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
 <label for="acc-open" class="acc-fab" role="button" aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -746,7 +761,7 @@
 </form>
 {% endif %}
 
-<!-- ── MODAL CROPPER GLOBAL ── -->
+<!-- MODAL CROPPER GLOBAL: recorte de imagem usado em todos os formulários de upload -->
 <div id="adminCropModal">
   <div id="adminCropBox">
     <h3>Ajustar Imagem</h3>
@@ -927,6 +942,7 @@
   });
 </script>
 
+<!-- SIDEBAR MOBILE: menu hambúrguer injetado no header para usuários não-admin em telas pequenas -->
 {% if not (current_user.is_authenticated and current_user.is_admin) and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
 <style>
 .sidebar-hamburger{display:none;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;padding:.45rem .5rem;border-radius:8px;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;margin-right:.4rem;}
@@ -1027,7 +1043,7 @@
 
 {% block scripts %}{% endblock %}
 
-<!-- ── MODAL DE CONFIRMAÇÃO GLOBAL ── -->
+<!-- MODAL DE CONFIRMAÇÃO GLOBAL: usado via adminConfirmar({titulo, msg, aoConfirmar}) em todo o admin -->
 <div id="adminConfirmOverlay" style="
   display:none; position:fixed; inset:0;
   background:rgba(15,23,42,.48); backdrop-filter:blur(4px);

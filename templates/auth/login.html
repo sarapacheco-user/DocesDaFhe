@@ -1,7 +1,9 @@
 {% extends "admin/base.html" %}
+<!-- Página de login: formulário de autenticação com suporte a fundo dinâmico -->
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+<!-- Aplica degradê de fundo personalizado se configurado pelo admin -->
 {% if site_config and site_config.auth_bg_color1 %}
 <div id="authBgData" data-c1="{{ site_config.auth_bg_color1 }}" data-c2="{{ site_config.auth_bg_color2 }}" style="display:none;"></div>
 <script>
@@ -12,10 +14,13 @@
 {% endblock %}
 
 {% block content %}
+<!-- CARD DE LOGIN -->
 <div class="login-card">
   <h2>Login</h2>
+  <!-- Formulário de autenticação -->
   <form method="POST">
     <input type="email" name="email" placeholder="Email" required>
+    <!-- Campo senha com botão de mostrar/ocultar -->
     <div class="login-pwd-wrap">
       <input type="password" name="password" id="loginPassword" placeholder="Senha" required>
       <button type="button" class="login-pwd-toggle" onclick="toggleLoginSenha(this)" tabindex="-1" aria-label="Mostrar senha">
@@ -75,6 +80,7 @@
   }
   </script>
 
+  <!-- Aviso de e-mail não verificado com opção de reenvio -->
   {% if email_nao_verificado %}
   <div style="margin-top:1.4rem; padding:1rem 1.2rem; background:#fef9c3; border:1.5px solid #fde047;
               border-radius:12px; text-align:center;">
