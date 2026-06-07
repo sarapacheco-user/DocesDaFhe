@@ -401,7 +401,7 @@ def send_reset_email(user_email, reset_url):
         msg = Message(
             subject="Solicitação de Redefinição de Senha",
             recipients=[user_email],
-            html=render_template('auth/email_reset_password.html', reset_url=reset_url),
+            html=render_template('auth/email_reset_password.html', reset_url=reset_url, cfg=SiteConfig.query.first()),
             body=f"Para redefinir sua senha, acesse: {reset_url}\n\nEste link expira em 24 horas."
         )
         mail.send(msg)
@@ -418,7 +418,7 @@ def send_verification_email(user_email, verify_url):
         msg = Message(
             subject="Confirme seu e-mail — Doces da Fhê",
             recipients=[user_email],
-            html=render_template('auth/email_verificacao.html', verify_url=verify_url),
+            html=render_template('auth/email_verificacao.html', verify_url=verify_url, cfg=SiteConfig.query.first()),
             body=f"Acesse o link para confirmar sua conta: {verify_url}\n\nEste link expira em 24 horas."
         )
         mail.send(msg)
