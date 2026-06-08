@@ -21,11 +21,12 @@ app.config['SECRET_KEY'] = 'supersecret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 
 # Email Configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_SERVER']         = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT']           = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS']        = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USE_SSL']        = os.environ.get('MAIL_USE_SSL', 'False') == 'True'
+app.config['MAIL_USERNAME']       = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD']       = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
 mail = Mail(app)
@@ -407,7 +408,7 @@ def send_reset_email(user_email, reset_url):
         mail.send(msg)
         return True
     except Exception as e:
-        print(f"Erro ao enviar e-mail: {e}")
+        app.logger.error(f"[MAIL] Erro ao enviar reset para {user_email}: {type(e).__name__}: {e}")
         return False
 
 
@@ -424,7 +425,7 @@ def send_verification_email(user_email, verify_url):
         mail.send(msg)
         return True
     except Exception as e:
-        print(f"Erro ao enviar e-mail de verificação: {e}")
+        app.logger.error(f"[MAIL] Erro ao enviar verificação para {user_email}: {type(e).__name__}: {e}")
         return False
 
 
