@@ -1,0 +1,91 @@
+{% if config %}:root {
+  --color-primary:         {{ config.color_primary }};
+  --color-hover-primary:   {{ config.color_primary | darken(0.82) }};
+  --color-secondary:       {{ config.color_secondary }};
+  --color-hover-secondary: {{ config.color_secondary | darken(0.82) }};
+  --color-accent:          {{ config.color_accent }};
+  --color-hover-accent:    {{ config.color_accent | darken(0.82) }};
+  --color-dark:            {{ config.color_dark }};
+  --color-bg:              {{ config.color_bg }};
+  --color-text:            {{ config.color_text }};
+  --color-text-light:      {{ config.color_text_light }};
+  --auth-bg-color1:        {{ config.auth_bg_color1  or '#e8eed8' }};
+  --auth-bg-color2:        {{ config.auth_bg_color2  or '#8fa05a' }};
+  --auth-text-color:       {{ config.auth_text_color or '#ffffff' }};
+  --color-primary-tint:    {{ config.color_primary | tint(0.82) }};
+  --color-primary-medium:  {{ config.color_primary | tint(0.38) }};
+  --sidebar-bg:            {{ config.color_secondary }};
+  --sidebar-hover:         rgba(255,255,255,.12);
+  --sidebar-active:        rgba(255,255,255,.20);
+  --blog-primary:          {{ config.blog_primary  or config.color_primary  or '#5B6D3D' }};
+  --blog-accent:           {{ config.blog_accent   or config.color_dark     or '#932E50' }};
+  --blog-bg:               {{ config.blog_bg       or '#f8fafc' }};
+  --blog-card-bg:          {{ config.blog_card_bg  or '#ffffff' }};
+  --blog-text:             {{ config.blog_text     or '#1e293b' }};
+{% if config.card_shadow == 'none' %}
+  --shadow-sm: none; --shadow-md: none; --shadow-lg: none;
+{% elif config.card_shadow == 'soft' %}
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.04); --shadow-md: 0 3px 8px rgba(0,0,0,.06); --shadow-lg: 0 6px 16px rgba(0,0,0,.09);
+{% elif config.card_shadow == 'strong' %}
+  --shadow-sm: 0 4px 10px rgba(0,0,0,.10); --shadow-md: 0 8px 20px rgba(0,0,0,.15); --shadow-lg: 0 16px 40px rgba(0,0,0,.22);
+{% endif %}
+}
+body {
+  font-family: '{{ config.font_body }}', sans-serif !important;
+  font-weight: {{ config.body_weight }};
+  font-size: {{ config.font_size }}px;
+  background: {{ config.color_bg }};
+  color: {{ config.color_text }};
+}
+h1, h2, h3, h4, h5, h6, .topbar-title, .drawer-logo, .flash-modal-msg {
+  font-family: '{{ config.font_title }}', serif !important;
+  font-weight: {{ config.title_weight }} !important;
+}
+.btn-primary, .btn-secondary, .btn-acao { border-radius: {{ config.btn_radius }} !important; }
+.topbar { position: {{ 'sticky' if config.navbar_fixed else 'relative' }}; }
+.logo-img { max-height: {{ config.logo_height or 100 }}px !important; object-fit: {{ config.logo_fit or 'contain' }} !important; width: auto !important; }
+.carrossel-slide img, .carrossel-slide { height: {{ config.carousel_height or 340 }}px !important; }
+html body .card img { height: {{ config.card_img_height or 200 }}px !important; max-height: {{ config.card_img_height or 200 }}px !important; }
+html body .card { border-radius: {{ config.card_radius or '16px' }} !important; }
+.flash-modal-success { background: {{ config.flash_success or '#ffffff' }} !important; }
+.flash-modal-error   { background: {{ config.flash_error  or '#f8d7da' }} !important; }
+.flash-modal-info    { background: {{ config.flash_info   or '#ffffff' }} !important; }
+.flash-modal-success .flash-modal-msg { color: {{ config.flash_success_text or '#155724' }} !important; }
+.flash-modal-error   .flash-modal-msg { color: {{ config.flash_error_text   or '#721c24' }} !important; }
+.flash-modal-info    .flash-modal-msg { color: {{ config.flash_info_text    or '#0c5460' }} !important; }
+.badge-novo { background: {{ config.new_badge_color or '#cc0000' }} !important; }
+{% if not config.anim_enabled %}
+*, *::before, *::after { transition: none !important; animation-duration: 0.001s !important; }
+.card:hover { transform: none !important; box-shadow: var(--shadow-sm) !important; }
+{% else %}
+{% set dur = config.anim_duration or 220 %}
+*, *::before, *::after { transition-duration: {{ dur }}ms !important; }
+{% set hs = config.anim_hover_style or 'lift' %}
+{% if hs == 'lift' %}
+.card:hover { transform: translateY(-5px) !important; box-shadow: 0 12px 28px rgba(0,0,0,.14) !important; }
+{% elif hs == 'zoom' %}
+.card:hover { transform: scale(1.04) !important; box-shadow: 0 8px 20px rgba(0,0,0,.12) !important; }
+{% elif hs == 'glow' %}
+.card:hover { transform: none !important; box-shadow: 0 0 0 3px var(--color-primary), 0 8px 20px rgba(0,0,0,.1) !important; }
+{% elif hs == 'border' %}
+.card:hover { transform: none !important; border-color: var(--color-primary) !important; box-shadow: 0 4px 12px rgba(0,0,0,.08) !important; }
+{% elif hs == 'none' %}
+.card:hover { transform: none !important; box-shadow: var(--shadow-sm) !important; }
+{% endif %}
+{% endif %}
+{% if config.layout_mode == 'compact' %}
+.container, .section-title, .cards-carrossel-wrap, .dashboard-wrap { padding-top: .5rem !important; }
+section { margin-bottom: .8rem !important; }
+{% endif %}
+{% if config.layout_width == 'fullwidth' %}
+.section-title, .cards-carrossel-wrap, .dashboard-wrap { max-width: 100% !important; }
+{% endif %}
+{% set cols = config.card_columns or 3 %}
+{% set gap  = config.card_gap or 20 %}
+.products { grid-template-columns: repeat({{ cols }}, 1fr) !important; gap: {{ gap }}px !important; }
+@media (max-width: 768px) { .products { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (max-width: 480px) { .products { grid-template-columns: 1fr !important; } }
+{% if not config.show_carousel %}
+.carrossel-wrap { display: none !important; }
+{% endif %}
+{% endif %}

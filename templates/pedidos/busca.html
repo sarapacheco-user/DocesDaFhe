@@ -1,0 +1,341 @@
+{% extends "admin/base.html" %}
+<!-- Página de resultados de busca global: exibe produtos encontrados pelo termo pesquisado -->
+{% block styles %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  .cart-icon-wrap {
+    position: relative;
+    display: flex; align-items: center;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: var(--color-dark);
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card-link-inner {
+    text-decoration: none; color: inherit; display: block;
+  }
+
+  /* KIT CARD */
+  .kit-card-busca {
+    background: #FFFFFF;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1.5px solid #E5E5E5;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    display: flex; flex-direction: column;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none; color: inherit;
+  }
+
+  .kit-card-busca:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+  }
+
+  .kit-card-busca .kit-img {
+    width: 100%; aspect-ratio: 4/3;
+    background: #FAF9F6;
+    display: flex; align-items: center;
+    justify-content: center; font-size: 3rem; overflow: hidden;
+  }
+
+  .kit-card-busca .kit-img img { width: 100%; height: 100%; object-fit: cover; }
+  .kit-card-busca .kit-body { padding: 1rem; }
+
+  .kit-card-busca h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: var(--color-text); margin-bottom: .3rem;
+  }
+
+  .kit-card-busca p { font-size: .82rem; color: var(--color-text-light); }
+
+  .kit-card-busca .kit-preco {
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--color-primary); margin-top: .4rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             value="{{ termo }}"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<!-- TÍTULO -->
+<h2 class="section-title">Resultados para "{{ termo }}"</h2>
+
+{% set total = produtos|length + especiais|length + kits|length %}
+{% if total == 0 %}
+  <div style="max-width:900px; margin:2rem auto; padding:0 1rem; color:var(--color-text-light);">
+    <p>Nenhum resultado encontrado para "<strong>{{ termo }}</strong>". Tente outro termo!</p>
+  </div>
+{% endif %}
+
+<!-- PRODUTOS NORMAIS -->
+{% if produtos %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Produtos</h2>
+<div class="products">
+  {% for produto in produtos %}
+  <div class="card" data-nome="{{ produto.name | lower }}">
+    <button class="btn-fav {% if produto.id in fav_p %}ativo{% endif %}"
+            data-tipo="produto" data-id="{{ produto.id }}"
+            onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+    {% if site_config.new_badge_ativo != false and produto.created_at and (now() - produto.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+    <a href="{{ url_for('produto_detalhe', id=produto.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if produto.image_url %}
+          <img src="{{ url_for('static', filename=produto.image_url) }}" alt="{{ produto.name }}">
+        {% else %}🍰{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ produto.name }}</h3>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(produto.price) }} <span class="per">/un</span></span>
+      <div class="qty" id="qty-p-{{ produto.id }}">
+        <button onclick="changeQty('p-{{ produto.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('p-{{ produto.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="produto_id" value="{{ produto.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-p-{{ produto.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- PRODUTOS ESPECIAIS -->
+{% if especiais %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Edições Especiais</h2>
+<div class="products">
+  {% for p in especiais %}
+  <div class="card" data-nome="{{ p.name | lower }}">
+    <button class="btn-fav {% if p.id in fav_e %}ativo{% endif %}"
+            data-tipo="especial" data-id="{{ p.id }}"
+            onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+    {% if site_config.new_badge_ativo != false and p.created_at and (now() - p.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+    <a href="{{ url_for('produto_especial_detalhe', id=p.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if p.image_url %}
+          <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+        {% else %}🍰{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ p.name }}</h3>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(p.price) }} <span class="per">/un</span></span>
+      <div class="qty" id="qty-e-{{ p.id }}">
+        <button onclick="changeQty('e-{{ p.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('e-{{ p.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="especial_id" value="{{ p.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-e-{{ p.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- KITS -->
+{% if kits %}
+<h2 class="section-title" style="font-size:1.2rem; margin-top:1rem;">Kits</h2>
+<div class="products">
+  {% for kit in kits %}
+  <div class="card">
+    <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}"
+            data-tipo="kit" data-id="{{ kit.id }}"
+            onclick="toggleFav(this)" title="Favoritar"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+    {% if site_config.new_badge_ativo != false and kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+    <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" class="card-link-inner">
+      <div class="card-img">
+        {% if kit.image_url %}
+          <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+        {% else %}🎁{% endif %}
+      </div>
+      <div class="card-body">
+        <h3>{{ kit.name }}</h3>
+      </div>
+    </a>
+    <div class="card-footer">
+      <span class="price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }} <span class="per">/kit</span></span>
+      <div class="qty" id="qty-k-{{ kit.id }}">
+        <button onclick="changeQty('k-{{ kit.id }}', -1)">−</button>
+        <span>1</span>
+        <button onclick="changeQty('k-{{ kit.id }}', 1)">+</button>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+      <input type="hidden" name="kit_id" value="{{ kit.id }}">
+      <input type="hidden" name="quantidade" id="qty-input-k-{{ kit.id }}" value="1">
+      <input type="hidden" name="next" value="{{ request.url }}">
+      <button type="submit" class="btn-cart">Adicionar ao carrinho 🛒</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <!-- ENDEREÇO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">NOSSO ENDEREÇO</h3>
+      <p class="footer-endereco">Cidade Tiradentes SL | SP</p>
+    </div>
+
+    <!-- FUNCIONAMENTO -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> das 10:00 às 19:00</p>
+      <p class="footer-hora"><strong>Sábado</strong> das 10:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> não atendemos</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/?ref=NONE_xav_ig_profile_page_web" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </a>
+        <a href="https://www.threads.com/@docesdafhe?xmt=AQF0NPJogc8wQ_fC8M2gQNGZLlK3HaHuye6aF5Zn8kRVQuA" target="_blank" rel="noopener" class="social-icon" aria-label="Threads">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.851 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.033.215.07.321.11 1.154.433 2.068 1.143 2.672 2.069 1.119 1.714 1.23 4.06.292 6.03-1.61 3.42-5.043 5.218-9.642 5.812z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- DOCES DA FHÊ -->
+    <div class="footer-col">
+      <h3 class="footer-titulo">DOCES DA FHÊ</h3>
+      <p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p>
+      <p class="footer-assinatura">– Fhê</p>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a>
+  </div>
+</footer>
+
+<script>
+  function changeQty(id, delta) {
+    const span  = document.querySelector('#qty-' + id + ' span');
+    const input = document.getElementById('qty-input-' + id);
+    let val = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val;
+    input.value = val;
+  }
+
+  function buscarGlobal() {
+    const termo = document.getElementById('searchInput').value.trim();
+    if (termo) {
+      window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(termo);
+    }
+  }
+
+  function toggleFav(btn) {
+    fetch('/favoritar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id})
+    })
+    .then(r => r.status === 401 ? r.json().then(d => { window.location.href = d.redirect; }) : r.json().then(data => {
+      btn.classList.toggle('ativo', data.favorito);
+      btn.classList.add('pulsando');
+      setTimeout(() => btn.classList.remove('pulsando'), 300);
+    }));
+  }
+</script>
+
+{% endblock %}

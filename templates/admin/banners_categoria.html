@@ -1,0 +1,400 @@
+{% extends "admin/base.html" %}
+<!-- Painel de banners de categoria: upload de imagem, ajuste de ponto focal e pré-visualização -->
+
+{% block content %}
+<style>
+  .bc-card  { background:#fff; border-radius:16px; border:1.5px solid #e2e8f0;
+              margin-bottom:1.8rem; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+
+  /* ── PREVIEW DO BANNER ── */
+  .bc-preview { height:180px; position:relative; overflow:hidden; background:#f1f5f9;
+                display:flex; align-items:center; justify-content:center; }
+  .bc-preview > img { width:100%; height:100%; object-fit:cover; display:block; }
+  .bc-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(to right,rgba(0,0,0,.55),rgba(0,0,0,.15));
+    display:flex; flex-direction:column; justify-content:center; padding:1.2rem 2rem;
+    pointer-events:none;
+  }
+  .bc-overlay-title { color:#fff; font-size:1.3rem; font-weight:800;
+                      font-family:'Playfair Display',serif; text-shadow:0 2px 8px rgba(0,0,0,.4); margin:0 0 .2rem; }
+  .bc-overlay-desc  { color:rgba(255,255,255,.85); font-size:.85rem; margin:0; }
+
+  /* ── FOCAL POINT PICKER ── */
+  .focal-wrap  { padding:.2rem 1.5rem 0; }
+  .focal-label { font-size:.78rem; font-weight:700; color:#475569; margin-bottom:.4rem; display:block; }
+  .focal-hint  { font-size:.75rem; color:#94a3b8; margin-bottom:.5rem; }
+  .focal-box   {
+    position:relative; display:inline-block; cursor:crosshair;
+    border-radius:10px; overflow:hidden;
+    border:2px solid #e2e8f0; width:100%;
+    user-select:none;
+  }
+  .focal-box img { width:100%; display:block; pointer-events:none; }
+  /* escurecimento fora do foco */
+  .focal-veil  {
+    position:absolute; inset:0;
+    background:rgba(0,0,0,.35);
+    pointer-events:none;
+  }
+  /* retângulo que mostra a área do banner */
+  .focal-frame {
+    position:absolute;
+    border:2.5px solid #fff;
+    box-shadow:0 0 0 9999px rgba(0,0,0,.38), 0 2px 12px rgba(0,0,0,.4);
+    pointer-events:none;
+    border-radius:3px;
+  }
+  /* mira central */
+  .focal-cross {
+    position:absolute;
+    width:18px; height:18px;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+  }
+  .focal-cross::before,
+  .focal-cross::after {
+    content:''; position:absolute;
+    background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.6);
+  }
+  .focal-cross::before { width:2px; height:100%; left:50%; transform:translateX(-50%); }
+  .focal-cross::after  { height:2px; width:100%; top:50%;  transform:translateY(-50%); }
+  .focal-dot {
+    position:absolute;
+    width:10px; height:10px;
+    background:#fff;
+    border:2px solid var(--color-primary);
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    box-shadow:0 1px 5px rgba(0,0,0,.5);
+  }
+
+  /* ── FORMULÁRIO ── */
+  .bc-form  { padding:1rem 1.5rem 1.2rem; display:grid; gap:.9rem; }
+  .bc-label { font-size:.78rem; font-weight:700; color:#475569; display:block; margin-bottom:.3rem; }
+  .bc-input { width:100%; padding:.5rem .8rem; border:1.5px solid #e2e8f0; border-radius:9px;
+              font-size:.88rem; outline:none; font-family:inherit; }
+  .bc-input:focus { border-color:var(--color-primary); }
+  .bc-row2  { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  @media(max-width:600px){ .bc-row2{ grid-template-columns:1fr; } }
+  .btn-save { padding:.55rem 1.3rem; background:var(--color-primary); color:#fff;
+              border:none; border-radius:9px; font-size:.88rem; font-weight:700; cursor:pointer; }
+  .btn-save:hover { background:var(--color-hover-primary,#4a5c32); }
+  .btn-del  { padding:.55rem 1rem; background:#fff; color:#ef4444;
+              border:1.5px solid #fca5a5; border-radius:9px; font-size:.83rem;
+              font-weight:700; cursor:pointer; }
+  .badge-ok { font-size:.72rem; font-weight:700; background:#dcfce7; color:#166534;
+              padding:.15rem .55rem; border-radius:20px; }
+  .badge-no { font-size:.72rem; font-weight:700; background:#f1f5f9; color:#64748b;
+              padding:.15rem .55rem; border-radius:20px; }
+  .sep { border:none; border-top:1.5px solid #f1f5f9; margin:.2rem 0; }
+</style>
+
+<div style="max-width:860px;margin:2rem auto;padding:0 1.2rem;">
+
+  <h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:800;color:#1e293b;margin-bottom:.3rem;">
+    Banners de Categoria
+  </h2>
+  <p style="color:#64748b;font-size:.9rem;margin-bottom:2rem;">
+    Faça upload da imagem e <strong>clique na foto</strong> para escolher qual parte ficará visível no banner.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for c, msg in messages %}
+      <div style="padding:.75rem 1rem;border-radius:10px;margin-bottom:1rem;
+                  background:{{ '#dcfce7' if c=='success' else '#fef9c3' }};
+                  color:{{ '#166534' if c=='success' else '#854d0e' }};
+                  font-weight:600;font-size:.9rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% for cat in categorias %}
+  {% set b = banners.get(cat) %}
+  {% set pos = (b.posicao if b and b.posicao else '50% 50%') %}
+
+  <div class="bc-card">
+
+    <!-- PREVIEW DO BANNER (resultado final) -->
+    <div style="padding:.8rem 1.5rem .4rem;">
+      <span style="font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;">
+        Preview — como fica no site
+      </span>
+    </div>
+    <div class="bc-preview" id="preview-{{ cat }}">
+      {% if b and b.imagem_url %}
+        <img id="img-{{ cat }}"
+             src="{{ url_for('static', filename=b.imagem_url) }}"
+             style="object-position: {{ pos }};">
+        <div class="bc-overlay">
+          <div class="bc-overlay-title" id="ptitle-{{ cat }}">{{ b.titulo or (cat | capitalize) }}</div>
+          <div class="bc-overlay-desc" id="pdesc-{{ cat }}" {% if not b.descricao %}style="display:none;"{% endif %}>
+            {{ b.descricao or '' }}
+          </div>
+        </div>
+      {% else %}
+        <div id="img-{{ cat }}" style="display:none;"></div>
+        <div class="bc-overlay" id="ov-{{ cat }}" style="display:none;">
+          <div class="bc-overlay-title" id="ptitle-{{ cat }}">{{ cat | capitalize }}</div>
+          <div class="bc-overlay-desc"  id="pdesc-{{ cat }}" style="display:none;"></div>
+        </div>
+        <span style="color:#94a3b8;font-size:.88rem;">Sem imagem — escolha uma foto abaixo</span>
+      {% endif %}
+    </div>
+
+    <!-- FOCAL POINT PICKER (visível só quando tem imagem) -->
+    <div class="focal-wrap" id="focalwrap-{{ cat }}" {% if not (b and b.imagem_url) %}style="display:none;"{% endif %}>
+      <hr class="sep" style="margin-top:.8rem;">
+      <div style="padding:.6rem 0 .3rem;">
+        <span class="focal-label" style="margin-bottom:.1rem;">Ajustar ponto de foco</span>
+        <span class="focal-hint">Clique na foto abaixo para escolher qual parte aparece no banner</span>
+      </div>
+      <div class="focal-box" id="focalbox-{{ cat }}"
+           onclick="onFocalClick(event,'{{ cat }}')"
+           onmousemove="onFocalHover(event,'{{ cat }}')">
+        <img id="fullimg-{{ cat }}"
+             src="{% if b and b.imagem_url %}{{ url_for('static', filename=b.imagem_url) }}{% endif %}"
+             onload="initFrame('{{ cat }}')">
+        <div class="focal-frame" id="frame-{{ cat }}"></div>
+        <div class="focal-dot"   id="dot-{{ cat }}"></div>
+      </div>
+    </div>
+
+    <hr class="sep" style="margin:.6rem 0 0;">
+
+    <!-- FORMULÁRIO -->
+    <form method="POST" enctype="multipart/form-data" class="bc-form">
+      <input type="hidden" name="nome"    value="{{ cat }}">
+      <input type="hidden" name="posicao" id="pos-input-{{ cat }}" value="{{ pos }}">
+
+      <div style="display:flex;align-items:center;gap:.6rem;">
+        <span style="font-size:1.05rem;font-weight:800;color:#1e293b;text-transform:capitalize;">{{ cat }}</span>
+        {% if b %}<span class="badge-ok">Configurado</span>{% else %}<span class="badge-no">Sem banner</span>{% endif %}
+      </div>
+
+      <div class="bc-row2">
+        <div>
+          <label class="bc-label">Título (opcional)</label>
+          <input class="bc-input" type="text" name="titulo"
+                 value="{{ b.titulo or '' }}" placeholder="Ex: Nossos Bolos"
+                 oninput="updateOverlayTitle('{{ cat }}', this.value)">
+        </div>
+        <div>
+          <label class="bc-label">Descrição curta (opcional)</label>
+          <input class="bc-input" type="text" name="descricao"
+                 value="{{ b.descricao or '' }}" placeholder="Ex: Feitos com muito amor"
+                 oninput="updateOverlayDesc('{{ cat }}', this.value)">
+        </div>
+      </div>
+
+      <div>
+        <label class="bc-label">Foto do banner (recomendado: 1200×350px)</label>
+        <input type="file" name="imagem" accept="image/*"
+               style="font-size:.85rem;color:#334155;"
+               onchange="onNewImagem(this,'{{ cat }}')">
+      </div>
+
+      <div style="display:flex;gap:.6rem;">
+        <button type="submit" class="btn-save">Salvar</button>
+      </div>
+    </form>
+
+    {% if b %}
+    <form method="POST" action="{{ url_for('admin_banner_remover', bid=b.id) }}"
+          id="formRemoverBanner{{ b.id }}"
+          style="padding:0 1.5rem 1.2rem;margin:0;">
+      <button type="button" class="btn-del btn-remover-banner"
+              data-form="formRemoverBanner{{ b.id }}"
+              data-cat="{{ cat | capitalize }}">
+        Remover imagem
+      </button>
+    </form>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+/* ── Botões de remover banner — usa modal bonito do admin ── */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.btn-remover-banner').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var formId = btn.dataset.form;
+      var cat    = btn.dataset.cat;
+      adminConfirmar({
+        titulo: 'Remover banner',
+        msg: 'Deseja remover a imagem do banner de "' + cat + '"? A categoria ficará sem foto.',
+        textoConfirmar: 'Remover',
+        corBotao: '#dc2626',
+        aoConfirmar: function() {
+          document.getElementById(formId).submit();
+        }
+      });
+    });
+  });
+});
+
+/* ── Razão largura:altura do banner no site ── */
+var BANNER_W = 860, BANNER_H = 180;
+
+/* converte "top left" / "center center" / "50% 50%" → {x,y} em % */
+function parsePos(str) {
+  if (!str) return {x:50, y:50};
+  var kw = {left:0, right:100, top:0, bottom:100, center:50};
+  var p = str.trim().split(/\s+/);
+  function val(s) {
+    if (!s) return 50;
+    if (s in kw) return kw[s];
+    return parseFloat(s) || 50;
+  }
+  return {x: val(p[0]), y: val(p[1])};
+}
+
+function posStr(x, y) {
+  return Math.round(x) + '% ' + Math.round(y) + '%';
+}
+
+/* inicializa o frame e o ponto focal com a posição salva */
+function initFrame(cat) {
+  var stored = document.getElementById('pos-input-' + cat).value;
+  var pos = parsePos(stored);
+  drawFrame(cat, pos.x, pos.y);
+}
+
+/* desenha o retângulo de crop e a mira na posição (px%, py%) */
+function drawFrame(cat, px, py) {
+  var box   = document.getElementById('focalbox-' + cat);
+  var img   = document.getElementById('fullimg-' + cat);
+  var frame = document.getElementById('frame-' + cat);
+  var dot   = document.getElementById('dot-' + cat);
+  if (!img || !box) return;
+
+  var bW = box.offsetWidth;
+  var bH = img.offsetHeight;
+  if (!bH) return;
+
+  /* dimensões do retângulo proporcional ao banner */
+  var ratio = BANNER_W / BANNER_H;
+  var fW, fH;
+  if (bW / bH > ratio) {
+    fH = bH; fW = bH * ratio;
+  } else {
+    fW = bW; fH = bW / ratio;
+  }
+  fW = Math.min(fW, bW);
+  fH = Math.min(fH, bH);
+
+  /* centro do frame na posição clicada */
+  var cx = bW * px / 100;
+  var cy = bH * py / 100;
+  var fl = Math.max(0, Math.min(bW - fW, cx - fW / 2));
+  var ft = Math.max(0, Math.min(bH - fH, cy - fH / 2));
+
+  frame.style.cssText = 'left:' + fl + 'px;top:' + ft + 'px;width:' + fW + 'px;height:' + fH + 'px;';
+  dot.style.cssText   = 'left:' + cx + 'px;top:' + cy + 'px;';
+
+  /* atualiza preview do banner */
+  var bannerImg = document.getElementById('img-' + cat);
+  if (bannerImg && bannerImg.tagName === 'IMG') {
+    bannerImg.style.objectPosition = posStr(px, py);
+  }
+}
+
+/* click no focal box → define ponto focal */
+function onFocalClick(e, cat) {
+  var box = document.getElementById('focalbox-' + cat);
+  var img = document.getElementById('fullimg-' + cat);
+  var rect = img.getBoundingClientRect();
+  var px = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width  * 100));
+  var py = Math.max(0, Math.min(100, (e.clientY - rect.top)  / rect.height * 100));
+
+  document.getElementById('pos-input-' + cat).value = posStr(px, py);
+  drawFrame(cat, px, py);
+}
+
+/* hover — só move a mira sem salvar */
+function onFocalHover(e, cat) {
+  /* nada por enquanto — clique é suficiente */
+}
+
+/* novo arquivo selecionado */
+function onNewImagem(input, cat) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var src = ev.target.result;
+
+    /* atualiza preview do banner */
+    var preview  = document.getElementById('preview-' + cat);
+    var bannerImg = document.getElementById('img-' + cat);
+    var ov       = document.getElementById('ov-' + cat);
+
+    if (bannerImg && bannerImg.tagName === 'IMG') {
+      bannerImg.src = src;
+    } else {
+      preview.innerHTML = '';
+      var ni = document.createElement('img');
+      ni.id = 'img-' + cat;
+      var pos = document.getElementById('pos-input-' + cat).value || '50% 50%';
+      ni.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;object-position:' + pos;
+      preview.appendChild(ni);
+      bannerImg = ni;
+
+      var nov = document.createElement('div');
+      nov.className = 'bc-overlay'; nov.id = 'ov-' + cat;
+      var titleEl = document.getElementById('ptitle-' + cat);
+      var descEl  = document.getElementById('pdesc-' + cat);
+      nov.innerHTML =
+        '<div class="bc-overlay-title" id="ptitle-' + cat + '">' + (titleEl ? titleEl.textContent : cat) + '</div>' +
+        '<div class="bc-overlay-desc"  id="pdesc-' + cat  + '" style="display:none;"></div>';
+      preview.appendChild(nov);
+    }
+
+    /* atualiza focal picker */
+    var focalImg = document.getElementById('fullimg-' + cat);
+    focalImg.onload = function() { initFrame(cat); };
+    focalImg.src = src;
+
+    document.getElementById('focalwrap-' + cat).style.display = '';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+/* preview de texto */
+function updateOverlayTitle(cat, val) {
+  var el = document.getElementById('ptitle-' + cat);
+  if (el) el.textContent = val || cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+function updateOverlayDesc(cat, val) {
+  var el = document.getElementById('pdesc-' + cat);
+  if (!el) return;
+  el.textContent = val;
+  el.style.display = val ? '' : 'none';
+}
+
+/* inicializa todos os frames ao carregar a página */
+window.addEventListener('load', function() {
+  {% for cat in categorias %}
+  {% if banners.get(cat) and banners.get(cat).imagem_url %}
+  initFrame('{{ cat }}');
+  {% endif %}
+  {% endfor %}
+});
+
+/* re-calcula se a janela for redimensionada */
+window.addEventListener('resize', function() {
+  {% for cat in categorias %}
+  {% if banners.get(cat) and banners.get(cat).imagem_url %}
+  (function(){
+    var stored = document.getElementById('pos-input-{{ cat }}').value;
+    var p = parsePos(stored);
+    drawFrame('{{ cat }}', p.x, p.y);
+  })();
+  {% endif %}
+  {% endfor %}
+});
+</script>
+{% endblock %}

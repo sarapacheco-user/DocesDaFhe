@@ -1,0 +1,443 @@
+{% extends "admin/base.html" %}
+<!-- Histórico de pedidos do cliente: lista de compras com status e detalhes de cada pedido -->
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  .mp-wrap { max-width: 860px; margin: 2rem auto 3rem; padding: 0 1.2rem; }
+  .mp-titulo { font-size: 1.5rem; font-weight: 800; color: var(--color-primary); margin-bottom: .25rem; }
+  .mp-sub    { font-size: .88rem; color: var(--color-text-light); margin-bottom: 1.8rem; }
+
+  .mp-card {
+    background: #fff; border: 1.5px solid #e5e5e5; border-radius: 16px;
+    padding: 1.2rem 1.4rem; margin-bottom: 1rem;
+    transition: box-shadow .2s;
+  }
+  .mp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+
+  .mp-card-header { display: flex; align-items: center; justify-content: space-between;
+                    flex-wrap: wrap; gap: .6rem; margin-bottom: .8rem; }
+  .mp-num  { font-size: .8rem; font-weight: 800; color: var(--color-muted);
+             text-transform: uppercase; letter-spacing: .06em; }
+  .mp-data { font-size: .8rem; color: var(--color-muted); }
+
+  .badge { display: inline-block; padding: .25rem .7rem; border-radius: 20px;
+           font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .badge-pendente   { background: #fef3c7; color: #92400e; }
+  .badge-confirmado { background: #dbeafe; color: #1e40af; }
+  .badge-entregue   { background: #dcfce7; color: #166534; }
+  .badge-cancelado  { background: #fee2e2; color: #991b1b; }
+
+  .mp-tipo { font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 12px;
+             background: #f0fdf4; color: #15803d; }
+  .mp-tipo.entrega { background: #eff6ff; color: #1d4ed8; }
+
+  .mp-itens  { font-size: .85rem; color: var(--color-text); margin-bottom: .8rem; }
+  .mp-item   { padding: .3rem 0; border-bottom: 1px solid #f5f5f5; display: flex;
+               justify-content: space-between; align-items: center; }
+  .mp-item:last-child { border-bottom: none; }
+
+  .mp-total  { font-size: 1rem; font-weight: 800; color: var(--color-text);
+               text-align: right; padding-top: .5rem; }
+
+  .mp-endereco { font-size: .8rem; color: var(--color-muted); margin-bottom: .6rem; }
+
+  .btn-cancelar {
+    background: none; border: 1.5px solid #ef4444; color: #ef4444;
+    border-radius: 10px; padding: .35rem .9rem;
+    font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .btn-cancelar:hover { background: #ef4444; color: #fff; }
+
+  /* modo seleção */
+  .mp-card.selecionavel { cursor: pointer; }
+  .mp-card.selecionavel:hover { border-color: #94a3b8; }
+  .mp-card.selecionado { border-color: #ef4444 !important; background: #fff5f5; }
+
+  .mp-checkbox {
+    display: none; width: 20px; height: 20px; accent-color: #ef4444;
+    flex-shrink: 0; cursor: pointer;
+  }
+  #formApagar.modo-selecao .mp-checkbox { display: block; }
+
+  .barra-selecao {
+    display: none; position: sticky; bottom: 1.2rem; z-index: 50;
+    background: #1e293b; color: #fff; border-radius: 16px;
+    padding: .9rem 1.4rem; margin-top: 1.2rem;
+    align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .8rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  }
+  .barra-selecao.visivel { display: flex; }
+
+  .barra-selecao-info { font-size: .88rem; font-weight: 700; }
+
+  .btn-selecionar-todos {
+    background: none; border: 1.5px solid rgba(255,255,255,.35); color: #fff;
+    border-radius: 10px; padding: .4rem 1rem; font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .btn-selecionar-todos:hover { background: rgba(255,255,255,.1); }
+
+  .btn-apagar-sel {
+    background: #ef4444; border: none; color: #fff;
+    border-radius: 10px; padding: .4rem 1.2rem; font-size: .8rem;
+    font-weight: 800; cursor: pointer; font-family: inherit; transition: filter .15s;
+  }
+  .btn-apagar-sel:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn-apagar-sel:not(:disabled):hover { filter: brightness(.88); }
+
+  .btn-cancelar-sel {
+    background: none; border: none; color: rgba(255,255,255,.6);
+    font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancelar-sel:hover { color: #fff; }
+
+  .btn-abrir-apagar {
+    background: none; border: 1.5px solid #94a3b8; color: #64748b;
+    border-radius: 10px; padding: .45rem 1.2rem; font-size: .82rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+    margin-top: .4rem;
+  }
+  .btn-abrir-apagar:hover { border-color: #ef4444; color: #ef4444; }
+
+  .mp-empty { text-align: center; padding: 4rem 1rem; color: var(--color-text-light); }
+  .mp-empty p { font-size: 1rem; margin-bottom: 1.4rem; line-height: 1.6; }
+  .mp-empty a {
+    background: var(--color-primary); color: #fff;
+    border-radius: 24px; padding: .6rem 1.8rem;
+    text-decoration: none; font-weight: 700; font-size: .9rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}" >
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto"
+             onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn"
+              onclick="this.closest('.user-menu').classList.toggle('open')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+          Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}
+        </span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar">ENTRAR</a>
+    {% endif %}
+    <span class="location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/>
+        <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      São Paulo - SP
+    </span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"
+              stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {% if carrinho_total > 0 %}
+        <span class="cart-badge">{{ carrinho_total }}</span>
+      {% endif %}
+    </a>
+  </div>
+</header>
+
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+<div class="mp-wrap">
+  <p style="font-size:.82rem; color:var(--color-text-light); margin-bottom:1rem;">
+    <a href="{{ url_for('dashboard') }}" style="color:inherit;">&#8592; Voltar à loja</a>
+  </p>
+  <div class="mp-titulo">Meus Pedidos</div>
+  <p class="mp-sub">Acompanhe todos os seus pedidos realizados.</p>
+
+  {# verifica se há qualquer pedido apagável nos dois tipos #}
+  {% set ns = namespace(tem=false) %}
+  {% for p in pedidos %}{% if p.status in ('cancelado', 'entregue') %}{% set ns.tem = true %}{% endif %}{% endfor %}
+  {% for p in pedidos_corp %}{% if p.status in ('concluido', 'cancelado') %}{% set ns.tem = true %}{% endif %}{% endfor %}
+
+  <form id="formApagar" method="POST" action="{{ url_for('apagar_pedidos') }}">
+
+    {# ── PEDIDOS NORMAIS ── #}
+    {% if pedidos %}
+    <div id="listaPedidos">
+    {% for p in pedidos %}
+    {% set deletavel = p.status in ('cancelado', 'entregue') %}
+    <div class="mp-card {% if deletavel %}selecionavel{% endif %}"
+         data-deletavel="{{ 'sim' if deletavel else 'nao' }}"
+         onclick="toggleCard(this)">
+      <div class="mp-card-header">
+        <div style="display:flex;align-items:center;gap:.7rem;">
+          <input type="checkbox" class="mp-checkbox" name="ids" value="{{ p.id }}"
+                 onclick="event.stopPropagation()" onchange="atualizarBarra()">
+          <div>
+            <span class="mp-num">Pedido #{{ p.id }}</span>
+            <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <span class="mp-tipo {% if p.tipo == 'entrega' %}entrega{% endif %}">
+            {{ 'Entrega' if p.tipo == 'entrega' else 'Retirar' }}
+          </span>
+          <span class="badge badge-{{ p.status }}">{{ p.status }}</span>
+        </div>
+      </div>
+
+      {% if p.endereco %}
+      <div class="mp-endereco">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="10" r="3"/>
+          <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+        </svg>
+        {{ p.endereco }}
+      </div>
+      {% endif %}
+
+      <div class="mp-itens">
+        {% for it in p.itens %}
+        <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.2rem;">
+          <div style="display:flex;justify-content:space-between;width:100%;">
+            <span>{{ it.nome }} &times; {{ it.quantidade }}</span>
+            <span>R$ {{ "%.2f"|format(it.subtotal) }}</span>
+          </div>
+          {% if it.notas_corp %}
+          <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.76rem;color:#166534;white-space:pre-line;width:100%;box-sizing:border-box;">{{ it.notas_corp }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;">
+        <div>
+          {% if p.status == 'pendente' %}
+          <button type="button" class="btn-cancelar"
+                  data-id="{{ p.id }}"
+                  onclick="cancelarPedido(+this.dataset.id, event)">Cancelar pedido</button>
+          {% endif %}
+        </div>
+        <div class="mp-total">Total: R$ {{ "%.2f"|format(p.total) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div class="mp-empty">
+      <p>Você ainda não fez nenhum pedido.<br>Que tal explorar nossos produtos?</p>
+      <a href="{{ url_for('dashboard') }}">Ver produtos</a>
+    </div>
+    {% endif %}
+
+    {# ── PEDIDOS CORPORATIVOS ── #}
+    {% if pedidos_corp %}
+    <div style="margin-top:2rem;">
+      <div class="mp-titulo" style="font-size:1.15rem;margin-bottom:.25rem;">Pedidos Corporativos</div>
+      <p class="mp-sub">Solicitações e personalizações corporativas.</p>
+
+      <div id="listaCorp">
+      {% for p in pedidos_corp %}
+      {% set deletavel_corp = p.status in ('concluido', 'cancelado') %}
+      <div class="mp-card {% if deletavel_corp %}selecionavel{% endif %}" style="border-left:4px solid var(--color-primary);"
+           data-deletavel="{{ 'sim' if deletavel_corp else 'nao' }}"
+           onclick="toggleCard(this)">
+        <div class="mp-card-header">
+          <div style="display:flex;align-items:center;gap:.7rem;">
+            <input type="checkbox" class="mp-checkbox" name="corp_ids" value="{{ p.id }}"
+                   onclick="event.stopPropagation()" onchange="atualizarBarra()">
+            <div>
+              <span class="mp-num">Corporativo #{{ p.id }}</span>
+              <span class="mp-data"> &mdash; {{ p.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.6rem;">
+            <span class="mp-tipo">{{ 'Personalização' if p.tipo == 'personalizar' else 'Solicitação' }}</span>
+            <span class="badge badge-{% if p.status == 'novo' %}pendente{% elif p.status == 'em_andamento' %}confirmado{% elif p.status == 'concluido' %}entregue{% else %}cancelado{% endif %}">
+              {{ p.status.replace('_', ' ') }}
+            </span>
+          </div>
+        </div>
+
+        <div class="mp-itens">
+          <div class="mp-item" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+            <div style="display:flex;justify-content:space-between;width:100%;">
+              <span style="font-weight:700;">{{ p.produto_nome or 'Produto personalizado' }}
+                {% if p.quantidade %} &times; {{ p.quantidade }}{% endif %}
+              </span>
+            </div>
+            {% if p.personalizacao %}
+            <div style="font-size:.82rem;color:#475569;">{{ p.personalizacao }}</div>
+            {% endif %}
+            {% if p.logo_url %}
+            <div style="font-size:.76rem;color:#475569;">
+              Logo enviada:
+              <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+                   style="max-height:36px;vertical-align:middle;border-radius:4px;border:1px solid #e2e8f0;margin-left:.3rem;">
+            </div>
+            {% endif %}
+            {% if p.sabor %}
+            <div style="font-size:.76rem;color:#475569;">Sabor: <strong>{{ p.sabor }}</strong></div>
+            {% endif %}
+            {% if p.cor_fita or p.modelo_tag or p.frase_tag %}
+            <div style="padding:.4rem .6rem;background:#f0fdf4;border-left:3px solid var(--color-primary);border-radius:6px;font-size:.76rem;color:#166534;width:100%;box-sizing:border-box;">
+              {% if p.cor_fita %}<div>Cor da fita: {{ p.cor_fita }}</div>{% endif %}
+              {% if p.modelo_tag %}<div>Modelo de tag: {{ p.modelo_tag }}</div>{% endif %}
+              {% if p.frase_tag %}<div>Frase na tag: {{ p.frase_tag }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% if p.observacoes %}
+            <div style="font-size:.76rem;color:#94a3b8;">Obs: {{ p.observacoes }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">
+          Nossa equipe entrará em contato para confirmar detalhes e orçamento.
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── BOTÃO E BARRA ÚNICOS ── #}
+    {% if ns.tem %}
+    <div style="text-align:right; margin-top:1.2rem;">
+      <button type="button" class="btn-abrir-apagar" onclick="abrirModoSelecao()">
+        Apagar pedidos
+      </button>
+    </div>
+
+    <div class="barra-selecao" id="barraSelecao">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <span class="barra-selecao-info" id="infoSelecao">0 selecionado(s)</span>
+        <button type="button" class="btn-selecionar-todos" onclick="selecionarTodos()">Selecionar todos</button>
+        <button type="button" class="btn-cancelar-sel" onclick="fecharModoSelecao()">Cancelar</button>
+      </div>
+      <button type="button" class="btn-apagar-sel" id="btnApagar" disabled
+              onclick="adminConfirmar({titulo:'Apagar pedidos',msg:'Deseja apagar os pedidos selecionados? Esta ação não pode ser desfeita.',textoConfirmar:'Apagar',aoConfirmar:function(){document.getElementById('formApagar').submit()}})">
+        Apagar selecionados
+      </button>
+    </div>
+    {% endif %}
+
+  </form>
+</div>
+
+<script>
+  function buscarGlobal() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(q);
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.user-menu')) {
+      document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+    }
+  });
+
+  function cancelarPedido(id, e) {
+    e.stopPropagation();
+    adminConfirmar({
+      titulo: 'Cancelar pedido #' + id,
+      msg: 'Deseja cancelar o pedido #' + id + '? Esta ação não pode ser desfeita.',
+      textoConfirmar: 'Cancelar pedido',
+      corBotao: '#b45309',
+      aoConfirmar: function() {
+        var f = document.createElement('form');
+        f.method = 'POST';
+        f.action = '/pedidos/' + id + '/cancelar';
+        document.body.appendChild(f);
+        f.submit();
+      }
+    });
+  }
+
+  function todosOsDeletaveis() {
+    return document.querySelectorAll('#formApagar .mp-card[data-deletavel="sim"] .mp-checkbox');
+  }
+
+  function abrirModoSelecao() {
+    document.getElementById('formApagar').classList.add('modo-selecao');
+    document.getElementById('barraSelecao').classList.add('visivel');
+    atualizarBarra();
+  }
+
+  function fecharModoSelecao() {
+    document.getElementById('formApagar').classList.remove('modo-selecao');
+    document.getElementById('barraSelecao').classList.remove('visivel');
+    todosOsDeletaveis().forEach(cb => {
+      cb.checked = false;
+      cb.closest('.mp-card').classList.remove('selecionado');
+    });
+    atualizarBarra();
+  }
+
+  function toggleCard(card) {
+    if (!document.getElementById('formApagar').classList.contains('modo-selecao')) return;
+    if (card.dataset.deletavel !== 'sim') return;
+    const cb = card.querySelector('.mp-checkbox');
+    cb.checked = !cb.checked;
+    card.classList.toggle('selecionado', cb.checked);
+    atualizarBarra();
+  }
+
+  function selecionarTodos() {
+    const todos = todosOsDeletaveis();
+    const algumDesmarcado = [...todos].some(cb => !cb.checked);
+    todos.forEach(cb => {
+      cb.checked = algumDesmarcado;
+      cb.closest('.mp-card').classList.toggle('selecionado', algumDesmarcado);
+    });
+    atualizarBarra();
+  }
+
+  function atualizarBarra() {
+    const selecionados = document.querySelectorAll('#formApagar .mp-checkbox:checked').length;
+    document.getElementById('infoSelecao').textContent = selecionados + ' selecionado(s)';
+    document.getElementById('btnApagar').disabled = selecionados === 0;
+  }
+</script>
+{% endblock %}

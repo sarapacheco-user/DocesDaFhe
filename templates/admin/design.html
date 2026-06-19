@@ -1,0 +1,1530 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+{% endblock %}
+
+{% block content %}
+<form method="POST" enctype="multipart/form-data" id="designForm">
+
+<div class="dp-wrap">
+
+  <!-- ═══════════════════════════════════
+       SIDEBAR: Controls
+  ════════════════════════════════════ -->
+  <aside class="dp-sidebar">
+
+    <div class="dp-header">
+      <h2>Personalizar Design</h2>
+      <div class="dp-header-btns">
+        <button type="submit" name="action" value="save" class="dp-btn-save">Salvar</button>
+        <button type="button" class="dp-btn-reset"
+                onclick="adminConfirmar({titulo:'Resetar design',msg:'Deseja restaurar o design ao padrão? Todas as personalizações de cores, tipografia e layout serão perdidas.',textoConfirmar:'Resetar',aoConfirmar:function(){document.getElementById('formReset').submit()}})">Resetar</button>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="dp-tabs">
+      <button type="button" class="dp-tab active" onclick="switchTab(this,'cores')">Cores</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'tipografia')">Tipografia</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'layout')">Layout</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'componentes')">Componentes</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'animacoes')">Animações</button>
+      <button type="button" class="dp-tab" onclick="switchTab(this,'identidade')">Identidade</button>
+      <button type="button" class="dp-tab" id="tab-paletas-btn" onclick="switchTab(this,'paletas')">Paletas</button>
+    </div>
+
+    <div class="dp-panels">
+
+      <!-- ── CORES ── -->
+      <div class="dp-panel active" id="panel-cores">
+        <div class="dp-group">
+          <div class="dp-group-title">Cores principais</div>
+
+          {% set colors = [
+            ('color_primary',    'Cor Principal', 'Navbar, títulos, botões'),
+            ('color_secondary',  'Cor Secundária', 'Topbar, drawer'),
+            ('color_accent',     'Cor de Destaque', 'Botões CTA, badges'),
+            ('color_dark',       'Cor Escura', 'Badge deletar, elementos de ênfase'),
+          ] %}
+          {% for field, label, hint in colors %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] if config[field] else '#000000' }}"
+                     oninput="syncColor(this.id.slice(3), this.value)">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] }}" maxlength="7"
+                     oninput="syncColorFromHex(this.id.slice(4), this.value)"
+                     data-varname="--{{ field | replace('_', '-') }}">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cores de fundo e texto</div>
+
+          {% set colors2 = [
+            ('color_bg',         'Fundo do Site', 'Background principal'),
+            ('color_text',       'Texto Principal', 'Corpo do texto'),
+            ('color_text_light', 'Texto Secundário', 'Subtítulos, hints'),
+          ] %}
+          {% for field, label, hint in colors2 %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] }}"
+                     oninput="syncColor(this.id.slice(3), this.value)">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] }}" maxlength="7"
+                     oninput="syncColorFromHex(this.id.slice(4), this.value)"
+                     data-varname="--{{ field | replace('_', '-') }}">
+            </div>
+          </div>
+          {% endfor %}
+
+          <div id="contrastResult" class="pvw-contrast" style="margin-top:.8rem; display:none;"></div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Tema do site (cabeçalho, rodapé e login)</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.8rem;">
+            Gradiente aplicado no cabeçalho, rodapé e nas páginas de Login, Cadastro e Recuperação de senha.
+          </p>
+          {% for field, label in [('auth_bg_color1','Cor inicial do gradiente'), ('auth_bg_color2','Cor final do gradiente')] %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }}</label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
+                     oninput="syncAuthBgFromPicker('{{ field }}', this.value)">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] if config[field] else ('#e8eed8' if 'color1' in field else '#8fa05a') }}"
+                     maxlength="7" oninput="syncAuthBgFromHex('{{ field }}', this.value)">
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="dp-field">
+            <label class="dp-label">Cor do texto <small>Título, subtítulo e ícone sobre o gradiente</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_auth_text_color"
+                     value="{{ config.auth_text_color or '#ffffff' }}"
+                     oninput="syncAuthTextColor(this.value)">
+              <input type="text" class="dp-color-hex" id="hex_auth_text_color" name="auth_text_color"
+                     value="{{ config.auth_text_color or '#ffffff' }}"
+                     maxlength="7" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_auth_text_color').value=this.value; syncAuthTextColor(this.value);}">
+            </div>
+          </div>
+
+          <!-- mini preview mostrando gradiente + texto -->
+          <div id="auth-bg-preview" style="margin-top:.7rem; height:70px; border-radius:10px; border:1px solid #e2e8f0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; overflow:hidden;">
+            <div id="auth-preview-title" style="font-size:.8rem; font-weight:700; line-height:1;">Recuperar Senha</div>
+            <div id="auth-preview-sub" style="font-size:.65rem; opacity:.85;">Informe seu e-mail cadastrado</div>
+          </div>
+          <script>
+            (function(){
+              var c1 = document.getElementById('hex_auth_bg_color1').value || '#e8eed8';
+              var c2 = document.getElementById('hex_auth_bg_color2').value || '#8fa05a';
+              var tc = document.getElementById('hex_auth_text_color').value || '#ffffff';
+              var prev = document.getElementById('auth-bg-preview');
+              prev.style.background = 'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+              document.getElementById('auth-preview-title').style.color = tc;
+              document.getElementById('auth-preview-sub').style.color = tc;
+            })();
+          </script>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cores das mensagens</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.8rem;">
+            Fundo e texto do popup que aparece após ações do sistema (salvar, erro, aviso).
+          </p>
+          {% set flash_colors = [
+            ('flash_success', 'flash_success_text', 'Confirmação', '#d4edda', '#155724', 'Pedido feito, item salvo, senha alterada'),
+            ('flash_error',   'flash_error_text',   'Erro',        '#f8d7da', '#721c24', 'Falha no login, campo inválido, sem estoque'),
+            ('flash_info',    'flash_info_text',     'Informação',  '#d1ecf1', '#0c5460', 'Aviso neutro, dica, notificação geral'),
+          ] %}
+          {% for field, field_text, label, default_bg, default_text, hint in flash_colors %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:.72rem; color:#64748b; margin-bottom:.3rem;">Fundo</div>
+                <div class="dp-color-row">
+                  <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                         value="{{ config[field] or default_bg }}"
+                         oninput="document.getElementById('hex_'+this.id.slice(3)).value=this.value; applyColor(this.id.slice(3), this.value);">
+                  <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                         value="{{ config[field] or default_bg }}" maxlength="7"
+                         oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_'+this.id.slice(4)).value=this.value; applyColor(this.id.slice(4), this.value);}">
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.72rem; color:#64748b; margin-bottom:.3rem;">Texto</div>
+                <div class="dp-color-row">
+                  <input type="color" class="dp-color-input" id="cp_{{ field_text }}"
+                         value="{{ config[field_text] or default_text }}"
+                         oninput="document.getElementById('hex_'+this.id.slice(3)).value=this.value; applyColor(this.id.slice(3), this.value);">
+                  <input type="text" class="dp-color-hex" id="hex_{{ field_text }}" name="{{ field_text }}"
+                         value="{{ config[field_text] or default_text }}" maxlength="7"
+                         oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_'+this.id.slice(4)).value=this.value; applyColor(this.id.slice(4), this.value);}">
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cores do Blog</div>
+          {% set blog_colors = [
+            ('blog_primary',  'Cor Principal',  '#5B6D3D', 'Links, botões, destaques'),
+            ('blog_accent',   'Cor de Destaque','#932E50', 'Categoria hero, tags'),
+            ('blog_bg',       'Fundo',          '#f8fafc', 'Cor de fundo das páginas do blog'),
+            ('blog_card_bg',  'Fundo do Card',  '#ffffff', 'Fundo dos cards de post'),
+            ('blog_text',     'Texto',          '#1e293b', 'Cor principal do texto'),
+          ] %}
+          {% for field, label, default, hint in blog_colors %}
+          <div class="dp-field">
+            <label class="dp-label">{{ label }} <small>{{ hint }}</small></label>
+            <div class="dp-color-row">
+              <input type="color" class="dp-color-input" id="cp_{{ field }}"
+                     value="{{ config[field] or default }}"
+                     oninput="document.getElementById('hex_{{ field }}').value=this.value;">
+              <input type="text" class="dp-color-hex" id="hex_{{ field }}" name="{{ field }}"
+                     value="{{ config[field] or default }}" maxlength="7"
+                     oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('cp_{{ field }}').value=this.value;}">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ── TIPOGRAFIA ── -->
+      <div class="dp-panel" id="panel-tipografia">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Fontes</div>
+
+          <div class="dp-field">
+            <label class="dp-label">Fonte dos Títulos</label>
+            <select class="dp-select" name="font_title" id="sel_font_title"
+                    onchange="updateFont('title', this.value)">
+              {% set title_fonts = ['Playfair Display','Lora','Merriweather','Cormorant Garamond','Libre Baskerville','Cinzel','DM Serif Display'] %}
+              {% for f in title_fonts %}
+              <option value="{{ f }}" {% if config.font_title == f %}selected{% endif %}>{{ f }}</option>
+              {% endfor %}
+            </select>
+            <div style="margin-top:.7rem; background:#f8fafc; border-radius:10px; padding:.9rem 1rem; border:1px solid #e8ecf0;">
+              <div style="font-size:.65rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-bottom:.4rem;">Prévia</div>
+              <div id="title_preview" style="font-size:1.4rem; color:#1e293b; line-height:1.3;">
+                Doces Artesanais
+              </div>
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Fonte do Texto</label>
+            <select class="dp-select" name="font_body" id="sel_font_body"
+                    onchange="updateFont('body', this.value)">
+              {% set body_fonts = ['Nunito','Inter','Poppins','Lato','Open Sans','Raleway','DM Sans','Josefin Sans'] %}
+              {% for f in body_fonts %}
+              <option value="{{ f }}" {% if config.font_body == f %}selected{% endif %}>{{ f }}</option>
+              {% endfor %}
+            </select>
+            <div style="margin-top:.7rem; background:#f8fafc; border-radius:10px; padding:.9rem 1rem; border:1px solid #e8ecf0;">
+              <div style="font-size:.65rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-bottom:.4rem;">Prévia</div>
+              <div id="body_preview" style="font-size:.9rem; color:#475569; line-height:1.6;">
+                Brigadeiros gostosos feitos com amor e carinho para você.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Tamanho e Peso</div>
+
+          <div class="dp-field">
+            <label class="dp-label">Tamanho base do texto</label>
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="13" max="20"
+                     value="{{ config.font_size }}" id="rng_font_size"
+                     oninput="updateFontSize(this.value)">
+              <span class="dp-range-val" id="val_font_size">{{ config.font_size }}px</span>
+              <input type="hidden" name="font_size" id="hid_font_size" value="{{ config.font_size }}">
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Peso dos títulos</label>
+            <div class="dp-chips" id="chips_title_weight">
+              {% for w, lbl in [('400','Regular'),('600','Semi-bold'),('700','Bold'),('800','Extra-bold')] %}
+              <button type="button" class="dp-chip {% if config.title_weight == w %}selected{% endif %}"
+                      data-w="{{ w }}" onclick="selectChip(this, 'title_weight', this.dataset.w)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="title_weight" id="hid_title_weight" value="{{ config.title_weight }}">
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Peso do texto</label>
+            <div class="dp-chips" id="chips_body_weight">
+              {% for w, lbl in [('300','Light'),('400','Regular'),('600','Semi-bold'),('700','Bold')] %}
+              <button type="button" class="dp-chip {% if config.body_weight == w %}selected{% endif %}"
+                      data-w="{{ w }}" onclick="selectChip(this, 'body_weight', this.dataset.w)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="body_weight" id="hid_body_weight" value="{{ config.body_weight }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LAYOUT ── -->
+      <div class="dp-panel" id="panel-layout">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Estilo de espaçamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              <button type="button" class="dp-chip {% if config.layout_mode == 'compact' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_mode', 'compact')">Compacto</button>
+              <button type="button" class="dp-chip {% if config.layout_mode == 'spacious' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_mode', 'spacious')">Espaçado</button>
+            </div>
+            <input type="hidden" name="layout_mode" id="hid_layout_mode" value="{{ config.layout_mode }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Largura do conteúdo</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              <button type="button" class="dp-chip {% if config.layout_width == 'centered' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_width', 'centered')">Centralizado</button>
+              <button type="button" class="dp-chip {% if config.layout_width == 'fullwidth' %}selected{% endif %}"
+                      onclick="selectChip(this, 'layout_width', 'fullwidth')">Full Width</button>
+            </div>
+            <input type="hidden" name="layout_width" id="hid_layout_width" value="{{ config.layout_width }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Colunas de produtos</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for n, lbl in [('2','2 colunas'),('3','3 colunas'),('4','4 colunas')] %}
+              <button type="button" class="dp-chip {% if (config.card_columns or 3)|string == n %}selected{% endif %}"
+                      data-cols="{{ n }}"
+                      onclick="selectChip(this, 'card_columns', this.dataset.cols); updateColPreview(+this.dataset.cols)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_columns" id="hid_card_columns" value="{{ config.card_columns or 3 }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Espaçamento entre cards</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="8" max="40" step="4"
+                     value="{{ config.card_gap or 20 }}" id="rng_card_gap"
+                     oninput="updateGapPreview(this.value)">
+              <span class="dp-range-val" id="val_card_gap">{{ config.card_gap or 20 }}px</span>
+              <input type="hidden" name="card_gap" id="hid_card_gap" value="{{ config.card_gap or 20 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Navbar</div>
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Barra fixa no topo</span>
+            <button type="button" class="dp-toggle {% if config.navbar_fixed %}on{% endif %}"
+                    id="tog_navbar_fixed" onclick="toggleSwitch(this, 'navbar_fixed')"></button>
+            <input type="hidden" name="navbar_fixed" id="hid_navbar_fixed" value="{{ 'on' if config.navbar_fixed else '' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Seções da loja</div>
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Mostrar carrossel</span>
+            <button type="button" class="dp-toggle {% if config.show_carousel %}on{% endif %}"
+                    id="tog_show_carousel" onclick="toggleSwitch(this, 'show_carousel')"></button>
+            <input type="hidden" name="show_carousel" id="hid_show_carousel" value="{{ 'on' if config.show_carousel else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COMPONENTES ── -->
+      <div class="dp-panel" id="panel-componentes">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Botões — arredondamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('4px','Quadrado'),('12px','Arredondado'),('999px','Pílula')] %}
+              <button type="button" class="dp-chip {% if config.btn_radius == val %}selected{% endif %}"
+                      data-val="{{ val }}" onclick="selectChip(this, 'btn_radius', this.dataset.val); updateBtnRadius(this.dataset.val)">
+                {{ lbl }}
+              </button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="btn_radius" id="hid_btn_radius" value="{{ config.btn_radius }}">
+          </div>
+          <div style="display:flex; gap:.6rem; margin-top:.8rem;">
+            <div class="pvw-btn-primary">Adicionar</div>
+            <div class="pvw-btn-secondary">Cancelar</div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — sombra</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('none','Nenhuma'),('soft','Suave'),('medium','Média'),('strong','Forte')] %}
+              <button type="button" class="dp-chip {% if config.card_shadow == val %}selected{% endif %}"
+                      data-val="{{ val }}" onclick="selectChip(this, 'card_shadow', this.dataset.val)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_shadow" id="hid_card_shadow" value="{{ config.card_shadow }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — arredondamento</div>
+          <div class="dp-field">
+            <div class="dp-chips">
+              {% for val, lbl in [('6px','Quadrado'),('12px','Suave'),('16px','Padrão'),('24px','Arredondado')] %}
+              <button type="button" class="dp-chip {% if (config.card_radius or '16px') == val %}selected{% endif %}"
+                      data-val="{{ val }}" onclick="selectChip(this, 'card_radius', this.dataset.val)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="card_radius" id="hid_card_radius" value="{{ config.card_radius or '16px' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Cards — altura da imagem</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="100" max="400" step="10"
+                     value="{{ config.card_img_height or 200 }}" id="rng_card_img"
+                     oninput="document.getElementById('val_card_img').textContent=this.value+'px'; document.getElementById('hid_card_img_height').value=this.value;">
+              <span class="dp-range-val" id="val_card_img">{{ config.card_img_height or 200 }}px</span>
+              <input type="hidden" name="card_img_height" id="hid_card_img_height" value="{{ config.card_img_height or 200 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Badge "Novo"</div>
+          <div class="dp-field">
+            <!-- Toggle ativo/desativado -->
+            <div style="display:flex; align-items:center; gap:1rem; margin-bottom:.9rem;">
+              <span style="font-size:.82rem; color:#64748b; font-weight:600;">Exibir badge "Novo"</span>
+              <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer;">
+                <input type="checkbox" name="new_badge_ativo" value="1" id="chk_badge_ativo"
+                       {% if config.new_badge_ativo is none or config.new_badge_ativo %}checked{% endif %}
+                       style="opacity:0; width:0; height:0;"
+                       onchange="document.getElementById('badge_dias_row').style.opacity=this.checked?'1':'.4';">
+                <span id="badge_toggle_track" style="position:absolute; inset:0; border-radius:24px; background:#cbd5e1; transition:background .2s;"></span>
+                <span id="badge_toggle_knob" style="position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.2); transition:transform .2s; transform:translateX(0);"></span>
+              </label>
+            </div>
+            <!-- Controle de dias -->
+            <div id="badge_dias_row" style="display:flex; align-items:center; gap:.8rem; opacity:1;">
+              <span style="font-size:.82rem; color:#64748b; font-weight:600; white-space:nowrap;">Duração (dias):</span>
+              <input type="number" name="new_badge_days" id="inp_badge_days"
+                     min="1" max="365" value="{{ config.new_badge_days or 7 }}"
+                     style="width:70px; padding:.35rem .6rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.88rem; font-weight:700; color:#1e293b; text-align:center;">
+              <span style="font-size:.82rem; color:#94a3b8;">dias</span>
+            </div>
+            <!-- Cor do badge -->
+            <div style="display:flex; align-items:center; gap:.8rem; margin-top:.9rem;">
+              <span style="font-size:.82rem; color:#64748b; font-weight:600; white-space:nowrap;">Cor do badge:</span>
+              <input type="color" name="new_badge_color" id="inp_badge_color"
+                     value="{{ config.new_badge_color or '#cc0000' }}"
+                     oninput="document.getElementById('txt_badge_color').value=this.value; document.getElementById('prev_badge').style.background=this.value;"
+                     style="width:38px; height:32px; border:none; cursor:pointer; border-radius:6px; padding:0;">
+              <input type="text" id="txt_badge_color" value="{{ config.new_badge_color or '#cc0000' }}"
+                     maxlength="7"
+                     oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)){document.getElementById('inp_badge_color').value=this.value; document.getElementById('prev_badge').style.background=this.value;}"
+                     style="width:80px; padding:.3rem .6rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.82rem; font-weight:700; color:#1e293b;">
+              <span id="prev_badge" style="display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:{{ config.new_badge_color or '#cc0000' }}; color:#fff; font-size:.55rem; font-weight:900; text-transform:uppercase;">NOVO</span>
+            </div>
+          </div>
+        </div>
+        <script>
+        (function() {
+          function applyBadgeState(on) {
+            document.getElementById('badge_toggle_track').style.background = on ? '#5B6D3D' : '#cbd5e1';
+            document.getElementById('badge_toggle_knob').style.transform   = on ? 'translateX(20px)' : 'translateX(0)';
+            document.getElementById('badge_dias_row').style.opacity         = on ? '1' : '.4';
+          }
+          var chk = document.getElementById('chk_badge_ativo');
+          applyBadgeState(chk.checked);
+          chk.addEventListener('change', function() { applyBadgeState(this.checked); });
+        })();
+        </script>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Carrossel — altura</div>
+          <div class="dp-field">
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="160" max="600" step="20"
+                     value="{{ config.carousel_height or 340 }}" id="rng_carousel"
+                     oninput="document.getElementById('val_carousel').textContent=this.value+'px'; document.getElementById('hid_carousel_height').value=this.value;">
+              <span class="dp-range-val" id="val_carousel">{{ config.carousel_height or 340 }}px</span>
+              <input type="hidden" name="carousel_height" id="hid_carousel_height" value="{{ config.carousel_height or 340 }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANIMAÇÕES ── -->
+      <div class="dp-panel" id="panel-animacoes">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Animações e transições</div>
+          <div class="dp-toggle-row">
+            <span class="dp-toggle-label">Ativar animações</span>
+            <button type="button" class="dp-toggle {% if config.anim_enabled %}on{% endif %}"
+                    id="tog_anim" onclick="toggleSwitch(this, 'anim_enabled')"></button>
+            <input type="hidden" name="anim_enabled" id="hid_anim_enabled" value="{{ 'on' if config.anim_enabled else '' }}">
+          </div>
+        </div>
+
+        <div id="group_anim_settings" {% if not config.anim_enabled %}hidden{% endif %}>
+
+          <div class="dp-group">
+            <div class="dp-group-title">Duração das transições</div>
+            <div class="dp-field">
+              <div class="dp-range-row">
+                <input type="range" class="dp-range" min="80" max="600" step="20"
+                       value="{{ config.anim_duration or 220 }}" id="rng_anim_dur"
+                       oninput="updateAnimDur(this.value)">
+                <span class="dp-range-val" id="val_anim_dur">{{ config.anim_duration or 220 }}ms</span>
+                <input type="hidden" name="anim_duration" id="hid_anim_duration" value="{{ config.anim_duration or 220 }}">
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:.72rem; color:#94a3b8; margin-top:.2rem;">
+                <span>Rápida</span><span>Lenta</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dp-group">
+            <div class="dp-group-title">Efeito hover dos cards</div>
+            <div class="dp-field">
+              <div class="dp-chips" style="flex-wrap:wrap;">
+                {% for val, lbl in [('lift','Levantar'),('zoom','Zoom'),('glow','Brilho'),('border','Borda'),('none','Nenhum')] %}
+                <button type="button" class="dp-chip {% if (config.anim_hover_style or 'lift') == val %}selected{% endif %}"
+                        data-hov="{{ val }}"
+                        onclick="selectChip(this, 'anim_hover_style', this.dataset.hov); previewHover(this.dataset.hov)">{{ lbl }}</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="anim_hover_style" id="hid_anim_hover_style" value="{{ config.anim_hover_style or 'lift' }}">
+            </div>
+            <!-- hover demo card -->
+            <div style="margin-top:.8rem; display:flex; justify-content:center;">
+              <div id="anim_demo_card" style="
+                width:110px; background:#fff; border-radius:12px; overflow:hidden;
+                border:1.5px solid #e5e5e5; box-shadow:0 2px 8px rgba(0,0,0,.08);
+                transition:transform .22s, box-shadow .22s, border-color .22s;
+                cursor:default; text-align:center;">
+                <div style="height:64px; background:var(--color-bg,#faf9f6); display:flex; align-items:center; justify-content:center; font-size:1.8rem;">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="var(--color-primary,#5B6D3D)" opacity=".15"/><path d="M10 20 C12 14 20 14 22 20" stroke="var(--color-primary,#5B6D3D)" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="13" r="2" fill="var(--color-primary,#5B6D3D)"/><circle cx="19" cy="13" r="2" fill="var(--color-primary,#5B6D3D)"/></svg>
+                </div>
+                <div style="padding:.5rem; font-size:.75rem; font-weight:700; color:#1e293b;">Prévia</div>
+              </div>
+            </div>
+            <p style="font-size:.72rem; color:#94a3b8; text-align:center; margin-top:.4rem;">Passe o mouse no card acima</p>
+          </div>
+
+          <div class="dp-group">
+            <div class="dp-group-title">O que é animado</div>
+            <div style="display:flex; flex-direction:column; gap:.55rem;">
+              {% for item in ['Hover nos cards de produto','Transições de botões','Abertura do menu lateral','Fade-in das mensagens'] %}
+              <div style="display:flex; align-items:center; gap:.55rem;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" fill="#dcfce7"/>
+                  <path d="M5 8l2.2 2.2L11 5.5" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span style="font-size:.83rem; color:#475569;">{{ item }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── IDENTIDADE ── -->
+      <div class="dp-panel" id="panel-identidade">
+
+        <div class="dp-group">
+          <div class="dp-group-title">Nome do site</div>
+          <div class="dp-field">
+            <label class="dp-label">Nome exibido na navbar</label>
+            <input type="text" class="dp-input" name="site_name" value="{{ config.site_name }}"
+                   oninput="updateSiteName(this.value)">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Logo</div>
+          <div class="dp-field">
+            <div class="dp-upload-wrap">
+              <div class="dp-upload-preview" id="logoPreview" style="width:100%; height:100px;">
+                {% if config.logo_url %}
+                <img src="{{ url_for('static', filename=config.logo_url) }}" id="logoImg"
+                     data-height="{{ config.logo_height or 100 }}"
+                     data-fit="{{ config.logo_fit or 'contain' }}"
+                     style="max-width:100%;">
+                {% else %}
+                <span id="logoPlaceholder" style="color:#aaa; font-size:.85rem;">Sem logo</span>
+                {% endif %}
+              </div>
+              <input type="file" name="logo_file" accept="image/*"
+                     onchange="previewLogo(this)"
+                     style="font-size:.85rem; margin-top:.4rem;">
+              <small style="color:#6b6b6b; font-size:.78rem;">PNG ou WebP com fundo transparente recomendado.</small>
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Altura da logo</label>
+            <div class="dp-range-row">
+              <input type="range" class="dp-range" min="24" max="120" step="4"
+                     value="{{ config.logo_height or 100 }}" id="rng_logo_height"
+                     oninput="updateLogoHeight(this.value)">
+              <span class="dp-range-val" id="val_logo_height">{{ config.logo_height or 100 }}px</span>
+              <input type="hidden" name="logo_height" id="hid_logo_height" value="{{ config.logo_height or 100 }}">
+            </div>
+          </div>
+
+          <div class="dp-field">
+            <label class="dp-label">Ajuste da imagem</label>
+            <div class="dp-chips">
+              {% for val, lbl in [('contain','Original'),('cover','Preencher'),('fill','Esticar')] %}
+              <button type="button" class="dp-chip {% if (config.logo_fit or 'contain') == val %}selected{% endif %}"
+                      data-val="{{ val }}" onclick="selectChip(this, 'logo_fit', this.dataset.val); updateLogoFit(this.dataset.val)">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="logo_fit" id="hid_logo_fit" value="{{ config.logo_fit or 'contain' }}">
+          </div>
+        </div>
+
+        <div class="dp-group">
+          <div class="dp-group-title">Estilo visual</div>
+          <p style="font-size:.85rem; color:#6b6b6b;">
+            As cores e fontes definem o estilo. Use a paleta de cores para criar identidade visual consistente.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:.4rem;" id="swatchesRow">
+            <div class="pvw-swatch" id="sw_color_primary"   style="background:var(--color-primary);"></div>
+            <div class="pvw-swatch" id="sw_color_secondary" style="background:var(--color-secondary);"></div>
+            <div class="pvw-swatch" id="sw_color_accent"    style="background:var(--color-accent);"></div>
+            <div class="pvw-swatch" id="sw_color_dark"      style="background:var(--color-dark);"></div>
+            <div class="pvw-swatch" id="sw_color_bg"        style="background:var(--color-bg);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PALETAS ── -->
+      <div class="dp-panel" id="panel-paletas">
+
+        <!-- Save current palette -->
+        <div class="dp-group">
+          <div class="dp-group-title">Salvar paleta atual</div>
+          <p style="font-size:.78rem; color:#64748b; margin-bottom:.9rem;">
+            Capture as cores configuradas agora e dê um nome para reutilizá-las depois.
+          </p>
+          <div style="display:flex; gap:.6rem; align-items:center;">
+            <input type="text" id="paletaNomeInput" placeholder="Ex: Tema Natal, Cores de Verão..."
+                   style="flex:1; padding:.5rem .8rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:.85rem; color:#1e293b; background:#f8fafc; outline:none;">
+            <button type="button" onclick="submitSalvarPaleta()"
+                    style="padding:.5rem 1rem; background:var(--color-primary); color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+              Salvar paleta
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved palettes list -->
+        <div class="dp-group">
+          <div class="dp-group-title">Paletas salvas</div>
+          {% if palettes %}
+          <div style="display:flex; flex-direction:column; gap:.8rem;">
+            {% for p in palettes %}
+            {% set cores = p.cores | from_json %}
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:.9rem 1rem;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.6rem;">
+                <span style="font-size:.88rem; font-weight:700; color:#1e293b;">{{ p.nome }}</span>
+                <span style="font-size:.72rem; color:#94a3b8;">{{ p.created_at.strftime('%d/%m/%Y') }}</span>
+              </div>
+              <!-- Color swatches -->
+              <div style="display:flex; gap:.3rem; flex-wrap:wrap; margin-bottom:.7rem;">
+                {% for field in ['color_primary','color_secondary','color_accent','color_dark','color_bg','color_text'] %}
+                <div title="{{ field }}" data-bg="{{ cores.get(field,'#ccc') }}"
+                     class="paleta-swatch"
+                     style="width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(0,0,0,.1);"></div>
+                {% endfor %}
+              </div>
+              <!-- Actions -->
+              <div style="display:flex; gap:.5rem;">
+                <button type="button"
+                        data-cores="{{ p.cores | e }}"
+                        data-nome="{{ p.nome | e }}"
+                        onclick="aplicarPaleta(JSON.parse(this.dataset.cores), this.dataset.nome)"
+                        style="flex:1; padding:.4rem; background:var(--color-primary); color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
+                  Aplicar
+                </button>
+                <button type="button"
+                        data-id="{{ p.id }}" data-nome="{{ p.nome | e }}"
+                        onclick="submitExcluirPaleta(this.dataset.id, this.dataset.nome)"
+                        style="padding:.4rem .8rem; background:none; border:1.5px solid #fca5a5; color:#ef4444; border-radius:7px; font-size:.78rem; font-weight:700; cursor:pointer;">
+                  Excluir
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center; padding:2rem 1rem; color:#94a3b8; font-size:.85rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="display:block; margin:0 auto .6rem; opacity:.4;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Nenhuma paleta salva ainda.<br>
+            Configure as cores e salve acima.
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+    </div><!-- /dp-panels -->
+  </aside>
+
+  <!-- ═══════════════════════════════════
+       PREVIEW PANEL
+  ════════════════════════════════════ -->
+  <div class="dp-preview-col">
+
+    <div class="dp-preview-header">
+      <span>Pré-visualização ao vivo</span>
+      <div class="dp-device-btns">
+        <button type="button" class="dp-device-btn active" onclick="setDevice('desktop', this)">Desktop</button>
+        <button type="button" class="dp-device-btn" onclick="setDevice('tablet', this)">Tablet</button>
+        <button type="button" class="dp-device-btn" onclick="setDevice('mobile', this)"> Celular</button>
+      </div>
+    </div>
+
+    <div class="dp-preview-stage">
+      <div class="dp-preview-frame" id="previewFrame">
+
+        <!-- ── Topbar ── -->
+        <div class="pvw-topbar" id="pvw_topbar" style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem .8rem;">
+          <div style="display:flex; align-items:center; gap:.5rem;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" opacity=".8">
+              <rect y="4" width="24" height="2.5" rx="1.2"/><rect y="10.75" width="24" height="2.5" rx="1.2"/><rect y="17.5" width="24" height="2.5" rx="1.2"/>
+            </svg>
+            <strong id="pvw_sitename">{{ config.site_name }}</strong>
+          </div>
+          <span id="pvw_navbar_badge" style="font-size:.58rem; background:rgba(255,255,255,.25); padding:.1rem .45rem; border-radius:4px; white-space:nowrap;">
+            {{ 'Navbar Fixa' if config.navbar_fixed else 'Navbar Normal' }}
+          </span>
+        </div>
+
+        <!-- ── Carousel strip ── -->
+        <div id="pvw_carousel"
+             data-show="{{ 'true' if config.show_carousel else 'false' }}"
+             style="height:72px; background:linear-gradient(135deg,var(--color-secondary) 0%,var(--color-primary) 100%); display:flex; align-items:center; justify-content:center; gap:.5rem; color:#fff; font-size:.62rem; font-weight:800; letter-spacing:.1em; transition:height .25s ease;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          CARROSSEL
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <!-- ── Body ── -->
+        <div class="pvw-body" id="pvw_body">
+
+          <!-- Layout width indicator -->
+          <div id="pvw_width_bar" style="display:flex; align-items:center; gap:.35rem; margin-bottom:.5rem;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M21 3H3M21 21H3M15 12H9M3 7v10M21 7v10"/></svg>
+            <span id="pvw_width_badge" style="font-size:.62rem; color:#94a3b8; font-weight:700;">
+              {{ 'Full Width' if config.layout_width == 'fullwidth' else 'Centralizado' }}
+            </span>
+          </div>
+
+          <div class="pvw-heading" id="pvw_heading">Doces Artesanais da Fhê</div>
+          <div class="pvw-text" id="pvw_text">Brigadeiros, trufas e kits feitos com amor para o seu momento especial.</div>
+
+          <!-- Cards -->
+          <div class="pvw-cards">
+            <div class="pvw-card">
+              <div class="pvw-card-img" style="position:relative; display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" fill="var(--color-primary)" opacity=".18"/><circle cx="20" cy="20" r="8" fill="var(--color-primary)" opacity=".65"/><circle cx="14" cy="14" r="3.5" fill="var(--color-accent)" opacity=".8"/></svg>
+                <div style="position:absolute; top:4px; left:4px; background:var(--color-dark); color:#fff; font-size:.48rem; font-weight:900; padding:.2rem .4rem; border-radius:3px;">NOVO</div>
+              </div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name">Brigadeiro</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 5,00</div>
+              </div>
+            </div>
+            <div class="pvw-card">
+              <div class="pvw-card-img" style="display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><rect x="8" y="18" width="24" height="14" rx="3" fill="var(--color-accent)" opacity=".7"/><rect x="12" y="8" width="16" height="12" rx="3" fill="var(--color-primary)" opacity=".5"/><rect x="18" y="6" width="4" height="14" rx="1.5" fill="var(--color-dark)" opacity=".5"/></svg>
+              </div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name">Trufa</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 8,00</div>
+              </div>
+            </div>
+            <div class="pvw-card">
+              <div class="pvw-card-img" style="display:flex; align-items:center; justify-content:center; background:#f5f0ea;">
+                <svg width="30" height="30" viewBox="0 0 40 40" fill="none"><rect x="8" y="16" width="24" height="16" rx="3" fill="var(--color-secondary)" opacity=".6"/><rect x="6" y="12" width="28" height="6" rx="2" fill="var(--color-primary)" opacity=".5"/><rect x="18" y="6" width="4" height="14" rx="1.5" fill="var(--color-accent)" opacity=".7"/><circle cx="10" cy="12" r="3" fill="var(--color-accent)" opacity=".6"/><circle cx="30" cy="12" r="3" fill="var(--color-accent)" opacity=".6"/></svg>
+              </div>
+              <div class="pvw-card-body">
+                <div class="pvw-card-name">Kit Festa</div>
+                <div class="pvw-card-price" style="color:var(--color-primary); font-size:.78rem; font-weight:700;">R$ 45,00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="pvw-btns" id="pvw_btns">
+            <div class="pvw-btn-primary" id="pvw_btn_primary">+ Adicionar ao Carrinho</div>
+            <div class="pvw-btn-secondary" id="pvw_btn_secondary">Ver Detalhes</div>
+          </div>
+
+          <!-- Flash messages -->
+          <div style="display:flex; flex-direction:column; gap:.3rem; margin-top:.7rem;">
+            <div id="pvw_flash_success" data-bg="{{ config.flash_success or '#d4edda' }}" data-text="{{ config.flash_success_text or '#155724' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; transition:background .2s, color .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#16a34a" opacity=".2"/><path d="M5 8l2 2L11 5" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Produto adicionado ao carrinho!
+            </div>
+            <div id="pvw_flash_error" data-bg="{{ config.flash_error or '#f8d7da' }}" data-text="{{ config.flash_error_text or '#721c24' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; transition:background .2s, color .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#dc2626" opacity=".2"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Produto fora de estoque.
+            </div>
+            <div id="pvw_flash_info" data-bg="{{ config.flash_info or '#d1ecf1' }}" data-text="{{ config.flash_info_text or '#0c5460' }}" style="padding:.4rem .7rem; border-radius:7px; font-size:.7rem; font-weight:700; display:flex; align-items:center; gap:.4rem; transition:background .2s, color .2s;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#3b82f6" opacity=".2"/><path d="M8 7v4M8 5.5v.5" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Pedido enviado com sucesso.
+            </div>
+          </div>
+
+          <!-- Color swatches -->
+          <div class="pvw-swatches" style="margin-top:.7rem;">
+            <div class="pvw-swatch" id="pvw_sw_primary"   style="background:var(--color-primary);"></div>
+            <div class="pvw-swatch" id="pvw_sw_secondary" style="background:var(--color-secondary);"></div>
+            <div class="pvw-swatch" id="pvw_sw_accent"    style="background:var(--color-accent);"></div>
+            <div class="pvw-swatch" id="pvw_sw_dark"      style="background:var(--color-dark);"></div>
+            <div class="pvw-swatch" id="pvw_sw_bg"        style="background:var(--color-bg); border:1.5px solid #ccc;"></div>
+            <div class="pvw-swatch" id="pvw_sw_text"      style="background:var(--color-text);"></div>
+          </div>
+
+          <!-- Contrast info -->
+          <div class="pvw-contrast" id="pvw_contrast" style="display:none; margin-top:.5rem;"></div>
+
+        </div>
+
+        <!-- ── Blog Preview ── -->
+        <div id="blogPreview" style="margin-top:1.5rem;">
+          <!-- label -->
+          <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem;">
+            <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+            <span style="font-size:.58rem; font-weight:700; color:#94a3b8; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap;">Blog</span>
+            <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+          </div>
+          <!-- topbar igual ao da loja -->
+          <div id="bpv_hero" style="border-radius:12px 12px 0 0; padding:.7rem 1.2rem; transition:background .2s; background:#5B6D3D; display:flex; align-items:center; gap:.5rem;">
+            <span style="font-size:.62rem; font-weight:700; color:#fff; background:rgba(255,255,255,.2); padding:.15rem .55rem; border-radius:10px; cursor:default;">← Blog</span>
+            <span style="font-size:.62rem; font-weight:700; color:#fff; background:rgba(255,255,255,.28); padding:.15rem .55rem; border-radius:10px;">Receitas</span>
+            <span style="font-size:.62rem; font-weight:800; color:#fff; margin-left:auto; font-family:'Playfair Display',serif;">Receitas · 3 posts</span>
+          </div>
+          <!-- body igual ao pvw-body -->
+          <div id="bpv_body" style="background:#f8fafc; padding:1.4rem; border:1.5px solid #e5e5e5; border-top:none; border-radius:0 0 12px 12px; display:grid; grid-template-columns:1fr 130px; gap:1rem; transition:background .2s;">
+            <!-- card de post -->
+            <div id="bpv_card" style="border-radius:12px; overflow:hidden; transition:background .2s; background:#ffffff; box-shadow:0 2px 12px rgba(0,0,0,.08); border:1.5px solid #e5e5e5;">
+              <div style="height:60px; background:linear-gradient(135deg,#e2e8f0 0%,#f1f5f9 100%); display:flex; align-items:center; justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <div style="padding:.65rem .8rem;">
+                <div id="bpv_card_title" style="font-size:.85rem; font-weight:700; margin-bottom:.3rem; transition:color .2s; color:#1e293b; font-family:'Playfair Display',serif;">Como fazer brigadeiro</div>
+                <div style="font-size:.72rem; color:#94a3b8; margin-bottom:.4rem;">Aprenda a receita perfeita com dicas exclusivas...</div>
+                <div id="bpv_read_more" style="font-size:.72rem; font-weight:700; transition:color .2s; color:#5B6D3D;">Ler mais →</div>
+              </div>
+            </div>
+            <!-- mini sidebar -->
+            <div style="display:flex; flex-direction:column; gap:.6rem;">
+              <div style="background:#fff; border-radius:10px; padding:.55rem .65rem; box-shadow:0 1px 6px rgba(0,0,0,.07); border:1.5px solid #e5e5e5;">
+                <div style="font-size:.68rem; font-weight:800; color:#1e293b; margin-bottom:.35rem;">Categorias</div>
+                <div id="bpv_cat_link" style="font-size:.65rem; font-weight:600; transition:color .2s; color:#5B6D3D; margin-bottom:.2rem;">· Receitas</div>
+                <div style="font-size:.65rem; color:#94a3b8;">· Dicas</div>
+              </div>
+              <div id="bpv_newsletter" style="border-radius:10px; padding:.55rem .65rem; text-align:center; transition:background .2s; background:#5B6D3D;">
+                <div style="font-size:.68rem; font-weight:800; color:#fff; margin-bottom:.25rem;">Fique por dentro!</div>
+                <div style="font-size:.6rem; color:rgba(255,255,255,.8); background:rgba(255,255,255,.15); border-radius:6px; padding:.2rem .4rem;">seu@email.com</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<!-- Forms auxiliares fora do form principal para evitar aninhamento -->
+<form id="formReset" method="POST" action="{{ url_for('admin_design') }}" style="display:none;">
+  <input type="hidden" name="action" value="reset">
+</form>
+<form id="formSalvarPaleta" method="POST" action="{{ url_for('admin_paleta_salvar') }}" style="display:none;">
+  <input type="hidden" name="nome" id="formPaletaNome">
+</form>
+<form id="formExcluirPaleta" method="POST" action="" style="display:none;"></form>
+
+<script>
+// ── Tab switching ──
+function switchTab(el, name) {
+  document.querySelectorAll('.dp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dp-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── Color sync ──
+function _authBgPreview(c1, c2) {
+  var prev = document.getElementById('auth-bg-preview');
+  if (prev) prev.style.background = 'linear-gradient(135deg,' + c1 + ' 0%,' + c2 + ' 100%)';
+}
+function _authTextPreview(tc) {
+  var t = document.getElementById('auth-preview-title');
+  var s = document.getElementById('auth-preview-sub');
+  if (t) t.style.color = tc;
+  if (s) s.style.color = tc;
+}
+function syncAuthBgFromPicker(field, value) {
+  document.getElementById('hex_' + field).value = value;
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
+}
+function syncAuthBgFromHex(field, value) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+    document.getElementById('cp_' + field).value = value;
+  }
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
+}
+function syncAuthTextColor(value) {
+  document.getElementById('hex_auth_text_color').value = value;
+  document.getElementById('cp_auth_text_color').value  = value;
+  _authTextPreview(value);
+}
+
+function syncColor(field, value) {
+  document.getElementById('hex_' + field).value = value;
+  applyColor(field, value);
+}
+
+function syncColorFromHex(field, value) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+    document.getElementById('cp_' + field).value = value;
+    applyColor(field, value);
+  }
+}
+
+function applyBlogColor(field, value) {
+  const blogMap = {
+    blog_primary:  ['bpv_hero','bpv_newsletter','bpv_read_more','bpv_cat_link'],
+    blog_accent:   [],
+    blog_bg:       ['bpv_body'],
+    blog_card_bg:  ['bpv_card'],
+    blog_text:     ['bpv_card_title'],
+  };
+  // set CSS var on :root for live blog pages
+  const cssVar = { blog_primary:'--blog-primary', blog_accent:'--blog-accent', blog_bg:'--blog-bg', blog_card_bg:'--blog-card-bg', blog_text:'--blog-text' };
+  if (cssVar[field]) document.documentElement.style.setProperty(cssVar[field], value);
+
+  if (field === 'blog_primary') {
+    const hero = document.getElementById('bpv_hero');
+    if (hero) hero.style.background = value;
+    const nl = document.getElementById('bpv_newsletter');
+    if (nl) nl.style.background = value;
+    const rm = document.getElementById('bpv_read_more');
+    if (rm) rm.style.color = value;
+    const cl = document.getElementById('bpv_cat_link');
+    if (cl) cl.style.color = value;
+  }
+  if (field === 'blog_bg') {
+    const body = document.getElementById('bpv_body');
+    if (body) body.style.background = value;
+  }
+  if (field === 'blog_card_bg') {
+    const card = document.getElementById('bpv_card');
+    if (card) card.style.background = value;
+  }
+  if (field === 'blog_text') {
+    const title = document.getElementById('bpv_card_title');
+    if (title) title.style.color = value;
+  }
+}
+
+// Connect blog color pickers
+document.addEventListener('DOMContentLoaded', function() {
+  ['blog_primary','blog_accent','blog_bg','blog_card_bg','blog_text'].forEach(function(field) {
+    const cp = document.getElementById('cp_' + field);
+    const hx = document.getElementById('hex_' + field);
+    if (cp) cp.addEventListener('input', function() {
+      if (hx) hx.value = this.value;
+      applyBlogColor(field, this.value);
+    });
+    if (hx) hx.addEventListener('input', function() {
+      if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+        if (cp) cp.value = this.value;
+        applyBlogColor(field, this.value);
+      }
+    });
+    if (cp) applyBlogColor(field, cp.value);
+  });
+});
+
+function applyColor(field, value) {
+  const varMap = {
+    color_primary:    '--color-primary',
+    color_secondary:  '--color-secondary',
+    color_accent:     '--color-accent',
+    color_dark:       '--color-dark',
+    color_bg:         '--color-bg',
+    color_text:       '--color-text',
+    color_text_light: '--color-text-light',
+  };
+  if (varMap[field]) {
+    document.documentElement.style.setProperty(varMap[field], value);
+  }
+  // update swatch
+  const sw = document.getElementById('pvw_sw_' + field.replace('color_', ''));
+  if (sw) sw.style.background = value;
+  const sw2 = document.getElementById('sw_' + field);
+  if (sw2) sw2.style.background = value;
+
+  // update topbar bg
+  if (field === 'color_secondary') {
+    document.querySelectorAll('.pvw-topbar').forEach(el => el.style.background = value);
+  }
+
+  // flash message backgrounds
+  const flashTarget = { flash_success: 'pvw_flash_success', flash_error: 'pvw_flash_error', flash_info: 'pvw_flash_info' };
+  if (flashTarget[field]) {
+    const fe = document.getElementById(flashTarget[field]);
+    if (fe) fe.style.background = value;
+  }
+  // flash message text colors
+  const flashTextTarget = { flash_success_text: 'pvw_flash_success', flash_error_text: 'pvw_flash_error', flash_info_text: 'pvw_flash_info' };
+  if (flashTextTarget[field]) {
+    const fe = document.getElementById(flashTextTarget[field]);
+    if (fe) fe.style.color = value;
+  }
+
+  checkContrast();
+}
+
+// ── Contrast check ──
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  return { r: parseInt(hex.substr(0,2),16), g: parseInt(hex.substr(2,2),16), b: parseInt(hex.substr(4,2),16) };
+}
+function luminance({r,g,b}) {
+  return [r,g,b].reduce((acc,c,i) => {
+    c /= 255;
+    c = c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4);
+    return acc + c * [0.2126,0.7152,0.0722][i];
+  }, 0);
+}
+function contrast(hex1, hex2) {
+  const L1 = luminance(hexToRgb(hex1));
+  const L2 = luminance(hexToRgb(hex2));
+  const lighter = Math.max(L1,L2), darker = Math.min(L1,L2);
+  return (lighter+0.05)/(darker+0.05);
+}
+
+function checkContrast() {
+  const bg  = document.getElementById('hex_color_bg').value;
+  const txt = document.getElementById('hex_color_text').value;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(bg) || !/^#[0-9A-Fa-f]{6}$/.test(txt)) return;
+  const ratio = contrast(bg, txt);
+  const el = document.getElementById('pvw_contrast');
+  el.style.display = 'block';
+  if (ratio >= 7) {
+    el.className = 'pvw-contrast ok';
+    el.textContent = `✅ Contraste excelente (${ratio.toFixed(1)}:1) — WCAG AAA`;
+  } else if (ratio >= 4.5) {
+    el.className = 'pvw-contrast ok';
+    el.textContent = `✅ Contraste bom (${ratio.toFixed(1)}:1) — WCAG AA`;
+  } else if (ratio >= 3) {
+    el.className = 'pvw-contrast warn';
+    el.textContent = `⚠️ Contraste baixo (${ratio.toFixed(1)}:1) — pode ser difícil de ler`;
+  } else {
+    el.className = 'pvw-contrast fail';
+    el.textContent = `❌ Contraste insuficiente (${ratio.toFixed(1)}:1) — acessibilidade ruim`;
+  }
+}
+
+// ── Font update ──
+function loadGoogleFont(family) {
+  const id = 'gf_' + family.replace(/\s/g,'_');
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id; link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g,'+')}:wght@400;600;700;800&display=swap`;
+  document.head.appendChild(link);
+}
+
+function updateFont(type, value) {
+  loadGoogleFont(value);
+  if (type === 'title') {
+    const w = document.getElementById('hid_title_weight').value || '700';
+    const prev = document.getElementById('title_preview');
+    prev.style.fontFamily = `'${value}', serif`;
+    prev.style.fontWeight = w;
+    document.getElementById('pvw_heading').style.fontFamily = `'${value}', serif`;
+    document.getElementById('pvw_heading').style.fontWeight = w;
+    document.querySelectorAll('.pvw-card-name').forEach(el => {
+      el.style.fontFamily = `'${value}', serif`;
+      el.style.fontWeight = w;
+    });
+  } else {
+    const w = document.getElementById('hid_body_weight').value || '400';
+    const prev = document.getElementById('body_preview');
+    prev.style.fontFamily = `'${value}', sans-serif`;
+    prev.style.fontWeight = w;
+    document.getElementById('pvw_text').style.fontFamily = `'${value}', sans-serif`;
+    document.getElementById('pvw_text').style.fontWeight = w;
+    document.querySelectorAll('.pvw-btn-primary, .pvw-btn-secondary').forEach(el => {
+      el.style.fontFamily = `'${value}', sans-serif`;
+    });
+  }
+}
+
+// ── Font size ──
+function updateFontSize(val) {
+  document.getElementById('val_font_size').textContent = val + 'px';
+  document.getElementById('hid_font_size').value = val;
+  document.getElementById('pvw_text').style.fontSize = val + 'px';
+  document.getElementById('body_preview').style.fontSize = val + 'px';
+}
+
+// ── Chip selector ──
+function selectChip(el, field, value) {
+  el.closest('.dp-chips').querySelectorAll('.dp-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('hid_' + field).value = value;
+
+  if (field === 'title_weight') {
+    document.getElementById('title_preview').style.fontWeight = value;
+    document.getElementById('pvw_heading').style.fontWeight = value;
+    document.querySelectorAll('.pvw-card-name').forEach(e => e.style.fontWeight = value);
+  } else if (field === 'body_weight') {
+    document.getElementById('body_preview').style.fontWeight = value;
+    document.getElementById('pvw_text').style.fontWeight = value;
+  } else if (field === 'card_shadow')  { updatePreviewCardShadow(value); }
+    else if (field === 'card_radius')  { updatePreviewCardRadius(value); }
+    else if (field === 'layout_mode')  { updatePreviewLayoutMode(value); }
+    else if (field === 'layout_width') { updatePreviewLayoutWidth(value); }
+    else if (field === 'anim_hover_style') { previewHover(value); }
+}
+
+// ── Toggle switch ──
+function toggleSwitch(btn, field) {
+  btn.classList.toggle('on');
+  const isOn = btn.classList.contains('on');
+  document.getElementById('hid_' + field).value = isOn ? 'on' : '';
+
+  if (field === 'anim_enabled') {
+    document.getElementById('group_anim_settings').style.display = isOn ? '' : 'none';
+  } else if (field === 'show_carousel') {
+    const c = document.getElementById('pvw_carousel');
+    if (c) c.style.display = isOn ? 'flex' : 'none';
+  } else if (field === 'navbar_fixed') {
+    const b = document.getElementById('pvw_navbar_badge');
+    if (b) b.textContent = isOn ? 'Navbar Fixa' : 'Navbar Normal';
+  }
+}
+
+// ── Animation duration ──
+function updateAnimDur(val) {
+  document.getElementById('val_anim_dur').textContent = val + 'ms';
+  document.getElementById('hid_anim_duration').value = val;
+  const card = document.getElementById('anim_demo_card');
+  if (card) card.style.transitionDuration = val + 'ms';
+}
+
+// ── Hover style preview ──
+function previewHover(style) {
+  const card = document.getElementById('anim_demo_card');
+  if (!card) return;
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#5B6D3D';
+  card.style.transform    = '';
+  card.style.boxShadow    = '0 2px 8px rgba(0,0,0,.08)';
+  card.style.borderColor  = '#e5e5e5';
+  card.style.outline      = '';
+  void card.offsetWidth; // trigger reflow so transition plays
+  if (style === 'lift')   { card.style.transform = 'translateY(-6px)'; card.style.boxShadow = '0 12px 28px rgba(0,0,0,.16)'; }
+  if (style === 'zoom')   { card.style.transform = 'scale(1.06)';      card.style.boxShadow = '0 8px 20px rgba(0,0,0,.12)'; }
+  if (style === 'glow')   { card.style.boxShadow = '0 0 0 3px ' + primary + ', 0 8px 20px rgba(0,0,0,.1)'; }
+  if (style === 'border') { card.style.borderColor = primary; }
+  setTimeout(() => {
+    card.style.transform = '';
+    card.style.boxShadow = '0 2px 8px rgba(0,0,0,.08)';
+    card.style.borderColor = '#e5e5e5';
+  }, 900);
+}
+
+// ── Preview: card shadow ──
+function updatePreviewCardShadow(val) {
+  const s = { none:'none', soft:'0 2px 6px rgba(0,0,0,.07)', medium:'0 4px 14px rgba(0,0,0,.12)', strong:'0 8px 24px rgba(0,0,0,.20)' };
+  document.querySelectorAll('.pvw-card').forEach(c => c.style.boxShadow = s[val] || s.medium);
+}
+
+// ── Preview: card radius ──
+function updatePreviewCardRadius(val) {
+  document.querySelectorAll('.pvw-card').forEach(c => c.style.borderRadius = val);
+}
+
+// ── Preview: card image height ──
+function updatePreviewCardImg(val) {
+  const h = Math.min(Math.max(Math.round(+val * 0.38), 22), 88);
+  document.querySelectorAll('.pvw-card-img').forEach(c => c.style.height = h + 'px');
+}
+
+// ── Preview: carousel height ──
+function updatePreviewCarousel(val) {
+  const h = Math.min(Math.max(Math.round(+val * 0.22), 36), 110);
+  const el = document.getElementById('pvw_carousel');
+  if (el) el.style.height = h + 'px';
+}
+
+// ── Preview: layout mode (compact / spacious) ──
+function updatePreviewLayoutMode(val) {
+  const body = document.getElementById('pvw_body');
+  if (body) body.style.padding = val === 'compact' ? '.35rem .6rem' : '.9rem .8rem';
+  const cards = document.querySelector('.pvw-cards');
+  if (cards) cards.style.marginTop = val === 'compact' ? '.3rem' : '.7rem';
+}
+
+// ── Preview: layout width ──
+function updatePreviewLayoutWidth(val) {
+  const badge = document.getElementById('pvw_width_badge');
+  if (badge) badge.textContent = val === 'fullwidth' ? 'Full Width' : 'Centralizado';
+}
+
+// ── Button radius preview ──
+function updateBtnRadius(val) {
+  document.querySelectorAll('.pvw-btn-primary,.pvw-btn-secondary').forEach(el => {
+    el.style.borderRadius = val;
+  });
+}
+
+// ── Layout: columns + gap preview ──
+function updateColPreview(n) {
+  document.querySelector('.pvw-cards').style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+}
+
+function updateGapPreview(val) {
+  document.getElementById('val_card_gap').textContent = val + 'px';
+  document.getElementById('hid_card_gap').value = val;
+  document.querySelector('.pvw-cards').style.gap = val + 'px';
+}
+
+// ── Site name ──
+function updateSiteName(val) {
+  document.getElementById('pvw_sitename').textContent = val || 'Doces da Fhê';
+}
+
+// ── Logo preview ──
+function previewLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const h   = document.getElementById('hid_logo_height').value;
+    const fit = document.getElementById('hid_logo_fit').value;
+    const wrap = document.getElementById('logoPreview');
+    const ph = document.getElementById('logoPlaceholder');
+    if (ph) ph.remove();
+    let img = document.getElementById('logoImg');
+    if (!img) {
+      img = document.createElement('img');
+      img.id = 'logoImg';
+      wrap.appendChild(img);
+    }
+    img.src = e.target.result;
+    img.style.maxHeight = h + 'px';
+    img.style.objectFit = fit;
+    img.style.maxWidth  = '100%';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// ── Logo height / fit ──
+function updateLogoHeight(val) {
+  document.getElementById('val_logo_height').textContent = val + 'px';
+  document.getElementById('hid_logo_height').value = val;
+  const img = document.getElementById('logoImg');
+  if (img) img.style.maxHeight = val + 'px';
+}
+
+function updateLogoFit(val) {
+  const img = document.getElementById('logoImg');
+  if (img) img.style.objectFit = val;
+}
+
+// ── Device preview ──
+function setDevice(device, btn) {
+  document.querySelectorAll('.dp-device-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const frame = document.getElementById('previewFrame');
+  frame.className = 'dp-preview-frame';
+  if (device !== 'desktop') frame.classList.add(device);
+}
+
+// ── Palette form helpers ──
+
+// Paleta que foi aplicada por último (rastreia modificações)
+var _ultimaPaletaAplicada = null;
+
+// Campos principais usados para comparação de similaridade
+var _camposSimilaridade = ['color_primary','color_secondary','color_accent','color_dark','color_bg'];
+
+// Retorna as cores atuais do formulário
+function _coresAtuais() {
+  var cores = {};
+  _camposSimilaridade.forEach(function(campo) {
+    var el = document.querySelector('[name="' + campo + '"]');
+    if (el) cores[campo] = el.value.toLowerCase();
+  });
+  return cores;
+}
+
+// Conta quantos campos batem entre duas paletas
+function _similaridade(coresA, coresB) {
+  var iguais = 0;
+  _camposSimilaridade.forEach(function(campo) {
+    if (coresA[campo] && coresB[campo] &&
+        coresA[campo].toLowerCase() === coresB[campo].toLowerCase()) iguais++;
+  });
+  return iguais; // max = 5
+}
+
+// Paletas salvas disponíveis para comparação (injetadas via template)
+var _paletasSalvas = [{% for p in palettes %}{"id":{{ p.id }},"nome":{{ p.nome | tojson }},"cores":{{ p.cores | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}];
+
+function submitSalvarPaleta() {
+  var nome = document.getElementById('paletaNomeInput').value.trim();
+  if (!nome) {
+    alert('Informe um nome para a paleta.');
+    document.getElementById('paletaNomeInput').focus();
+    return;
+  }
+
+  var atual = _coresAtuais();
+  var mesmoNome  = null;
+  var coresParecidas = null;
+
+  _paletasSalvas.forEach(function(p) {
+    try {
+      var coresP = typeof p.cores === 'string' ? JSON.parse(p.cores) : p.cores;
+      var normP = {};
+      _camposSimilaridade.forEach(function(c){ normP[c] = (coresP[c]||'').toLowerCase(); });
+
+      // Verifica nome igual (case-insensitive)
+      if (p.nome.trim().toLowerCase() === nome.toLowerCase()) {
+        mesmoNome = p;
+      }
+      // Verifica cores parecidas com nome DIFERENTE
+      if (!mesmoNome && _similaridade(atual, normP) >= 4 && !coresParecidas) {
+        coresParecidas = p;
+      }
+    } catch(e) {}
+  });
+
+  // Caso 1: mesmo nome → avisa conflito de nome
+  if (mesmoNome) {
+    adminConfirmar({
+      titulo: 'Nome já existe',
+      msg: 'Já existe uma paleta chamada "' + mesmoNome.nome + '". Deseja substituí-la pelas cores atuais?',
+      textoConfirmar: 'Substituir',
+      corBotao: '#d97706',
+      aoConfirmar: function() {
+        document.getElementById('formPaletaNome').value = nome;
+        document.getElementById('formSalvarPaleta').submit();
+      }
+    });
+    return;
+  }
+
+  // Caso 2: nome diferente, mas cores parecidas → avisa semelhança de cores
+  if (coresParecidas) {
+    adminConfirmar({
+      titulo: 'Cores semelhantes',
+      msg: 'As cores escolhidas são muito parecidas com a paleta "' + coresParecidas.nome + '", mas o nome é diferente. Deseja salvar como uma paleta nova chamada "' + nome + '"?',
+      textoConfirmar: 'Salvar como nova',
+      corBotao: 'var(--color-primary)',
+      aoConfirmar: function() {
+        document.getElementById('formPaletaNome').value = nome;
+        document.getElementById('formSalvarPaleta').submit();
+      }
+    });
+    return;
+  }
+
+  // Caso 3: paleta modificada após ser aplicada
+  if (_ultimaPaletaAplicada) {
+    var sim = _similaridade(atual, _ultimaPaletaAplicada.cores);
+    if (sim < _camposSimilaridade.length) {
+      adminConfirmar({
+        titulo: 'Paleta modificada',
+        msg: 'Você modificou as cores da paleta "' + _ultimaPaletaAplicada.nome + '". Deseja salvar as mudanças como nova paleta chamada "' + nome + '"?',
+        textoConfirmar: 'Salvar como nova',
+        corBotao: 'var(--color-primary)',
+        aoConfirmar: function() {
+          document.getElementById('formPaletaNome').value = nome;
+          document.getElementById('formSalvarPaleta').submit();
+        }
+      });
+      return;
+    }
+  }
+
+  // Sem conflito — salva direto
+  document.getElementById('formPaletaNome').value = nome;
+  document.getElementById('formSalvarPaleta').submit();
+}
+
+function submitExcluirPaleta(id, nome) {
+  adminConfirmar({
+    titulo: 'Excluir paleta',
+    msg: 'Tem certeza que deseja excluir a paleta "' + nome + '"? Esta ação não pode ser desfeita.',
+    textoConfirmar: 'Excluir',
+    corBotao: '#dc2626',
+    aoConfirmar: function() {
+      var f = document.getElementById('formExcluirPaleta');
+      f.action = '/admin/design/paleta/' + id + '/excluir';
+      f.submit();
+    }
+  });
+}
+
+// ── Apply saved palette ──
+function aplicarPaleta(cores, nomePaleta) {
+  // Rastreia a última paleta aplicada para detectar modificações ao salvar
+  if (nomePaleta) {
+    var normCores = {};
+    _camposSimilaridade.forEach(function(c){ normCores[c] = (cores[c]||'').toLowerCase(); });
+    _ultimaPaletaAplicada = { nome: nomePaleta, cores: normCores };
+  }
+  var colorFields = [
+    'color_primary', 'color_secondary', 'color_accent', 'color_dark',
+    'color_bg', 'color_text', 'color_text_light',
+    'auth_bg_color1', 'auth_bg_color2', 'auth_text_color',
+    'flash_success', 'flash_error', 'flash_info',
+    'blog_primary', 'blog_accent', 'blog_bg', 'blog_card_bg', 'blog_text',
+  ];
+  colorFields.forEach(function(field) {
+    var val = cores[field];
+    if (!val) return;
+    var cp  = document.getElementById('cp_'  + field);
+    var hex = document.getElementById('hex_' + field);
+    if (cp)  cp.value  = val;
+    if (hex) hex.value = val;
+    if (['color_primary','color_secondary','color_accent','color_dark',
+         'color_bg','color_text','color_text_light'].indexOf(field) !== -1) {
+      applyColor(field, val);
+    } else if (['blog_primary','blog_accent','blog_bg','blog_card_bg','blog_text'].indexOf(field) !== -1) {
+      applyBlogColor(field, val);
+    } else if (field === 'auth_bg_color1' || field === 'auth_bg_color2') {
+      _authBgPreview(
+        document.getElementById('hex_auth_bg_color1').value,
+        document.getElementById('hex_auth_bg_color2').value
+      );
+    } else if (field === 'auth_text_color') {
+      _authTextPreview(val);
+    } else {
+      applyColor(field, val);
+    }
+  });
+  _authBgPreview(
+    document.getElementById('hex_auth_bg_color1').value,
+    document.getElementById('hex_auth_bg_color2').value
+  );
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  const g = id => document.getElementById(id);
+
+  updateFont('title', g('sel_font_title').value);
+  updateFont('body',  g('sel_font_body').value);
+  updateFontSize(g('hid_font_size').value);
+  updateBtnRadius(g('hid_btn_radius').value);
+  updateColPreview(+g('hid_card_columns').value || 3);
+  updateGapPreview(g('hid_card_gap').value || 20);
+  updateAnimDur(g('hid_anim_duration').value || 220);
+
+  // initialise all new preview states
+  updatePreviewCardShadow(g('hid_card_shadow')?.value || 'medium');
+  updatePreviewCardRadius(g('hid_card_radius')?.value || '16px');
+  updatePreviewCardImg(+(g('hid_card_img_height')?.value || 200));
+  updatePreviewCarousel(+(g('hid_carousel_height')?.value || 340));
+  updatePreviewLayoutMode(g('hid_layout_mode')?.value || 'spacious');
+  updatePreviewLayoutWidth(g('hid_layout_width')?.value || 'centered');
+
+  // range sliders → live preview
+  g('rng_card_img')?.addEventListener('input', e => updatePreviewCardImg(+e.target.value));
+  g('rng_carousel')?.addEventListener('input', e => updatePreviewCarousel(+e.target.value));
+
+  // initialise carousel visibility from data attribute (avoids Jinja in style)
+  const pvwC = g('pvw_carousel');
+  if (pvwC && pvwC.dataset.show === 'false') pvwC.style.display = 'none';
+
+  // initialise flash backgrounds and text colors from data attributes (avoids Jinja in style)
+  ['pvw_flash_success','pvw_flash_error','pvw_flash_info'].forEach(id => {
+    const el = g(id);
+    if (el) {
+      if (el.dataset.bg)   el.style.background = el.dataset.bg;
+      if (el.dataset.text) el.style.color = el.dataset.text;
+    }
+  });
+
+  // hover demo card
+  const demoCard = g('anim_demo_card');
+  if (demoCard) {
+    const hs = g('hid_anim_hover_style');
+    demoCard.addEventListener('mouseenter', () => previewHover(hs ? hs.value : 'lift'));
+  }
+
+  // palette swatches — apply background from data-bg
+  document.querySelectorAll('.paleta-swatch').forEach(function(el) {
+    el.style.background = el.dataset.bg || '#ccc';
+  });
+
+  // auto-activate tab from URL hash
+  if (window.location.hash === '#tab-paletas') {
+    const btn = g('tab-paletas-btn');
+    if (btn) btn.click();
+  }
+
+  checkContrast();
+  const li = g('logoImg');
+  if (li) {
+    li.style.maxHeight = (li.dataset.height || 100) + 'px';
+    li.style.objectFit = li.dataset.fit || 'contain';
+  }
+});
+</script>
+{% endblock %}

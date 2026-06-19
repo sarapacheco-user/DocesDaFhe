@@ -1,0 +1,302 @@
+{% extends "admin/base.html" %}
+<!-- Painel de gerenciamento de usuários: listagem, busca, promoção a admin e exclusão -->
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<style>
+.usu-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.4rem 3rem; }
+
+/* Header */
+.usu-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+}
+.usu-header-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--color-text); margin: 0 0 .2rem; }
+.usu-header-sub   { font-size: .82rem; color: #64748b; margin: 0; }
+.usu-back {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .5rem 1.1rem; background: #f1f5f9; border-radius: 10px;
+  text-decoration: none; font-size: .82rem; font-weight: 700; color: #64748b;
+  transition: background .15s;
+}
+.usu-back:hover { background: #e2e8f0; }
+
+/* Stats */
+.usu-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 700px) { .usu-stats { grid-template-columns: repeat(2, 1fr); } }
+.usu-stat {
+  background: #fff; border-radius: 16px; padding: 1.2rem 1.4rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1.5px solid #f1f5f9;
+  display: flex; align-items: center; gap: 1rem;
+}
+.usu-stat-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.usu-stat-label { font-size: .7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .15rem; }
+.usu-stat-num   { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+
+/* Toolbar */
+.usu-toolbar {
+  display: flex; align-items: center; gap: .75rem;
+  flex-wrap: wrap; margin-bottom: 1.2rem;
+}
+.usu-search {
+  flex: 1; min-width: 220px; max-width: 360px;
+  display: flex; align-items: center; gap: .5rem;
+  background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: .5rem .9rem; transition: border-color .2s;
+}
+.usu-search:focus-within { border-color: var(--color-primary); }
+.usu-search input {
+  border: none; outline: none; font-family: 'Nunito', sans-serif;
+  font-size: .88rem; color: #1e293b; width: 100%; background: transparent;
+}
+.usu-filter-btns { display: flex; gap: .4rem; flex-wrap: wrap; }
+.usu-filter-btn {
+  padding: .42rem .9rem; border-radius: 20px; border: 1.5px solid #e2e8f0;
+  background: #fff; font-family: 'Nunito', sans-serif; font-size: .78rem;
+  font-weight: 700; cursor: pointer; color: #64748b; transition: all .15s;
+}
+.usu-filter-btn.ativo, .usu-filter-btn:hover {
+  background: var(--color-primary); color: #fff; border-color: var(--color-primary);
+}
+
+/* Tabela */
+.usu-table-wrap { overflow-x: auto; }
+.usu-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+.usu-table thead tr {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+.usu-table thead th {
+  padding: .85rem 1.1rem; text-align: left; white-space: nowrap;
+  font-size: .7rem; font-weight: 800; color: rgba(255,255,255,.85);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+html body .usu-table tbody tr {
+  border-bottom: 1px solid #f1f5f9 !important; transition: background .15s;
+  background: #fff !important;
+}
+html body .usu-table tbody tr:last-child { border-bottom: none !important; }
+html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
+.usu-table td { padding: .9rem 1.1rem; vertical-align: middle; white-space: nowrap; }
+.usu-table td.usu-td-email { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+
+/* Avatar */
+.usu-avatar {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 800; color: #fff;
+}
+
+/* Badge tipo */
+.badge-admin   { background: #fdf2f8; color: #9d174d; border: 1.5px solid #fbcfe8; }
+.badge-cliente { background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; }
+.badge-tipo {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 800; padding: .22rem .7rem;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* Login status */
+.login-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: .35rem;
+}
+
+/* Empty */
+.usu-empty { text-align: center; padding: 3.5rem; color: #94a3b8; }
+
+/* Footer */
+.usu-footer {
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: .8rem 1.1rem; font-size: .78rem; color: #94a3b8;
+  border-top: 1px solid #f1f5f9; background: #fafafa;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% set total    = usuarios|length %}
+{% set admins   = usuarios|selectattr('is_admin')|list|length %}
+{% set clientes = total - admins %}
+{% set logados  = usuarios|selectattr('last_login')|list|length %}
+
+<div class="usu-wrap">
+
+  <!-- Header -->
+  <div class="usu-header">
+    <div>
+      <h1 class="usu-header-title">Usuários</h1>
+      <p class="usu-header-sub">Todos os clientes cadastrados na plataforma.</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="usu-back">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="usu-stats">
+    <div class="usu-stat">
+      <div class="usu-stat-icon" style="background:#eef2ff;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div>
+        <div class="usu-stat-label">Total</div>
+        <div class="usu-stat-num" style="color:var(--color-primary);">{{ total }}</div>
+      </div>
+    </div>
+    <div class="usu-stat">
+      <div class="usu-stat-icon" style="background:#fff7ed;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-secondary)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <div class="usu-stat-label">Clientes</div>
+        <div class="usu-stat-num" style="color:var(--color-secondary);">{{ clientes }}</div>
+      </div>
+    </div>
+    <div class="usu-stat">
+      <div class="usu-stat-icon" style="background:#f0fdf4;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      </div>
+      <div>
+        <div class="usu-stat-label">Já fizeram login</div>
+        <div class="usu-stat-num" style="color:#16a34a;">{{ logados }}</div>
+      </div>
+    </div>
+    <div class="usu-stat">
+      <div class="usu-stat-icon" style="background:#fdf2f8;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-dark)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <div class="usu-stat-label">Admins</div>
+        <div class="usu-stat-num" style="color:var(--color-dark);">{{ admins }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="usu-toolbar">
+    <div class="usu-search">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="filtro" placeholder="Buscar por nome ou e-mail..." oninput="filtrar(this.value)">
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="usu-table-wrap">
+    <table class="usu-table" id="tabela-usuarios">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>E-mail</th>
+          <th>Tipo</th>
+          <th>Cadastro</th>
+          <th>Último login</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr data-busca="{{ (u.name or '') | lower }} {{ u.email | lower }}"
+            data-tipo="{{ 'admin' if u.is_admin else 'cliente' }}">
+
+          <td>
+            <div style="display:flex; align-items:center; gap:.75rem;">
+              <div class="usu-avatar" style="background:{{ 'var(--color-dark)' if u.is_admin else 'var(--color-primary)' }};">
+                {{ (u.name or u.email)[0].upper() }}
+              </div>
+              <div>
+                <div style="font-size:.88rem; font-weight:700; color:#1e293b; line-height:1.3; white-space:nowrap;">{{ u.name or '—' }}</div>
+                {% if u.phone %}
+                <div style="font-size:.73rem; color:#94a3b8;">{{ u.phone }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+
+          <td class="usu-td-email" style="font-size:.85rem; color:#334155;">{{ u.email }}</td>
+
+          <td>
+            {% if u.is_admin %}
+            <span class="badge-tipo badge-admin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Admin
+            </span>
+            {% else %}
+            <span class="badge-tipo badge-cliente">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Cliente
+            </span>
+            {% endif %}
+          </td>
+
+          <td style="font-size:.82rem; color:#64748b;">
+            {{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}
+          </td>
+
+          <td>
+            {% if u.last_login %}
+            <div style="display:flex; align-items:center; gap:.4rem;">
+              <span class="login-dot" style="background:#22c55e;"></span>
+              <div>
+                <div style="font-size:.82rem; font-weight:700; color:#334155;">{{ u.last_login.strftime('%d/%m/%Y') }}</div>
+                <div style="font-size:.72rem; color:#94a3b8;">{{ u.last_login.strftime('%H:%M') }}</div>
+              </div>
+            </div>
+            {% else %}
+            <div style="display:flex; align-items:center; gap:.4rem;">
+              <span class="login-dot" style="background:#e2e8f0;"></span>
+              <span style="font-size:.8rem; color:#cbd5e1; font-style:italic;">Nunca</span>
+            </div>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if current_user.email == 'docesdafhe@gmail.com' and u.id != current_user.id %}
+            <form action="{{ url_for('admin_toggle_admin', uid=u.id) }}" method="post" id="form-toggle-admin-{{ u.id }}">
+              {% if u.is_admin %}
+              <button type="button" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #fbcfe8; background:#fdf2f8; color:#9d174d; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;"
+                      onclick="adminConfirmar({titulo:'Rebaixar usuário',msg:'Deseja rebaixar {{ (u.name or u.email)|e }} para cliente? O acesso administrativo será removido.',textoConfirmar:'Rebaixar',corBotao:'#9d174d',aoConfirmar:function(){document.getElementById('form-toggle-admin-{{ u.id }}').submit()}})">
+                Rebaixar
+              </button>
+              {% else %}
+              <button type="button" style="padding:.3rem .8rem; border-radius:20px; border:1.5px solid #bbf7d0; background:#f0fdf4; color:#166534; font-size:.75rem; font-weight:700; cursor:pointer; white-space:nowrap;"
+                      onclick="adminConfirmar({titulo:'Promover a admin',msg:'Deseja promover {{ (u.name or u.email)|e }} a administrador? O usuário terá acesso total ao painel.',textoConfirmar:'Promover',corBotao:'#166534',aoConfirmar:function(){document.getElementById('form-toggle-admin-{{ u.id }}').submit()}})">
+                Tornar admin
+              </button>
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="usu-empty">Nenhum usuário cadastrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="usu-footer">
+      <span id="contador">{{ usuarios|length }} usuário(s)</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function filtrar(q) {
+  const rows = document.querySelectorAll('#tabela-usuarios tbody tr[data-busca]');
+  const t = q.toLowerCase();
+  let visiveis = 0;
+  rows.forEach(r => {
+    const show = r.dataset.busca.includes(t);
+    r.style.display = show ? '' : 'none';
+    if (show) visiveis++;
+  });
+  document.getElementById('contador').textContent = visiveis + ' usuário(s)';
+}
+</script>
+{% endblock %}

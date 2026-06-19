@@ -1,0 +1,256 @@
+{#
+  secao_fotos(tipo, item_id, fotos_extras, redirect_url, mostrar_upload=True)
+  Quando item_id > 0: AJAX upload + crop (sem salvar o produto).
+  Quando item_id = 0 / None: preview + crop + envia com o form principal.
+#}
+{% macro secao_fotos(tipo, item_id, fotos_extras, redirect_url, mostrar_upload=True) %}
+{% set _uid = tipo ~ '_' ~ (item_id or 0) %}
+<div class="fotos-extras-section mt-3" id="fotosSec_{{ _uid }}">
+  <hr>
+  <label class="form-label fw-bold">📷 Fotos Extras</label>
+  <p class="text-muted" style="font-size:.82rem; margin-top:-.3rem;">
+    Adicione mais imagens para mostrar o produto de diferentes ângulos.
+    <span style="color:#94a3b8;">Clique em uma foto para ajustá-la.</span>
+  </p>
+
+  <!-- grade de fotos já salvas -->
+  <div class="fotos-extras-grid" id="fotosGrid_{{ _uid }}">
+    {% for foto in fotos_extras %}
+    <div class="foto-extra-item" id="fotoItem_{{ foto.id }}"
+         onclick="ajustarFotoSalva(event, {{ foto.id }}, '{{ _uid }}')"
+         title="Clique para ajustar">
+      <img src="{{ url_for('static', filename=foto.url) }}" alt="Foto extra">
+      <div class="foto-overlay-ajustar"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+      <button type="button" class="btn-foto-del"
+              onclick="event.stopPropagation(); excluirFotoAjax({{ foto.id }}, '{{ _uid }}')"
+              title="Remover">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not fotos_extras %}
+  <p class="text-muted sem-fotos" id="semFotos_{{ _uid }}" style="font-size:.82rem;">Nenhuma foto extra ainda.</p>
+  {% else %}
+  <p class="text-muted sem-fotos" id="semFotos_{{ _uid }}" style="font-size:.82rem; display:none;">Nenhuma foto extra ainda.</p>
+  {% endif %}
+
+  {% if mostrar_upload %}
+  <input type="file" id="fotoInput_{{ _uid }}" accept="image/*"
+         style="display:none"
+         onchange="fotoSelecionada(this, '{{ tipo }}', {{ item_id or 0 }}, '{{ _uid }}')">
+
+  <button type="button" class="btn-add-foto" onclick="document.getElementById('fotoInput_{{ _uid }}').click()">
+    + Adicionar foto
+  </button>
+  <small class="text-muted d-block mt-1">Uma foto por vez — você pode ajustar antes de salvar.</small>
+  {% endif %}
+</div>
+
+<style>
+.fotos-extras-grid { display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:.6rem; }
+.foto-extra-item {
+  position:relative; width:90px; height:90px;
+  border-radius:10px; overflow:hidden;
+  border:1.5px solid #e2e8f0; background:#f8fafc;
+  cursor:pointer;
+}
+.foto-extra-item img { width:100%; height:100%; object-fit:cover; display:block; }
+.foto-overlay-ajustar {
+  position:absolute; inset:0;
+  background:rgba(0,0,0,0); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; opacity:0;
+  transition:background .2s, opacity .2s;
+}
+.foto-extra-item:hover .foto-overlay-ajustar {
+  background:rgba(0,0,0,.45); opacity:1;
+}
+.btn-foto-del {
+  position:absolute; top:3px; right:3px;
+  background:rgba(220,38,38,.85); color:#fff;
+  border:none; border-radius:50%;
+  width:20px; height:20px; font-size:.65rem;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .2s; z-index:2;
+}
+.btn-foto-del:hover { background:#b91c1c; }
+.btn-add-foto {
+  margin-top:.4rem;
+  background:transparent;
+  border:1.5px dashed var(--color-primary,#5B6D3D);
+  color:var(--color-primary,#5B6D3D);
+  border-radius:10px; padding:.4rem 1rem;
+  font-family:'Nunito',sans-serif; font-size:.88rem; font-weight:700;
+  cursor:pointer; transition:background .2s, color .2s;
+}
+.btn-add-foto:hover { background:var(--color-primary,#5B6D3D); color:#fff; }
+</style>
+
+<script>
+window._fotoExtraCallback = null;
+
+/* ── Nova foto selecionada pelo input ── */
+function fotoSelecionada(input, tipo, itemId, uid) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _abrirCropperExtra(e.target.result, file.name, function(dataUrl) {
+      if (itemId && itemId > 0) {
+        /* EDIÇÃO — upload AJAX imediato */
+        fetch('/admin/foto/add-ajax', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({tipo:tipo, item_id:itemId, data:dataUrl})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.id) adicionarFotoNaGrade(d.id, d.url, uid); })
+        .catch(function(){ alert('Erro ao enviar foto.'); });
+      } else {
+        /* CRIAÇÃO — hidden input base64 no form principal */
+        var form = document.getElementById('form-produto') ||
+                   document.getElementById('form-kit')     ||
+                   document.getElementById('form-especial')||
+                   document.getElementById('form-evento')  ||
+                   document.querySelector('form[enctype]');
+        if (!form) return;
+        var hidden = document.createElement('input');
+        hidden.type  = 'hidden';
+        hidden.name  = 'fotos_extras_b64';
+        hidden.value = dataUrl;
+        form.appendChild(hidden);
+        adicionarFotoNaGradeLocal(dataUrl, uid, hidden);
+      }
+      input.value = '';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── Clicar em foto JÁ SALVA para ajustar ── */
+function ajustarFotoSalva(event, fotoId, uid) {
+  if (event.target.classList.contains('btn-foto-del')) return;
+  var item = document.getElementById('fotoItem_' + fotoId);
+  var img  = item ? item.querySelector('img') : null;
+  if (!img) return;
+
+  /* carrega via canvas para evitar CORS */
+  var tmpImg = new Image();
+  tmpImg.crossOrigin = 'anonymous';
+  tmpImg.onload = function() {
+    var c = document.createElement('canvas');
+    c.width = tmpImg.naturalWidth; c.height = tmpImg.naturalHeight;
+    c.getContext('2d').drawImage(tmpImg, 0, 0);
+    var src;
+    try { src = c.toDataURL('image/jpeg', 0.95); } catch(e) { src = img.src; }
+    _abrirCropperExtra(src, 'foto.jpg', function(dataUrl) {
+      fetch('/admin/foto/' + fotoId + '/atualizar-ajax', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({data: dataUrl})
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.ok) img.src = '/static/' + d.url + '?t=' + Date.now();
+      })
+      .catch(function(){ alert('Erro ao atualizar foto.'); });
+    });
+  };
+  tmpImg.onerror = function() {
+    _abrirCropperExtra(img.src, 'foto.jpg', function(dataUrl) {
+      fetch('/admin/foto/' + fotoId + '/atualizar-ajax', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({data: dataUrl})
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if (d.ok) img.src = '/static/' + d.url + '?t=' + Date.now(); });
+    });
+  };
+  tmpImg.src = img.src + '?t=' + Date.now();
+}
+
+/* ── Clicar em foto LOCAL (criação, ainda não salva) ── */
+function ajustarFotoLocal(divEl, hiddenInput) {
+  var img = divEl.querySelector('img');
+  if (!img) return;
+  _abrirCropperExtra(img.src, 'foto.jpg', function(dataUrl) {
+    img.src = dataUrl;
+    if (hiddenInput) hiddenInput.value = dataUrl;
+  });
+}
+
+/* ── Abre o cropper e chama callback(dataUrl) ao confirmar ── */
+function _abrirCropperExtra(src, nome, callback) {
+  _cropInput = null; _cropImgId = null; _cropWrapId = null;
+  _cropB64FieldId = null; _cropCurrentBoxId = null;
+  _cropName = nome || 'foto.jpg';
+  _abrirModalCropper(src);
+  window._fotoExtraCallback = callback;
+}
+
+/* ── Adiciona foto salva na grade ── */
+function adicionarFotoNaGrade(fotoId, url, uid) {
+  var grid = document.getElementById('fotosGrid_' + uid);
+  var sem  = document.getElementById('semFotos_' + uid);
+  if (!grid) return;
+  var div = document.createElement('div');
+  div.className = 'foto-extra-item';
+  div.id = 'fotoItem_' + fotoId;
+  div.title = 'Clique para ajustar';
+  div.innerHTML =
+    '<img src="/static/' + url + '" alt="Foto extra">' +
+    '<div class="foto-overlay-ajustar"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>' +
+    '<button type="button" class="btn-foto-del" title="Remover" ' +
+    'onclick="event.stopPropagation();excluirFotoAjax(' + fotoId + ',\'' + uid + '\')">✕</button>';
+  div.onclick = function(e) { ajustarFotoSalva(e, fotoId, uid); };
+  grid.appendChild(div);
+  if (sem) sem.style.display = 'none';
+}
+
+/* ── Adiciona preview local (criação) ── */
+function adicionarFotoNaGradeLocal(dataUrl, uid, hiddenInput) {
+  var grid = document.getElementById('fotosGrid_' + uid);
+  var sem  = document.getElementById('semFotos_' + uid);
+  if (!grid) return;
+  var div = document.createElement('div');
+  div.className = 'foto-extra-item';
+  div.title = 'Clique para ajustar';
+  div.innerHTML =
+    '<img src="' + dataUrl + '" alt="preview">' +
+    '<div class="foto-overlay-ajustar">✏️</div>';
+  div.onclick = function() { ajustarFotoLocal(div, hiddenInput); };
+  grid.appendChild(div);
+  if (sem) sem.style.display = 'none';
+}
+
+/* ── Excluir foto via AJAX ── */
+function excluirFotoAjax(fotoId, uid) {
+  adminConfirmar({
+    titulo: 'Remover foto',
+    msg: 'Deseja remover esta foto? Essa ação não pode ser desfeita.',
+    textoConfirmar: 'Remover',
+    corBotao: '#dc2626',
+    aoConfirmar: function() {
+      fetch('/admin/foto/' + fotoId + '/excluir-ajax', {method:'POST'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ok) {
+            var el = document.getElementById('fotoItem_' + fotoId);
+            if (el) el.remove();
+            var grid = document.getElementById('fotosGrid_' + uid);
+            var sem  = document.getElementById('semFotos_' + uid);
+            if (grid && sem && grid.children.length === 0) sem.style.display = '';
+          }
+        });
+    }
+  });
+}
+
+/* ── Fotos já existentes no HTML — adicionar clique de ajuste ── */
+document.querySelectorAll('.foto-extra-item[id^="fotoItem_"]').forEach(function(el) {
+  var fotoId = parseInt(el.id.replace('fotoItem_',''));
+  var uid = el.closest('.fotos-extras-section').id.replace('fotosSec_','');
+  el.onclick = function(e) { ajustarFotoSalva(e, fotoId, uid); };
+});
+</script>
+{% endmacro %}

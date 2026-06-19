@@ -1,0 +1,110 @@
+{% extends "admin/base.html" %}
+<!-- Formulário de criação de produto especial vinculado a um evento -->
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">Adicionar Produto — {{ evento.nome }}</h3>
+        </div>
+
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="imagem_b64" id="imgB64Especial">
+
+            <div class="mb-3">
+              <label class="form-label">Nome *</label>
+              <input type="text" class="form-control" name="name" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Resumo <small class="text-muted">(exibido no topo da página)</small></label>
+              <textarea class="form-control" id="resumo" name="resumo"
+                        rows="2" maxlength="400"
+                        placeholder="Breve descrição do produto (até 400 caracteres)"></textarea>
+              <small class="text-muted"><span id="resumo-count">0</span>/400 caracteres</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Descrição completa *</label>
+              <textarea class="form-control" name="description" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Preço (R$) *</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="number" class="form-control" name="price"
+                       step="0.01" min="0.01" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Categoria</label>
+              <select class="form-control" name="category">
+                <option value="bolos">Bolos</option>
+                <option value="brigadeiros">Brigadeiros</option>
+                <option value="chocolates">Chocolates</option>
+                <option value="trufas">Trufas</option>
+                <option value="brownie">Brownie</option>
+                <option value="corporativos">Corporativos</option>
+                <option value="geral">Geral</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" name="quantidade_minima" min="1" value="1">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" name="quantidade_maxima" min="1" placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
+            </div>
+
+            <!-- ✅ Upload dentro do mesmo form -->
+            <div class="mb-3">
+              <label for="arquivo" class="form-label">Imagem (opcional)</label>
+              <input type="file" class="form-control" id="arquivo" name="arquivo"
+                     accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
+              <div id="previewWrap" style="margin-top:.7rem; display:none;">
+                <div style="width:200px; height:200px; border-radius:10px; overflow:hidden; border:2px solid var(--color-primary, #5B6D3D);">
+                  <img id="previewImg" src="" alt="preview">
+                </div>
+                <p style="font-size:.74rem; color:#64748b; margin-top:.4rem;">Nova imagem selecionada</p>
+              </div>
+            </div>
+
+            <div class="mb-3 checkboxes-wrap">
+              <label class="check-label">
+                <input type="checkbox" name="mostrar" checked> Mostrar na loja
+              </label>
+            </div>
+
+            <div class="d-flex justify-content-between gap-2">
+              <button type="submit" class="btn-primary">Adicionar Produto</button>
+              <a href="{{ url_for('listar_produtos_especiais', evento_id=evento.id) }}"
+                 class="btn-secondary">Cancelar</a>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('resumo').addEventListener('input', function() {
+    document.getElementById('resumo-count').textContent = this.value.length;
+  });
+</script>
+{% endblock %}

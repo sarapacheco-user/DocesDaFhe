@@ -1,0 +1,102 @@
+{% extends "admin/base.html" %}
+<!-- Página de login: formulário de autenticação com suporte a fundo dinâmico -->
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+<!-- Aplica degradê de fundo personalizado se configurado pelo admin -->
+{% if site_config and site_config.auth_bg_color1 %}
+<div id="authBgData" data-c1="{{ site_config.auth_bg_color1 }}" data-c2="{{ site_config.auth_bg_color2 }}" style="display:none;"></div>
+<script>
+  var d = document.getElementById('authBgData');
+  if (d) document.body.style.setProperty('background', 'linear-gradient(135deg,' + d.dataset.c1 + ' 0%,' + d.dataset.c2 + ' 100%)', 'important');
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- CARD DE LOGIN -->
+<div class="login-card">
+  <h2>Login</h2>
+  <!-- Formulário de autenticação -->
+  <form method="POST">
+    <input type="email" name="email" placeholder="Email" required>
+    <!-- Campo senha com botão de mostrar/ocultar -->
+    <div class="login-pwd-wrap">
+      <input type="password" name="password" id="loginPassword" placeholder="Senha" required>
+      <button type="button" class="login-pwd-toggle" onclick="toggleLoginSenha(this)" tabindex="-1" aria-label="Mostrar senha">
+        <svg class="ico-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <svg class="ico-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
+    <button type="submit">Entrar</button>
+  </form>
+  <div class="login-links">
+    <a href="{{ url_for('forgot_password') }}">Esqueceu a senha?</a>
+    <a href="{{ url_for('signup') }}">Criar conta</a>
+  </div>
+
+  <style>
+  .login-pwd-wrap {
+    position: relative;
+  }
+  .login-pwd-wrap input {
+    width: 100%;
+    padding-right: 2.8rem !important;
+    box-sizing: border-box;
+  }
+  .login-pwd-toggle {
+    position: absolute;
+    right: .9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color .2s;
+    line-height: 0;
+  }
+  .login-pwd-toggle:hover { color: #475569; }
+  </style>
+
+  <script>
+  function toggleLoginSenha(btn) {
+    var input = document.getElementById('loginPassword');
+    var isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.querySelector('.ico-eye').style.display     = isText ? '' : 'none';
+    btn.querySelector('.ico-eye-off').style.display = isText ? 'none' : '';
+    btn.setAttribute('aria-label', isText ? 'Mostrar senha' : 'Ocultar senha');
+  }
+  </script>
+
+  <!-- Aviso de e-mail não verificado com opção de reenvio -->
+  {% if email_nao_verificado %}
+  <div style="margin-top:1.4rem; padding:1rem 1.2rem; background:#fef9c3; border:1.5px solid #fde047;
+              border-radius:12px; text-align:center;">
+    <p style="font-size:.88rem; color:#854d0e; margin:0 0 .8rem; font-weight:600;">
+      Sua conta ainda não foi verificada.
+    </p>
+    <form method="POST" action="{{ url_for('reenviar_verificacao') }}">
+      <input type="hidden" name="email" value="{{ email_usuario }}">
+      <button type="submit" style="
+        background:{{ site_config.color_primary if site_config and site_config.color_primary else '#5B6D3D' }};
+        color:#fff; border:none; border-radius:20px;
+        padding:.45rem 1.2rem; font-size:.84rem; font-weight:700; cursor:pointer;">
+        Reenviar e-mail de confirmação
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

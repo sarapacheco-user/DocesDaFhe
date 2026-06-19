@@ -1,0 +1,374 @@
+{% extends "admin/base.html" %}
+<!-- Página da loja de kits: banner, filtros por preço, grid de kits com carrinho e favoritos -->
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+<style>
+  /* ── BANNER ── */
+  .cat-banner { width:100%; height:320px; position:relative; overflow:hidden; margin-bottom:0; }
+  .cat-banner img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cat-banner-overlay { display:none; }
+  .cat-banner-fade    { display:none; }
+  .cat-banner-strip { padding:1.4rem 3rem .2rem; }
+  .cat-banner-titulo { font-family:'Playfair Display',serif; font-size:2rem; font-weight:800;
+    color:#1e293b; margin:0 0 .4rem; line-height:1.15; }
+  .cat-banner-linha { width:48px; height:3.5px; background:var(--color-accent,#F3B651);
+    border-radius:3px; margin-bottom:.3rem; }
+  .cat-banner-desc { color:#64748b; font-size:.92rem; font-weight:600; margin:0; }
+  @media(max-width:768px){ .cat-banner{height:200px;} .cat-banner-strip{padding:1rem 1.4rem .2rem;} .cat-banner-titulo{font-size:1.5rem;} }
+  @media(max-width:480px){ .cat-banner{height:160px;} .cat-banner-titulo{font-size:1.3rem;} }
+
+  /* ── LAYOUT ── */
+  .cat-wrap {
+    max-width: 1180px; margin: 0 auto;
+    padding: 1.6rem 1.4rem 3rem;
+    display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start;
+  }
+  @media (max-width: 768px) { .cat-wrap { grid-template-columns: 1fr; } .cat-sidebar { display: none; } .cat-sidebar.open { display: block; } }
+
+  .cat-breadcrumb { grid-column: 1/-1; font-size: .8rem; color: #94a3b8; display: flex; align-items: center; gap: .4rem; margin-bottom: .2rem; }
+  .cat-breadcrumb a { color: #94a3b8; text-decoration: none; }
+  .cat-breadcrumb a:hover { color: var(--color-primary); }
+  .cat-breadcrumb span { color: var(--color-primary); font-weight: 700; }
+
+  /* ── SIDEBAR ── */
+  .cat-sidebar { position: sticky; top: 1rem; }
+  .cat-filter-box { background: #fff; border-radius: 12px; border: 1.5px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
+  .cat-filter-title { background: var(--color-primary); color: #fff; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: .65rem 1rem; }
+  .cat-filter-body { padding: .8rem 1rem; }
+  .cat-filter-option { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; cursor: pointer; font-size: .88rem; color: #334155; font-weight: 500; transition: color .15s; }
+  .cat-filter-option:hover { color: var(--color-primary); }
+  .cat-filter-option input[type="radio"] { accent-color: var(--color-primary); width: 15px; height: 15px; cursor: pointer; }
+  .cat-filter-option.active-opt { color: var(--color-primary); font-weight: 700; }
+  .price-range-row { display: flex; gap: .5rem; margin-top: .4rem; align-items: center; }
+  .price-range-row input[type="number"] { width: 70px; padding: .35rem .5rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: .82rem; outline: none; }
+  .price-range-row input:focus { border-color: var(--color-primary); }
+  .btn-filtrar-preco { padding: .35rem .8rem; background: var(--color-primary); color: #fff; border: none; border-radius: 8px; font-size: .78rem; font-weight: 700; cursor: pointer; }
+  .btn-filtrar-preco:hover { background: var(--color-hover-primary); }
+  .btn-limpar-filtros { width: 100%; padding: .5rem; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; border-radius: 9px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .15s; margin-top: .2rem; }
+  .btn-limpar-filtros:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  /* ── MAIN HEADER ── */
+  .cat-main-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.2rem; }
+  .cat-main-title { font-family:'Playfair Display',serif; font-size:2rem; font-weight:800; color:#1e293b; margin:0 0 .4rem; line-height:1.15; }
+  .cat-main-title-linha { width:48px; height:3.5px; background:var(--color-accent,#F3B651); border-radius:3px; margin-bottom:.35rem; }
+  .cat-count { font-size:.82rem; color:#94a3b8; margin-top:.1rem; }
+  .cat-sort-wrap { display: flex; align-items: center; gap: .6rem; }
+  .cat-sort-label { font-size: .82rem; color: #64748b; font-weight: 600; white-space: nowrap; }
+  .cat-sort-select { padding: .45rem .9rem; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: .85rem; color: #334155; font-weight: 600; background: #fff; cursor: pointer; outline: none; transition: border-color .15s; }
+  .cat-sort-select:focus { border-color: var(--color-primary); }
+  .btn-mobile-filtros { display: none; align-items: center; gap: .4rem; padding: .45rem .9rem; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: .85rem; font-weight: 700; background: #fff; color: #334155; cursor: pointer; }
+  @media (max-width: 768px) { .btn-mobile-filtros { display: flex; } }
+
+  /* ── GRID ── */
+  .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  @media (max-width: 900px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .cat-grid { grid-template-columns: 1fr; } }
+
+  /* ── KIT CARD ── */
+  .cat-card { background: #fff; border-radius: 16px; box-shadow: var(--shadow-sm); overflow: hidden; position: relative; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+  .cat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .cat-card-img { width: 100%; height: 180px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 3rem; flex-shrink: 0; }
+  .cat-card-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  .btn-fav { position: absolute; top: .6rem; right: .6rem; background: rgba(255,255,255,.9); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.1); transition: transform .2s; z-index: 2; }
+  .btn-fav svg { fill: none; stroke: #94a3b8; transition: fill .2s, stroke .2s; }
+  .btn-fav.ativo svg { fill: #ef4444; stroke: #ef4444; }
+  .btn-fav:hover { transform: scale(1.1); }
+  .badge-novo { position: absolute; top: .6rem; left: .6rem; background: var(--color-accent); color: #fff; font-size: .68rem; font-weight: 800; padding: .15rem .55rem; border-radius: 20px; text-transform: uppercase; z-index: 2; }
+
+  .cat-card-body { padding: .8rem 1rem .4rem; flex: 1; }
+  .cat-card-body h3 { font-size: .95rem; font-weight: 700; color: #1e293b; margin: 0 0 .15rem; }
+  .cat-card-body .kit-itens { font-size: .78rem; color: #94a3b8; margin: 0; }
+  .cat-price { font-size: 1.1rem; font-weight: 800; color: var(--color-primary); padding: .3rem 1rem .6rem; }
+  .cat-price sup { font-size: .65rem; font-weight: 700; vertical-align: super; }
+
+  .cat-qty { display: flex; align-items: center; gap: .3rem; background: #f8fafc; border-radius: 8px; padding: .15rem .4rem; }
+  .cat-qty button { width: 24px; height: 24px; border: none; background: none; font-size: 1rem; font-weight: 700; color: var(--color-primary); cursor: pointer; border-radius: 6px; transition: background .15s; display: flex; align-items: center; justify-content: center; }
+  .cat-qty button:hover { background: #e8eed8; }
+  .cat-qty span { font-size: .9rem; font-weight: 700; min-width: 18px; text-align: center; }
+
+  .cat-card-footer { padding: .4rem 1rem .5rem; display: flex; align-items: center; justify-content: space-between; }
+  .btn-add-cart { width: calc(100% - 2rem); margin: 0 1rem .9rem; padding: .6rem; background: var(--color-primary); color: #fff; border: none; border-radius: 10px; font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+  .btn-add-cart:hover { background: var(--color-hover-primary); }
+
+  /* Card "Monte seu Kit" */
+  .kit-montar-card { background: linear-gradient(145deg, var(--color-primary), var(--color-secondary)); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1.4rem; min-height: 320px; }
+  .kit-montar-card h3 { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: #fff; margin: .6rem 0 .5rem; }
+  .kit-montar-card p { font-size: .82rem; color: rgba(255,255,255,.85); margin-bottom: 1.2rem; }
+  .btn-montar { background: var(--color-accent); color: #1e293b; border-radius: 10px; padding: .6rem 1.4rem; font-weight: 700; text-decoration: none; font-size: .95rem; display: inline-block; transition: opacity .15s; }
+  .btn-montar:hover { opacity: .88; }
+
+  .cat-vazio { grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #94a3b8; }
+  .cart-icon-wrap { position: relative; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
+  .cart-badge { position: absolute; top: -8px; right: -8px; background: var(--color-dark); color: #fff; font-size: .68rem; font-weight: 800; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <a href="{{ url_for('dashboard') }}">
+      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+    </a>
+  </div>
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar Produto" onkeydown="if(event.key==='Enter') buscarGlobal()" />
+      <button onclick="buscarGlobal()" aria-label="Buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
+  </div>
+  <div class="header-right">
+    {% if current_user.is_authenticated %}
+      <div class="user-menu">
+        <span class="btn-entrar user-btn" onclick="this.closest('.user-menu').classList.toggle('open')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> Bem-vindo, {{ (current_user.name or current_user.email).split()[0] }}</span>
+        <div class="user-dropdown">
+          <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
+          <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="btn-entrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg> ENTRAR</a>
+    {% endif %}
+    <span class="location"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.1 11.5 7.4 11.8a1 1 0 0 0 1.2 0C12.9 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg> São Paulo - SP</span>
+    <a href="{{ url_for('favoritos') }}" class="cart-icon-wrap" title="Favoritos"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></a>
+    <a href="{{ url_for('carrinho') }}" class="cart-icon-wrap"><svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>{% if carrinho_total > 0 %}<span class="cart-badge">{{ carrinho_total }}</span>{% endif %}</a>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('categoria', nome='bolos') }}">Bolos</a>
+  <a href="{{ url_for('categoria', nome='brigadeiros') }}">Brigadeiros</a>
+  <a href="{{ url_for('categoria', nome='chocolates') }}">Chocolates</a>
+  <a href="{{ url_for('categoria', nome='trufas') }}">Trufas</a>
+  <a href="{{ url_for('categoria', nome='brownie') }}">Brownie</a>
+  <a href="{{ url_for('categoria', nome='corporativos') }}">Corporativos</a>
+  <a href="{{ url_for('kits_loja') }}" class="nav-active">Kits</a>
+  <a href="{{ url_for('blog.index') }}">Blog</a>
+</nav>
+
+{% if banner and banner.imagem_url %}
+<div class="cat-banner">
+  <img src="{{ url_for('static', filename=banner.imagem_url) }}"
+       alt="Kits"
+       style="object-position: {{ banner.posicao or 'center center' }};">
+</div>
+{% endif %}
+
+<div class="cat-wrap">
+
+  <!-- BREADCRUMB -->
+  <div class="cat-breadcrumb">
+    <a href="{{ url_for('dashboard') }}">Início</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span>Kits</span>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="cat-sidebar" id="catSidebar">
+    <div class="cat-filter-box">
+      <div class="cat-filter-title">Ordenar por</div>
+      <div class="cat-filter-body">
+        <label class="cat-filter-option active-opt"><input type="radio" name="ordenar" value="relevancia" checked onchange="ordenar(this.value)"> Relevância</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="menor_preco" onchange="ordenar(this.value)"> Menor Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="maior_preco" onchange="ordenar(this.value)"> Maior Preço</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="az" onchange="ordenar(this.value)"> A – Z</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="za" onchange="ordenar(this.value)"> Z – A</label>
+        <label class="cat-filter-option"><input type="radio" name="ordenar" value="novos" onchange="ordenar(this.value)"> Mais Novos</label>
+      </div>
+    </div>
+    <div class="cat-filter-box">
+      <div class="cat-filter-title">Faixa de Preço</div>
+      <div class="cat-filter-body">
+        <div class="price-range-row">
+          <input type="number" id="precoMin" placeholder="Mín" min="0" step="0.01">
+          <span style="color:#94a3b8;">–</span>
+          <input type="number" id="precoMax" placeholder="Máx" min="0" step="0.01">
+        </div>
+        <div style="margin-top:.6rem;display:flex;gap:.4rem;">
+          <button class="btn-filtrar-preco" onclick="filtrarPreco()">Filtrar</button>
+          <button class="btn-limpar-filtros" onclick="limparPreco()">Limpar</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn-limpar-filtros" onclick="limparTudo()">↺ Limpar todos os filtros</button>
+  </aside>
+
+  <!-- MAIN -->
+  <div>
+    <div class="cat-main-header">
+      <div>
+        <h1 class="cat-main-title">Kits</h1>
+        <div class="cat-main-title-linha"></div>
+        <div class="cat-count" id="catCount">{{ kits | length }} kit(s)</div>
+      </div>
+      <div class="cat-sort-wrap">
+        <button class="btn-mobile-filtros" onclick="document.getElementById('catSidebar').classList.toggle('open')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg> Filtros
+        </button>
+      </div>
+    </div>
+
+    <div class="cat-grid" id="catGrid">
+
+      {% for kit in kits %}
+      <div class="cat-card kit-item"
+           data-nome="{{ kit.name | lower }}"
+           data-preco="{{ kit.total_price }}"
+           data-created="{{ kit.created_at.timestamp() if kit.created_at else 0 }}">
+
+        <div class="cat-card-img">
+          {% if kit.image_url %}<img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">{% else %}🎁{% endif %}
+        </div>
+
+        <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}" data-tipo="kit" data-id="{{ kit.id }}" onclick="toggleFav(this)" title="Favoritar">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+
+        {% if site_config.new_badge_ativo != false and kit.created_at and (now() - kit.created_at).days < (site_config.new_badge_days or 7) %}<span class="badge-novo">Novo</span>{% endif %}
+
+        <a href="{{ url_for('kit_detalhe', kit_id=kit.id) }}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="cat-card-body">
+            <h3>{{ kit.name }}</h3>
+            <p class="kit-itens">{{ kit.products|length }} item(s) no kit</p>
+          </div>
+        </a>
+
+        <div class="cat-price"><sup>R$</sup> {{ "%.2f"|format(kit.total_price) }}</div>
+
+        <div class="cat-card-footer">
+          <div class="cat-qty" id="qty-kit-{{ kit.id }}" data-id="{{ kit.id }}">
+            <button onclick="changeKitQty(+this.closest('[data-id]').dataset.id, -1)">−</button>
+            <span>1</span>
+            <button onclick="changeKitQty(+this.closest('[data-id]').dataset.id, 1)">+</button>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('adicionar_carrinho') }}">
+          <input type="hidden" name="kit_id" value="{{ kit.id }}">
+          <input type="hidden" name="quantidade" id="qty-loja-input-{{ kit.id }}" value="1">
+          <input type="hidden" name="next" value="{{ url_for('kits_loja') }}">
+          <button type="submit" class="btn-add-cart">Adicionar ao carrinho 🛒</button>
+        </form>
+
+      </div>
+      {% endfor %}
+
+      {% if not kits %}
+      <div class="cat-vazio"><div style="font-size:3rem;">🎁</div><p>Nenhum kit disponível no momento.</p></div>
+      {% endif %}
+
+      <!-- Monte seu Kit -->
+      <div class="kit-montar-card">
+        <div style="font-size:3.5rem;">🎁</div>
+        <h3>Monte seu Kit</h3>
+        <p>Escolha os produtos e crie seu kit personalizado!</p>
+        <a href="{{ url_for('montar_kit') }}" class="btn-montar">Montar agora ✨</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col"><h3 class="footer-titulo">NOSSO ENDEREÇO</h3><p class="footer-endereco">Cidade Tiradentes SL | SP</p></div>
+    <div class="footer-col">
+      <h3 class="footer-titulo">FUNCIONAMENTO</h3>
+      <p class="footer-hora"><strong>Seg. à sex.</strong> das 10:00 às 19:00</p>
+      <p class="footer-hora"><strong>Sábado</strong> das 10:00 às 23:30</p>
+      <p class="footer-hora"><strong>Domingo</strong> não atendemos</p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/Docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Facebook"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+        <a href="https://www.instagram.com/docesdafhe/" target="_blank" rel="noopener" class="social-icon" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-col"><h3 class="footer-titulo">DOCES DA FHÊ</h3><p class="footer-quote">"Feito com amor em cada detalhe, porque todo sentimento merece ser doce."</p><p class="footer-assinatura">– Fhê</p></div>
+  </div>
+  <div class="footer-bottom">Todos os direitos reservados &nbsp;<a href="#" class="footer-site">DocesdaFhe.com.br</a></div>
+</footer>
+
+<script>
+  var ordemAtual = 'relevancia', precoMinFiltro = null, precoMaxFiltro = null;
+
+  function changeKitQty(id, delta) {
+    var span  = document.querySelector('#qty-kit-' + id + ' span');
+    var input = document.getElementById('qty-loja-input-' + id);
+    var val   = parseInt(span.textContent) + delta;
+    if (val < 1) val = 1;
+    span.textContent = val; input.value = val;
+  }
+
+  function buscarGlobal() {
+    var t = document.getElementById('searchInput').value.trim();
+    if (t) window.location.href = "{{ url_for('busca') }}?q=" + encodeURIComponent(t);
+  }
+
+  function ordenar(valor) {
+    ordemAtual = valor;
+    document.querySelectorAll('input[name="ordenar"]').forEach(r => {
+      r.checked = r.value === valor;
+      r.closest('.cat-filter-option').classList.toggle('active-opt', r.checked);
+    });
+    aplicarFiltros();
+  }
+
+  function filtrarPreco() {
+    precoMinFiltro = parseFloat(document.getElementById('precoMin').value) || null;
+    precoMaxFiltro = parseFloat(document.getElementById('precoMax').value) || null;
+    aplicarFiltros();
+  }
+
+  function limparPreco() {
+    precoMinFiltro = null; precoMaxFiltro = null;
+    document.getElementById('precoMin').value = '';
+    document.getElementById('precoMax').value = '';
+    aplicarFiltros();
+  }
+
+  function limparTudo() {
+    ordemAtual = 'relevancia';
+    document.querySelectorAll('input[name="ordenar"]').forEach(r => {
+      r.checked = r.value === 'relevancia';
+      r.closest('.cat-filter-option').classList.toggle('active-opt', r.checked);
+    });
+    document.querySelector('.cat-sort-select').value = 'relevancia';
+    limparPreco();
+  }
+
+  function aplicarFiltros() {
+    var grid  = document.getElementById('catGrid');
+    var cards = Array.from(grid.querySelectorAll('.kit-item'));
+    cards.forEach(c => {
+      var preco = parseFloat(c.dataset.preco);
+      var ok = true;
+      if (precoMinFiltro !== null && preco < precoMinFiltro) ok = false;
+      if (precoMaxFiltro !== null && preco > precoMaxFiltro) ok = false;
+      c.style.display = ok ? '' : 'none';
+    });
+    var visiveis = cards.filter(c => c.style.display !== 'none');
+    visiveis.sort(function(a, b) {
+      if (ordemAtual === 'menor_preco') return parseFloat(a.dataset.preco) - parseFloat(b.dataset.preco);
+      if (ordemAtual === 'maior_preco') return parseFloat(b.dataset.preco) - parseFloat(a.dataset.preco);
+      if (ordemAtual === 'az') return a.dataset.nome.localeCompare(b.dataset.nome);
+      if (ordemAtual === 'za') return b.dataset.nome.localeCompare(a.dataset.nome);
+      if (ordemAtual === 'novos') return parseFloat(b.dataset.created) - parseFloat(a.dataset.created);
+      return 0;
+    });
+    visiveis.forEach(c => grid.insertBefore(c, grid.querySelector('.kit-montar-card')));
+    document.getElementById('catCount').textContent = visiveis.length + ' kit(s)';
+  }
+
+  function toggleFav(btn) {
+    fetch('/favoritar', { method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: btn.dataset.tipo, id: btn.dataset.id}) })
+    .then(r => r.status === 401 ? r.json().then(d => { window.location.href = d.redirect; })
+      : r.json().then(data => { btn.classList.toggle('ativo', data.favorito); }));
+  }
+</script>
+{% endblock %}

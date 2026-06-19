@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+<!-- Edição de produto especial: atualiza dados, fotos extras e vínculo com evento -->
+{% from "macros/fotos_extras.html" import secao_fotos %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">Editar Produto</h3>
+        </div>
+
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="imagem_b64" id="imgB64Especial">
+
+            <div class="mb-3">
+              <label class="form-label">Nome *</label>
+              <input type="text" class="form-control" name="name"
+                     value="{{ produto.name }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Resumo <small class="text-muted">(exibido no topo da página)</small></label>
+              <textarea class="form-control" id="resumo" name="resumo"
+                        rows="2" maxlength="400"
+                        placeholder="Breve descrição do produto (até 400 caracteres)">{{ produto.resumo if produto.resumo else '' }}</textarea>
+              <small class="text-muted"><span id="resumo-count">{{ (produto.resumo|length) if produto.resumo else 0 }}</span>/400 caracteres</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Descrição completa *</label>
+              <textarea class="form-control" name="description"
+                        rows="3" required>{{ produto.description }}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Preço (R$) *</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="number" class="form-control" name="price"
+                       step="0.01" min="0.01"
+                       value="{{ '%.2f'|format(produto.price) }}" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Categoria</label>
+              <!-- ✅ == em vez de = e sem __ -->
+              <select class="form-control" name="category">
+                <option value="bolos"       {{ 'selected' if produto.category == 'bolos' }}>Bolos</option>
+                <option value="brigadeiros" {{ 'selected' if produto.category == 'brigadeiros' }}>Brigadeiros</option>
+                <option value="chocolates"  {{ 'selected' if produto.category == 'chocolates' }}>Chocolates</option>
+                <option value="trufas"       {{ 'selected' if produto.category == 'trufas' }}>Trufas</option>
+                <option value="brownie"      {{ 'selected' if produto.category == 'brownie' }}>Brownie</option>
+                <option value="corporativos" {{ 'selected' if produto.category == 'corporativos' }}>Corporativos</option>
+                <option value="geral"        {{ 'selected' if produto.category == 'geral' }}>Geral</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade mínima de compra</label>
+              <input type="number" class="form-control" name="quantidade_minima" min="1"
+                     value="{{ produto.quantidade_minima }}">
+              <small class="text-muted">O cliente precisará comprar pelo menos esta quantidade.</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quantidade máxima de compra</label>
+              <input type="number" class="form-control" name="quantidade_maxima" min="1"
+                     value="{{ produto.quantidade_maxima if produto.quantidade_maxima else '' }}"
+                     placeholder="Sem limite">
+              <small class="text-muted">Deixe em branco para não ter limite máximo.</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="arquivo" class="form-label">Imagem (opcional)</label>
+
+              {% if produto.image_url %}
+              <div id="imgBoxEspecial" class="img-crop-box"
+                   data-src="{{ url_for('static', filename=produto.image_url) }}"
+                   style="width:200px; height:200px; border:2px solid var(--color-primary, #5B6D3D); margin-bottom:.5rem;"
+                   onclick="abrirCropperImg(this.dataset.src,'imgB64Especial','imgBoxEspecial')">
+                <img src="{{ url_for('static', filename=produto.image_url) }}" alt="Imagem atual" style="width:100%;height:100%;object-fit:cover;">
+                <div class="crop-overlay"><span>Ajustar imagem</span></div>
+              </div>
+              {% endif %}
+
+              <input type="file" class="form-control" id="arquivo" name="arquivo"
+                     accept="image/*" onchange="adminOpenCropper(this, 'previewImg', 'previewWrap')">
+              <div id="previewWrap" style="margin-top:.7rem; display:none;">
+                <div style="width:200px; height:200px; border-radius:10px; overflow:hidden; border:2px solid var(--color-primary, #5B6D3D);">
+                  <img id="previewImg" src="" alt="preview">
+                </div>
+                <p style="font-size:.74rem; color:#64748b; margin-top:.4rem;">Nova imagem selecionada</p>
+              </div>
+            </div>
+
+            <div class="mb-3 checkboxes-wrap">
+              <label class="check-label">
+                <input type="checkbox" name="mostrar"
+                       {{ 'checked' if produto.mostrar }}> Mostrar na loja
+              </label>
+            </div>
+
+            <div class="d-flex justify-content-between gap-2">
+              <button type="submit" class="btn-primary">Salvar Alterações</button>
+              <a href="{{ url_for('listar_produtos_especiais', evento_id=produto.evento_id) }}"
+                 class="btn-secondary">Cancelar</a>
+            </div>
+
+          </form>
+
+          {{ secao_fotos('especial', produto.id, fotos_extras or [], url_for('editar_produto_especial', id=produto.id)) }}
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('resumo').addEventListener('input', function() {
+    document.getElementById('resumo-count').textContent = this.value.length;
+  });
+</script>
+{% endblock %}

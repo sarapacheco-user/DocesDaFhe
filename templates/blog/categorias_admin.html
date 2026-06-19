@@ -1,0 +1,127 @@
+{% extends "admin/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="blog-admin-wrap">
+
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Categorias do Blog</h1>
+    <div style="display:flex; gap:.75rem;">
+      <a href="{{ url_for('blog.admin') }}" class="editor-btn editor-btn-ghost" style="text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:.3rem;"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar ao Admin
+      </a>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 360px; gap:2rem; align-items:start;">
+    <!-- Lista de categorias -->
+    <div>
+      {% if categorias %}
+      <div class="cat-admin-grid">
+        {% for cat in categorias %}
+        <div class="cat-admin-card">
+          <div class="cat-admin-nome">
+            <span class="cat-admin-color-dot" data-cor="{{ cat.cor }}"></span>
+            {{ cat.nome }}
+          </div>
+          {% if cat.descricao %}
+          <p class="cat-admin-desc">{{ cat.descricao }}</p>
+          {% endif %}
+          <p class="cat-admin-count">
+            {{ cat.posts | selectattr('status', 'equalto', 'publicado') | list | length }} post(s)
+            &bull; slug: <code style="font-size:.75rem; background:#f1f5f9; padding:.1rem .3rem; border-radius:4px;">{{ cat.slug }}</code>
+          </p>
+          <form action="{{ url_for('blog.admin_excluir_categoria', id=cat.id) }}" method="post" id="form-del-cat-{{ cat.id }}">
+            <button type="button" class="action-btn action-btn-delete" style="width:100%;"
+                    onclick="adminConfirmar({titulo:'Excluir categoria',msg:'Deseja excluir a categoria &ldquo;{{ cat.nome }}&rdquo;? Os posts vinculados ficarão sem categoria.',textoConfirmar:'Excluir',aoConfirmar:function(){document.getElementById('form-del-cat-{{ cat.id }}').submit()}})">
+              Excluir Categoria
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="admin-table-wrap" style="padding:2.5rem; text-align:center; color:var(--blog-muted);">
+        <p>Nenhuma categoria criada ainda.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Form criar categoria -->
+    <div>
+      <div class="admin-table-wrap" style="padding:1.5rem;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; margin:0 0 1.2rem; color:var(--blog-text);">Nova Categoria</h2>
+
+        <form method="post" action="{{ url_for('blog.admin_categorias') }}">
+          <div class="editor-field">
+            <label for="catNome">Nome <span style="color:var(--blog-accent);">*</span></label>
+            <input type="text" name="nome" id="catNome" placeholder="Ex: Receitas" required>
+          </div>
+
+          <div class="editor-field">
+            <label for="catDesc">Descrição</label>
+            <textarea name="descricao" id="catDesc" rows="2" placeholder="Breve descrição da categoria..."></textarea>
+          </div>
+
+          <div class="editor-field">
+            <label for="catCorText">Cor do badge</label>
+            <div style="display:flex; align-items:center; gap:.75rem;">
+              <input type="color" name="cor" id="catCor" value="#5B6D3D" style="width:48px; height:38px; border:1.5px solid var(--blog-border); border-radius:8px; padding:2px; cursor:pointer; flex-shrink:0;">
+              <input type="text" id="catCorText" value="#5B6D3D" maxlength="7" placeholder="#000000" style="font-size:.85rem; width:100px; border:1.5px solid var(--blog-border); border-radius:8px; padding:.35rem .6rem; font-family:monospace; color:var(--blog-text);">
+            </div>
+          </div>
+
+          <div style="display:flex; gap:.75rem; margin-top:.75rem;">
+            <button type="submit" class="editor-btn editor-btn-primary" style="flex:1;">Criar Categoria</button>
+            <button type="reset" class="editor-btn editor-btn-ghost">Limpar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tips -->
+      <div class="admin-table-wrap" style="padding:1.2rem; margin-top:1.2rem; background:#f8fafc;">
+        <h3 style="font-size:.85rem; font-weight:700; color:var(--blog-text); margin:0 0 .6rem;">Dicas</h3>
+        <ul style="font-size:.8rem; color:var(--blog-muted); padding-left:1.2rem; margin:0; line-height:1.8;">
+          <li>O slug é gerado automaticamente do nome.</li>
+          <li>Excluir uma categoria <strong>não</strong> exclui os posts.</li>
+          <li>Posts ficam sem categoria após exclusão.</li>
+          <li>Escolha cores contrastantes para melhor legibilidade.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const catCor = document.getElementById('catCor');
+const catCorText = document.getElementById('catCorText');
+
+catCor.addEventListener('input', function() {
+  catCorText.value = this.value.toUpperCase();
+});
+
+catCorText.addEventListener('input', function() {
+  const val = this.value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    catCor.value = val;
+  }
+});
+
+catCorText.addEventListener('blur', function() {
+  const val = this.value.trim();
+  if (!/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    this.value = catCor.value.toUpperCase();
+  }
+});
+
+document.querySelectorAll('.cat-admin-color-dot[data-cor]').forEach(function(el) {
+  el.style.background = el.dataset.cor;
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,445 @@
+{% extends "admin/base.html" %}
+<!-- Painel de promoções: criação e gerenciamento de promoções com desconto percentual ou fixo -->
+{% block content %}
+<style>
+  .promo-page  { padding: 1.8rem 1.6rem; max-width: 960px; margin: 0 auto; }
+  .promo-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800;
+                 color: #1e293b; margin-bottom: 1.4rem; }
+  .promo-title span { color: var(--color-primary); }
+
+  /* ── ABAS ── */
+  .promo-tabs { display: flex; gap: .5rem; margin-bottom: 1.8rem;
+                border-bottom: 2px solid #e2e8f0; }
+  .promo-tab  { padding: .6rem 1.4rem; border: none; background: none; cursor: pointer;
+                font-family: 'Nunito', sans-serif; font-size: .92rem; font-weight: 700;
+                color: #64748b; border-bottom: 3px solid transparent; margin-bottom: -2px;
+                transition: color .15s, border-color .15s; }
+  .promo-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+  .promo-tab:hover  { color: var(--color-primary); }
+  .promo-panel { display: none; }
+  .promo-panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .lmb-form-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+                   padding: 1.4rem 1.6rem; margin-bottom: 2rem; }
+  .lmb-form-card h3 { font-size: 1rem; font-weight: 800; color: #334155; margin: 0 0 1.2rem; }
+  .lmb-hint { font-size: .82rem; color: #64748b; margin: 0 0 1.4rem;
+              background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px;
+              padding: .7rem 1rem; }
+
+  /* ── GRIDS ── */
+  .lmb-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: .8rem; align-items: end; }
+  .lmb-grid-5 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: .8rem; align-items: end; }
+  @media(max-width:700px){
+    .lmb-grid-4, .lmb-grid-5 { grid-template-columns: 1fr 1fr; }
+  }
+  .lmb-field label { display: block; font-size: .78rem; font-weight: 700; color: #64748b;
+                     margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .05em; }
+  .lmb-field input, .lmb-field select { width: 100%; padding: .5rem .75rem;
+    border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: .9rem; outline: none;
+    transition: border .15s; box-sizing: border-box; background: #fff; }
+  .lmb-field input:focus, .lmb-field select:focus { border-color: var(--color-primary); }
+  .btn-add { padding: .55rem 1.3rem; background: var(--color-primary); color: #fff; border: none;
+             border-radius: 9px; font-size: .88rem; font-weight: 700; cursor: pointer;
+             transition: background .15s; white-space: nowrap; }
+  .btn-add:hover { background: var(--color-hover-primary); }
+
+  /* ── TABELA ── */
+  .lmb-card  { background: #fff; border-radius: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+               overflow: hidden; }
+  .lmb-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .lmb-table th { background: #f8fafc; padding: .7rem 1rem; text-align: left;
+                  font-size: .72rem; font-weight: 800; color: #94a3b8;
+                  text-transform: uppercase; letter-spacing: .07em;
+                  border-bottom: 1px solid #e2e8f0; }
+  .lmb-table td { padding: .85rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .lmb-table tr:last-child td { border-bottom: none; }
+  .lmb-table tr:hover td { background: #fafbfc; }
+
+  .badge-ativo   { background: #dcfce7; color: #166534; padding: .2rem .65rem; border-radius: 20px;
+                   font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+  .badge-inativo { background: #f1f5f9; color: #94a3b8; padding: .2rem .65rem; border-radius: 20px;
+                   font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+  .badge-pct { background: #eff6ff; color: #1d4ed8; padding: .15rem .55rem; border-radius: 20px;
+               font-size: .72rem; font-weight: 800; }
+  .badge-fixo { background: #fef3c7; color: #92400e; padding: .15rem .55rem; border-radius: 20px;
+                font-size: .72rem; font-weight: 800; }
+  .badge-lp   { background: #fdf4ff; color: #7e22ce; padding: .15rem .55rem; border-radius: 20px;
+                font-size: .72rem; font-weight: 800; }
+
+  .btn-toggle { padding: .3rem .8rem; border-radius: 8px; border: 1.5px solid #e2e8f0;
+                font-size: .78rem; font-weight: 700; cursor: pointer; background: #fff;
+                color: #475569; transition: all .15s; }
+  .btn-toggle:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .btn-del  { padding: .3rem .8rem; border-radius: 8px; border: 1.5px solid #fecaca;
+              font-size: .78rem; font-weight: 700; cursor: pointer; background: #fff;
+              color: #ef4444; transition: all .15s; }
+  .btn-del:hover { background: #fee2e2; }
+
+  .btn-faixa { padding: .3rem .8rem; border-radius: 8px; border: 1.5px solid #e2e8f0;
+               font-size: .78rem; font-weight: 700; cursor: pointer; background: #fff;
+               color: #64748b; transition: all .15s; white-space: nowrap; }
+  .btn-faixa:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .btn-faixa-on { background: var(--color-primary) !important; color: #fff !important;
+                  border-color: var(--color-primary) !important; }
+  .btn-faixa-on:hover { background: var(--color-hover-primary) !important; }
+
+  .empty-msg { text-align: center; padding: 3rem 1rem; color: #94a3b8; font-size: .95rem; }
+</style>
+
+<div class="promo-page">
+  <div class="promo-title">🎉 <span>Promoções</span> &amp; Brindes</div>
+
+  <!-- ABAS -->
+  <div class="promo-tabs">
+    <button class="promo-tab active" onclick="trocarAba('tab-brindes', this)">🎁 Brindes</button>
+    <button class="promo-tab"        onclick="trocarAba('tab-promocoes', this)">🏷️ Promoções de Desconto</button>
+    <button class="promo-tab"        onclick="trocarAba('tab-leve-pague', this)">🛒 Leve X Pague Y</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ABA BRINDES -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="tab-brindes" class="promo-panel active">
+
+    <p class="lmb-hint">
+      Brindes automáticos: quando o cliente atingir o valor mínimo no carrinho, o brinde aparece para ele.
+    </p>
+
+    <div class="lmb-form-card">
+      <h3>Novo Brinde</h3>
+      <form method="POST">
+        <input type="hidden" name="acao" value="criar">
+        <input type="hidden" name="secao" value="brinde">
+        <div class="lmb-grid-4">
+          <div class="lmb-field">
+            <label>Valor mínimo do pedido (R$)</label>
+            <input type="number" name="valor_minimo" min="0.01" step="0.01" placeholder="Ex: 80.00" required>
+          </div>
+          <div class="lmb-field">
+            <label>Produto do brinde</label>
+            <input type="text" name="produto_nome" placeholder="Ex: Brigadeiro de baunilha" required>
+          </div>
+          <div class="lmb-field">
+            <label>Quantidade</label>
+            <input type="number" name="quantidade_brinde" min="1" value="1" required>
+          </div>
+          <div class="lmb-field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-add">+ Adicionar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="lmb-card">
+      {% if brindes %}
+      <table class="lmb-table">
+        <thead>
+          <tr>
+            <th>Valor mínimo</th>
+            <th>Brinde</th>
+            <th>Quantidade</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in brindes %}
+          <tr>
+            <td><strong>R$ {{ "%.2f"|format(l.valor_minimo) }}+</strong></td>
+            <td>🎁 {{ l.produto_nome }}</td>
+            <td>{{ l.quantidade_brinde }} un</td>
+            <td><span class="{{ 'badge-ativo' if l.ativo else 'badge-inativo' }}">{{ 'Ativo' if l.ativo else 'Inativo' }}</span></td>
+            <td style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <form method="POST" style="display:inline">
+                <input type="hidden" name="acao" value="toggle">
+                <input type="hidden" name="secao" value="brinde">
+                <input type="hidden" name="id" value="{{ l.id }}">
+                <button class="btn-toggle">{{ 'Desativar' if l.ativo else 'Ativar' }}</button>
+              </form>
+              <form method="POST" style="display:inline" id="form-del-brinde-{{ l.id }}">
+                <input type="hidden" name="acao" value="deletar">
+                <input type="hidden" name="secao" value="brinde">
+                <input type="hidden" name="id" value="{{ l.id }}">
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover brinde',msg:'Deseja remover o brinde &ldquo;{{ l.produto_nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-brinde-{{ l.id }}').submit()}})">
+                  Excluir
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-msg">Nenhum brinde cadastrado ainda.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ABA PROMOÇÕES DE DESCONTO -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="tab-promocoes" class="promo-panel">
+
+    <p class="lmb-hint">
+      Promoções de desconto automáticas: configure a regra e o desconto será calculado e aplicado no carrinho do cliente.
+    </p>
+
+    <div class="lmb-form-card">
+      <h3>Nova Promoção de Desconto</h3>
+      <form method="POST">
+        <input type="hidden" name="acao" value="criar">
+        <input type="hidden" name="secao" value="promocao">
+        <div class="lmb-grid-5">
+          <div class="lmb-field">
+            <label>Nome da promoção</label>
+            <input type="text" name="nome" placeholder="Ex: Desconto de verão" required>
+          </div>
+          <div class="lmb-field">
+            <label>Tipo de desconto</label>
+            <select name="tipo" required onchange="atualizarPlaceholder(this)">
+              <option value="percentual">Percentual (%)</option>
+              <option value="fixo">Valor fixo (R$)</option>
+            </select>
+          </div>
+          <div class="lmb-field">
+            <label id="lbl-valor">Desconto (%)</label>
+            <input type="number" name="valor" id="inp-valor" min="0.01" step="0.01"
+                   placeholder="Ex: 10" required>
+          </div>
+          <div class="lmb-field">
+            <label>Pedido mínimo (R$)</label>
+            <input type="number" name="valor_minimo" min="0" step="0.01" value="0" placeholder="0 = sem mínimo">
+          </div>
+          <div class="lmb-field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-add">+ Adicionar</button>
+          </div>
+        </div>
+        <div class="lmb-field" style="margin-top:.8rem;">
+          <label>Descrição (opcional — aparece para o cliente)</label>
+          <input type="text" name="descricao" placeholder="Ex: 10% de desconto em pedidos acima de R$80">
+        </div>
+      </form>
+    </div>
+
+    <div class="lmb-card">
+      {% if promocoes %}
+      <table class="lmb-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Desconto</th>
+            <th>Pedido mínimo</th>
+            <th>Faixa do site</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in promocoes %}
+          <tr>
+            <td>
+              <strong>{{ p.nome }}</strong>
+              {% if p.descricao %}<br><span style="color:#64748b;font-size:.8rem;">{{ p.descricao }}</span>{% endif %}
+            </td>
+            <td>
+              {% if p.tipo == 'percentual' %}
+                <span class="badge-pct">Percentual</span>
+              {% else %}
+                <span class="badge-fixo">Valor fixo</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.tipo == 'percentual' %}
+                <strong>{{ "%.0f"|format(p.valor) }}%</strong> de desconto
+              {% else %}
+                <strong>R$ {{ "%.2f"|format(p.valor) }}</strong> de desconto
+              {% endif %}
+            </td>
+            <td>
+              {% if p.valor_minimo and p.valor_minimo > 0 %}
+                R$ {{ "%.2f"|format(p.valor_minimo) }}+
+              {% else %}
+                <span style="color:#94a3b8;">Sem mínimo</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST" style="display:inline" title="{{ 'Remover da faixa' if p.mostrar_na_faixa else 'Exibir na faixa do site' }}">
+                <input type="hidden" name="acao" value="toggle_faixa">
+                <input type="hidden" name="secao" value="promocao">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button type="submit" class="btn-faixa {{ 'btn-faixa-on' if p.mostrar_na_faixa else '' }}">
+                  {{ '📢 Na faixa' if p.mostrar_na_faixa else '➕ Exibir' }}
+                </button>
+              </form>
+            </td>
+            <td><span class="{{ 'badge-ativo' if p.ativo else 'badge-inativo' }}">{{ 'Ativo' if p.ativo else 'Inativo' }}</span></td>
+            <td style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <form method="POST" style="display:inline">
+                <input type="hidden" name="acao" value="toggle">
+                <input type="hidden" name="secao" value="promocao">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button class="btn-toggle">{{ 'Desativar' if p.ativo else 'Ativar' }}</button>
+              </form>
+              <form method="POST" style="display:inline" id="form-del-promo-{{ p.id }}">
+                <input type="hidden" name="acao" value="deletar">
+                <input type="hidden" name="secao" value="promocao">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover promoção',msg:'Deseja remover a promoção &ldquo;{{ p.nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-promo-{{ p.id }}').submit()}})">
+                  Excluir
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-msg">Nenhuma promoção de desconto cadastrada ainda.</div>
+      {% endif %}
+    </div>
+  </div>
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ABA LEVE X PAGUE Y -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="tab-leve-pague" class="promo-panel">
+
+    <p class="lmb-hint">
+      O cliente leva X unidades do produto e paga apenas Y. O desconto é aplicado automaticamente no carrinho.
+      <br>Exemplo: <strong>Leve 3, Pague 2</strong> → a cada 3 brigadeiros, 1 é de graça.
+    </p>
+
+    <div class="lmb-form-card">
+      <h3>Nova Promoção Leve X Pague Y</h3>
+      <form method="POST">
+        <input type="hidden" name="acao" value="criar">
+        <input type="hidden" name="secao" value="leve_pague">
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:.8rem; align-items:end;">
+          <div class="lmb-field">
+            <label>Produto</label>
+            <select name="produto_id" required>
+              <option value="">Selecione o produto…</option>
+              {% for prod in produtos_ativos %}
+              <option value="{{ prod.id }}">{{ prod.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="lmb-field">
+            <label>Leve (qtd total)</label>
+            <input type="number" name="leve" min="2" value="3" required placeholder="Ex: 3">
+          </div>
+          <div class="lmb-field">
+            <label>Pague (qtd paga)</label>
+            <input type="number" name="pague" min="1" value="2" required placeholder="Ex: 2">
+          </div>
+          <div class="lmb-field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-add">+ Adicionar</button>
+          </div>
+        </div>
+        <div class="lmb-field" style="margin-top:.8rem;">
+          <label>Nome personalizado <span style="font-weight:400;color:#94a3b8;">(opcional — gerado automaticamente se vazio)</span></label>
+          <input type="text" name="nome" placeholder="Ex: Leve 3 Brigadeiros Pague 2">
+        </div>
+      </form>
+    </div>
+
+    <div class="lmb-card">
+      {% if leve_pague %}
+      <table class="lmb-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Produto</th>
+            <th>Regra</th>
+            <th>Faixa do site</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in leve_pague %}
+          <tr>
+            <td><strong>{{ p.nome }}</strong></td>
+            <td>{{ p.produto.name if p.produto else '—' }}</td>
+            <td>
+              <span class="badge-lp">Leve {{ p.leve }} Pague {{ p.pague }}</span>
+            </td>
+            <td>
+              <form method="POST" style="display:inline" title="{{ 'Remover da faixa' if p.mostrar_na_faixa else 'Exibir na faixa do site' }}">
+                <input type="hidden" name="acao" value="toggle_faixa">
+                <input type="hidden" name="secao" value="leve_pague">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button type="submit" class="btn-faixa {{ 'btn-faixa-on' if p.mostrar_na_faixa else '' }}">
+                  {{ '📢 Na faixa' if p.mostrar_na_faixa else '➕ Exibir' }}
+                </button>
+              </form>
+            </td>
+            <td><span class="{{ 'badge-ativo' if p.ativo else 'badge-inativo' }}">{{ 'Ativo' if p.ativo else 'Inativo' }}</span></td>
+            <td style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <form method="POST" style="display:inline">
+                <input type="hidden" name="acao" value="toggle">
+                <input type="hidden" name="secao" value="leve_pague">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button class="btn-toggle">{{ 'Desativar' if p.ativo else 'Ativar' }}</button>
+              </form>
+              <form method="POST" style="display:inline" id="form-del-lp-{{ p.id }}">
+                <input type="hidden" name="acao" value="deletar">
+                <input type="hidden" name="secao" value="leve_pague">
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button type="button" class="btn-del"
+                        onclick="adminConfirmar({titulo:'Remover promoção',msg:'Deseja remover a promoção &ldquo;{{ p.nome }}&rdquo;? Esta ação não pode ser desfeita.',textoConfirmar:'Remover',aoConfirmar:function(){document.getElementById('form-del-lp-{{ p.id }}').submit()}})">
+                  Excluir
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-msg">Nenhuma promoção Leve/Pague cadastrada ainda.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function trocarAba(idPanel, btn) {
+  document.querySelectorAll('.promo-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.promo-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(idPanel).classList.add('active');
+  btn.classList.add('active');
+}
+
+function atualizarPlaceholder(sel) {
+  var lbl = document.getElementById('lbl-valor');
+  var inp = document.getElementById('inp-valor');
+  if (sel.value === 'percentual') {
+    lbl.textContent = 'Desconto (%)';
+    inp.placeholder = 'Ex: 10';
+    inp.max = '100';
+  } else {
+    lbl.textContent = 'Desconto (R$)';
+    inp.placeholder = 'Ex: 15.00';
+    inp.removeAttribute('max');
+  }
+}
+
+// Preservar aba ativa após submit (via hash na URL)
+(function() {
+  var hash = window.location.hash;
+  if (hash === '#promocoes') {
+    trocarAba('tab-promocoes', document.querySelectorAll('.promo-tab')[1]);
+  } else if (hash === '#leve-pague') {
+    trocarAba('tab-leve-pague', document.querySelectorAll('.promo-tab')[2]);
+  }
+})();
+</script>
+{% endblock %}
