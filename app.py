@@ -12,9 +12,18 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import time
 import os
+import socket
 import urllib.parse
 from dotenv import load_dotenv
 load_dotenv()
+
+# Força resolução DNS via IPv4: hospedagens como o Render não têm rota IPv6,
+# e o smtp.gmail.com às vezes resolve para IPv6 primeiro, causando
+# "OSError: [Errno 101] Network is unreachable" ao enviar e-mail.
+_getaddrinfo_original = socket.getaddrinfo
+def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+    return _getaddrinfo_original(host, port, socket.AF_INET, type, proto, flags)
+socket.getaddrinfo = _getaddrinfo_ipv4
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret'
