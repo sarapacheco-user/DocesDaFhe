@@ -367,17 +367,20 @@ def reenviar_verificacao():
 
 # Exibe formulário e envia link de recuperação de senha por e-mail
 # Solicita recuperação de senha; gera token e envia link por e-mail (ou exibe na tela como fallback)
+COOLDOWN_RESET_SENHA = timedelta(minutes=2)
+
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         user  = User.query.filter_by(email=email).first()
         if user:
-            # proteção anti-spam: só permite novo token após 5 minutos
-            if (user.reset_token_expiry and
-                    user.reset_token_expiry > datetime.utcnow() + timedelta(hours=23, minutes=55)):
-                flash('Um link de recuperação já foi enviado recentemente. Aguarde alguns minutos antes de tentar novamente.', 'warning')
-                return redirect(url_for('forgot_password'))
+            # proteção anti-spam: só permite reenviar após o cooldown
+            limite_bloqueio = datetime.utcnow() + timedelta(hours=24) - COOLDOWN_RESET_SENHA
+            if user.reset_token_expiry and user.reset_token_expiry > limite_bloqueio:
+                restante = int((user.reset_token_expiry - limite_bloqueio).total_seconds())
+                flash('Um link de recuperação já foi enviado recentemente. Aguarde para reenviar.', 'warning')
+                return render_template('auth/forgot_password.html', cooldown=max(restante, 0), email_enviado=email)
 
             token = secrets.token_urlsafe(32)
             user.reset_token        = token
@@ -387,6 +390,7 @@ def forgot_password():
             enviado   = send_reset_email(email, reset_url)
             if enviado:
                 flash('Enviamos um link de recuperação para o seu e-mail. Verifique sua caixa de entrada.', 'success')
+                return render_template('auth/forgot_password.html', cooldown=int(COOLDOWN_RESET_SENHA.total_seconds()), email_enviado=email)
             else:
                 # fallback: exibe o link direto se o e-mail falhar
                 flash('Não foi possível enviar o e-mail. Use o link abaixo para redefinir sua senha:', 'warning')
