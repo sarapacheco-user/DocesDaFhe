@@ -287,7 +287,7 @@ def signup():
         verify_url = url_for('verificar_email', token=token, _external=True)
         enviado = send_verification_email(email, verify_url)
         if enviado:
-            flash("Conta criada! Enviamos um e-mail de confirmação. Verifique sua caixa de entrada antes de fazer login.", 'info')
+            flash("Conta criada! Enviamos um e-mail de confirmação. Verifique sua caixa de entrada (e a pasta de spam) antes de fazer login.", 'info')
         else:
             flash("Conta criada! Não conseguimos enviar o e-mail de confirmação. Use o link abaixo para verificar sua conta.", 'warning')
             flash(f"Link de verificação: {verify_url}", 'info')
@@ -349,7 +349,7 @@ def reenviar_verificacao():
         verify_url = url_for('verificar_email', token=token, _external=True)
         enviado = send_verification_email(email, verify_url)
         if enviado:
-            flash("E-mail de confirmação reenviado! Verifique sua caixa de entrada.", 'success')
+            flash("E-mail de confirmação reenviado! Verifique sua caixa de entrada (e a pasta de spam).", 'success')
         else:
             flash(f"Não conseguimos enviar o e-mail. Link direto: {verify_url}", 'warning')
     else:
@@ -381,7 +381,7 @@ def forgot_password():
             reset_url = url_for('reset_password', token=token, _external=True)
             enviado   = send_reset_email(email, reset_url)
             if enviado:
-                flash('Enviamos um link de recuperação para o seu e-mail. Verifique sua caixa de entrada.', 'success')
+                flash('Enviamos um link de recuperação para o seu e-mail. Verifique sua caixa de entrada (e a pasta de spam).', 'success')
                 return render_template('auth/forgot_password.html', cooldown=int(COOLDOWN_RESET_SENHA.total_seconds()), email_enviado=email)
             else:
                 # fallback: exibe o link direto se o e-mail falhar
