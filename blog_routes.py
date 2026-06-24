@@ -2,9 +2,9 @@ import os
 import re
 import time
 import threading
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, current_app
 from flask_login import current_user, login_required
-from flask_mail import Message
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
 
@@ -68,15 +68,21 @@ def _enviar_newsletter(post, app):
 </body>
 </html>"""
 
-            mail = current_app.extensions['mail']
+            api_key = os.environ.get('BREVO_API_KEY')
+            sender_email = os.environ.get('MAIL_DEFAULT_SENDER', 'docesdafhe@gmail.com')
             for inscrito in inscritos:
                 try:
-                    msg = Message(
-                        subject=f'📝 Novo post: {post.titulo}',
-                        recipients=[inscrito.email],
-                        html=html,
+                    requests.post(
+                        'https://api.brevo.com/v3/smtp/email',
+                        headers={'api-key': api_key, 'Content-Type': 'application/json', 'Accept': 'application/json'},
+                        json={
+                            'sender': {'name': site_nome, 'email': sender_email},
+                            'to': [{'email': inscrito.email}],
+                            'subject': f'📝 Novo post: {post.titulo}',
+                            'htmlContent': html,
+                        },
+                        timeout=10,
                     )
-                    mail.send(msg)
                 except Exception:
                     pass  # não interrompe os outros envios se um falhar
 

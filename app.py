@@ -1,7 +1,6 @@
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from flask_mail import Mail, Message
 from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto, CategoriaBanner
 import bcrypt
 import re
@@ -12,33 +11,17 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import time
 import os
-import socket
 import urllib.parse
 from dotenv import load_dotenv
 load_dotenv()
-
-# Força resolução DNS via IPv4: hospedagens como o Render não têm rota IPv6,
-# e o smtp.gmail.com às vezes resolve para IPv6 primeiro, causando
-# "OSError: [Errno 101] Network is unreachable" ao enviar e-mail.
-_getaddrinfo_original = socket.getaddrinfo
-def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
-    return _getaddrinfo_original(host, port, socket.AF_INET, type, proto, flags)
-socket.getaddrinfo = _getaddrinfo_ipv4
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 
-# Email Configuration
-app.config['MAIL_SERVER']         = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT']           = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS']        = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USE_SSL']        = os.environ.get('MAIL_USE_SSL', 'False') == 'True'
-app.config['MAIL_USERNAME']       = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD']       = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
-
-mail = Mail(app)
+# Email transacional via API da Brevo (SMTP é bloqueado em hospedagens como o Render)
+BREVO_API_KEY        = os.environ.get('BREVO_API_KEY')
+MAIL_DEFAULT_SENDER  = os.environ.get('MAIL_DEFAULT_SENDER', 'docesdafhe@gmail.com')
 
 # ── UPLOAD FOLDERS ──
 UPLOAD_FOLDER_CARROSSEL = os.path.join('static', 'uploads', 'carrossel')
@@ -411,39 +394,46 @@ def forgot_password():
     return render_template('auth/forgot_password.html')
 
 
-# Tenta enviar um Message até 2 vezes; a rede usada em testes derruba a conexão SMTP de forma intermitente
-def _send_mail_com_retry(msg, log_label, user_email):
+# Envia um e-mail transacional via API HTTP da Brevo (SMTP é bloqueado em hospedagens como o Render)
+def _send_mail_com_retry(destinatario, assunto, html, texto, log_label):
     for tentativa in (1, 2):
         try:
-            mail.send(msg)
-            return True
+            resp = requests.post(
+                'https://api.brevo.com/v3/smtp/email',
+                headers={
+                    'api-key': BREVO_API_KEY,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                json={
+                    'sender': {'name': 'Doces da Fhê', 'email': MAIL_DEFAULT_SENDER},
+                    'to': [{'email': destinatario}],
+                    'subject': assunto,
+                    'htmlContent': html,
+                    'textContent': texto,
+                },
+                timeout=10,
+            )
+            if resp.status_code in (200, 201):
+                return True
+            app.logger.error(f"[MAIL] Tentativa {tentativa} falhou ao enviar {log_label} para {destinatario}: HTTP {resp.status_code}: {resp.text}")
         except Exception as e:
-            app.logger.error(f"[MAIL] Tentativa {tentativa} falhou ao enviar {log_label} para {user_email}: {type(e).__name__}: {e}")
+            app.logger.error(f"[MAIL] Tentativa {tentativa} falhou ao enviar {log_label} para {destinatario}: {type(e).__name__}: {e}")
     return False
 
 
-# Envia e-mail com link para redefinição de senha
-# Envia o e-mail com link de redefinição de senha via Flask-Mail; retorna True se enviado
+# Envia e-mail com link para redefinição de senha; retorna True se enviado
 def send_reset_email(user_email, reset_url):
-    msg = Message(
-        subject="Solicitação de Redefinição de Senha",
-        recipients=[user_email],
-        html=render_template('auth/email_reset_password.html', reset_url=reset_url, cfg=SiteConfig.query.first()),
-        body=f"Para redefinir sua senha, acesse: {reset_url}\n\nEste link expira em 24 horas."
-    )
-    return _send_mail_com_retry(msg, "reset de senha", user_email)
+    html  = render_template('auth/email_reset_password.html', reset_url=reset_url, cfg=SiteConfig.query.first())
+    texto = f"Para redefinir sua senha, acesse: {reset_url}\n\nEste link expira em 24 horas."
+    return _send_mail_com_retry(user_email, "Solicitação de Redefinição de Senha", html, texto, "reset de senha")
 
 
-# Envia e-mail de confirmação de conta com link de verificação
-# Envia o e-mail de confirmação de conta ao novo usuário; retorna True se enviado
+# Envia e-mail de confirmação de conta com link de verificação; retorna True se enviado
 def send_verification_email(user_email, verify_url):
-    msg = Message(
-        subject="Confirme seu e-mail — Doces da Fhê",
-        recipients=[user_email],
-        html=render_template('auth/email_verificacao.html', verify_url=verify_url, cfg=SiteConfig.query.first()),
-        body=f"Acesse o link para confirmar sua conta: {verify_url}\n\nEste link expira em 24 horas."
-    )
-    return _send_mail_com_retry(msg, "verificação de e-mail", user_email)
+    html  = render_template('auth/email_verificacao.html', verify_url=verify_url, cfg=SiteConfig.query.first())
+    texto = f"Acesse o link para confirmar sua conta: {verify_url}\n\nEste link expira em 24 horas."
+    return _send_mail_com_retry(user_email, "Confirme seu e-mail — Doces da Fhê", html, texto, "verificação de e-mail")
 
 
 # Valida o token e permite ao usuário cadastrar uma nova senha
