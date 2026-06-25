@@ -505,6 +505,9 @@ def change_password():
 @app.route('/minha-conta/excluir', methods=['GET', 'POST'])
 @login_required
 def excluir_conta():
+    if current_user.is_admin:
+        flash('Contas de administrador não podem ser excluídas por aqui.', 'error')
+        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         senha = request.form.get('password', '')
         if not bcrypt.checkpw(senha.encode('utf-8'), current_user.password.encode('utf-8')):

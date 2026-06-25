@@ -113,7 +113,7 @@
         </span>
         <div class="user-dropdown">
           <a href="{{ url_for('meus_pedidos') }}" class="user-dropdown-item">Meus Pedidos</a>
-          <a href="{{ url_for('excluir_conta') }}" class="user-dropdown-item">Excluir Conta</a>
+          {% if not current_user.is_admin %}<a href="{{ url_for('excluir_conta') }}" class="user-dropdown-item">Excluir Conta</a>{% endif %}
           <a href="{{ url_for('logout') }}" class="user-dropdown-item">Sair &rarr;</a>
         </div>
       </div>
