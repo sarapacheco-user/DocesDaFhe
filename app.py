@@ -1368,8 +1368,16 @@ def carrinho():
                     .filter(Brinde.valor_minimo <= total)
                     .order_by(Brinde.valor_minimo.desc())
                     .first())
+    # desconto automático de boas-vindas para quem nunca fez pedido
+    cfg = SiteConfig.query.first()
+    cliente_novo = bool(cfg and cfg.desconto_novo_ativo and not current_user.is_admin
+                         and len(current_user.pedidos) == 0)
+    desconto_novo_pct = float(cfg.desconto_novo_pct or 0) if cliente_novo else 0.0
+    desconto_novo_cliente = round(total * desconto_novo_pct / 100, 2) if cliente_novo else 0.0
+
     # promoções manuais (percentual/fixo) — cliente escolhe uma; leve_pague é automático
-    todas_promocoes = Promocao.query.filter(
+    # cliente novo já tem o desconto de boas-vindas e não acumula com outras promoções
+    todas_promocoes = [] if cliente_novo else Promocao.query.filter(
         Promocao.ativo == True,
         Promocao.tipo != 'leve_pague'
     ).order_by(Promocao.valor_minimo).all()
@@ -1399,10 +1407,10 @@ def carrinho():
                 'desconto': valor_desc,
             })
 
-    # promoção manual escolhida pelo cliente
+    # promoção manual escolhida pelo cliente (não disponível para cliente novo)
     promocao_aplicada = None
     desconto_manual = 0.0
-    pid = flask_session.get('promocao_id')
+    pid = None if cliente_novo else flask_session.get('promocao_id')
     if pid:
         p = Promocao.query.get(pid)
         if p and p.ativo and p.tipo != 'leve_pague' and float(p.valor_minimo) <= total:
@@ -1410,15 +1418,6 @@ def carrinho():
             promocao_aplicada = p
         else:
             flask_session.pop('promocao_id', None)
-
-    # desconto automático de boas-vindas para quem nunca fez pedido
-    desconto_novo_pct = 0.0
-    desconto_novo_cliente = 0.0
-    cfg = SiteConfig.query.first()
-    if (cfg and cfg.desconto_novo_ativo and not current_user.is_admin
-            and len(current_user.pedidos) == 0):
-        desconto_novo_pct = float(cfg.desconto_novo_pct or 0)
-        desconto_novo_cliente = round(total * desconto_novo_pct / 100, 2)
 
     desconto    = round(desconto_manual + desconto_leve_pague + desconto_novo_cliente, 2)
     total_final = round(total - desconto, 2)
@@ -1429,6 +1428,7 @@ def carrinho():
                            desconto=desconto_manual, total_final=total_final,
                            desconto_novo_pct=desconto_novo_pct,
                            desconto_novo_cliente=desconto_novo_cliente,
+                           cliente_novo=cliente_novo,
                            leve_pague_info=leve_pague_info)
 
 
@@ -1623,21 +1623,21 @@ def finalizar_pedido():
         if gratuitos > 0:
             desconto_lp += round(gratuitos * float(item_cart.preco_unit), 2)
 
-    # ── PROMOÇÃO DE DESCONTO (escolhida pelo cliente) ──
+    # ── DESCONTO AUTOMÁTICO DE BOAS-VINDAS (cliente que nunca fez pedido) ──
+    cfg = SiteConfig.query.first()
+    cliente_novo = bool(cfg and cfg.desconto_novo_ativo and not current_user.is_admin
+                         and len(current_user.pedidos) == 0)
+    desconto_novo_cliente = round(total * float(cfg.desconto_novo_pct or 0) / 100, 2) if cliente_novo else 0.0
+
+    # ── PROMOÇÃO DE DESCONTO (escolhida pelo cliente; indisponível para cliente novo) ──
     promocao_aplicada = None
     desconto_manual = 0.0
-    pid = flask_session.get('promocao_id')
+    pid = None if cliente_novo else flask_session.get('promocao_id')
     if pid:
         p = Promocao.query.get(pid)
         if p and p.ativo and p.tipo != 'leve_pague' and float(p.valor_minimo) <= total:
             desconto_manual = p.desconto_para(total)
             promocao_aplicada = p
-    # ── DESCONTO AUTOMÁTICO DE BOAS-VINDAS (cliente que nunca fez pedido) ──
-    desconto_novo_cliente = 0.0
-    cfg = SiteConfig.query.first()
-    if (cfg and cfg.desconto_novo_ativo and not current_user.is_admin
-            and len(current_user.pedidos) == 0):
-        desconto_novo_cliente = round(total * float(cfg.desconto_novo_pct or 0) / 100, 2)
 
     desconto = round(desconto_manual + desconto_lp + desconto_novo_cliente, 2)
     total_final = round(total - desconto, 2)

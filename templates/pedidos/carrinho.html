@@ -223,7 +223,13 @@
       </div>
 
       <!-- SELETOR DE PROMOÇÕES -->
-      {% if todas_promocoes %}
+      {% if cliente_novo %}
+      <div class="promo-selector">
+        <div style="font-size:.82rem; color:#92400e; background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; padding:.65rem .85rem;">
+          🆕 Você já está com o desconto de boas-vindas aplicado. Outras promoções ficam disponíveis a partir da sua próxima compra.
+        </div>
+      </div>
+      {% elif todas_promocoes %}
       <div class="promo-selector">
         <div class="promo-selector-title">🏷️ Promoções disponíveis</div>
 
