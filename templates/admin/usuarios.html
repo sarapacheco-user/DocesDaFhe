@@ -103,6 +103,15 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
   border-radius: 50%; margin-right: .35rem;
 }
 
+/* Selo de cliente novo */
+.badge-novo {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 800; padding: .22rem .7rem;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: .05em;
+  background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a;
+  margin-left: .4rem;
+}
+
 /* Empty */
 .usu-empty { text-align: center; padding: 3.5rem; color: #94a3b8; }
 
@@ -219,7 +228,11 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
           <td class="usu-td-email" style="font-size:.85rem; color:#334155;">{{ u.email }}</td>
 
           <td>
-            {% if u.is_admin %}
+            {% if u.conta_excluida %}
+            <span class="badge-tipo" style="background:#f1f5f9; color:#64748b; border:1.5px solid #e2e8f0;">
+              Conta excluída
+            </span>
+            {% elif u.is_admin %}
             <span class="badge-tipo badge-admin">
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               Admin
@@ -229,6 +242,9 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Cliente
             </span>
+            {% if u.pedidos|length == 0 %}
+            <span class="badge-novo" title="Esse cliente ainda não fez nenhum pedido">🆕 Novo</span>
+            {% endif %}
             {% endif %}
           </td>
 

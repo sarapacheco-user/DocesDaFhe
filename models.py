@@ -32,6 +32,9 @@ class User(db.Model, UserMixin):
     email_verification_token  = db.Column(db.String(100), nullable=True)
     email_verification_expiry = db.Column(db.DateTime, nullable=True)
 
+    # CONTA EXCLUÍDA PELO PRÓPRIO CLIENTE (dados pessoais anonimizados, pedidos mantidos)
+    conta_excluida = db.Column(db.Boolean, default=False, nullable=False)
+
     # METADATA
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)

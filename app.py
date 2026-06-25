@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto, CategoriaBanner
+from models import db, User, Product, Kit, KitProduct, EventoEspecial, ProdutoEspecial, CarrinhoItem, CarrosselItem, SiteConfig, Favorito, MovimentacaoEstoque, Pedido, PedidoItem, Brinde, Promocao, Avaliacao, ConfigCorporativo, PedidoCorporativo, BlogPost, AgendaEvento, DesignPalette, ItemFoto, CategoriaBanner, UserPerfil, BlogCurtida, BlogSalvo
 import bcrypt
 import re
 import requests
@@ -182,6 +182,7 @@ with app.app_context():
             ('site_config',       'auth_bg_color1',  'VARCHAR(20)'),
             ('site_config',       'auth_bg_color2',  'VARCHAR(20)'),
             ('site_config',       'auth_text_color', 'VARCHAR(20)'),
+            ('users',             'conta_excluida',  'BOOLEAN DEFAULT 0'),
         ]:
             try:
                 conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typedef}'))
@@ -305,6 +306,9 @@ def login():
         password = request.form['password']
         user     = User.query.filter_by(email=email).first()
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+            if user.conta_excluida:
+                flash("Essa conta foi excluída.", 'error')
+                return render_template('auth/login.html')
             if not user.email_verified:
                 flash("Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada ou solicite um novo e-mail.", 'warning')
                 return render_template('auth/login.html', email_nao_verificado=True, email_usuario=email)
@@ -495,6 +499,43 @@ def change_password():
         flash('Senha alterada com sucesso!', 'success')
         return redirect(url_for('dashboard'))
     return render_template('auth/change_password.html')
+
+
+# Exibe a página de confirmação para excluir a própria conta
+@app.route('/minha-conta/excluir', methods=['GET', 'POST'])
+@login_required
+def excluir_conta():
+    if request.method == 'POST':
+        senha = request.form.get('password', '')
+        if not bcrypt.checkpw(senha.encode('utf-8'), current_user.password.encode('utf-8')):
+            flash('Senha incorreta.', 'error')
+            return redirect(url_for('excluir_conta'))
+
+        user = current_user
+        user_id = user.id
+
+        # remove dados pessoais que não têm valor para o histórico de vendas
+        CarrinhoItem.query.filter_by(user_id=user_id).delete()
+        Favorito.query.filter_by(user_id=user_id).delete()
+        BlogCurtida.query.filter_by(user_id=user_id).delete()
+        BlogSalvo.query.filter_by(user_id=user_id).delete()
+        UserPerfil.query.filter_by(user_id=user_id).delete()
+
+        # anonimiza a conta (pedidos e avaliações permanecem para o histórico/relatórios do admin)
+        user.name             = 'Conta excluída'
+        user.email            = f'conta-excluida-{user_id}@deletado.local'
+        user.phone            = ''
+        user.password         = bcrypt.hashpw(secrets.token_hex(32).encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user.conta_excluida   = True
+        user.reset_token      = None
+        user.reset_token_expiry = None
+        db.session.commit()
+
+        logout_user()
+        flash('Sua conta foi excluída com sucesso.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('auth/excluir_conta.html')
 
 
 # Encerra a sessão do usuário e redireciona para o login
