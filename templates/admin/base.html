@@ -285,7 +285,7 @@
   </style>
   {% block styles %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}">
-  {% if site_config and site_config.auth_bg_color1 and not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
+  {% if site_config and site_config.auth_bg_color1 and not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password', '/minha-conta/excluir'] and not request.path.startswith('/reset-password') %}
   <script>
     (function(){
       var c1="{{ site_config.auth_bg_color1 }}",c2="{{ site_config.auth_bg_color2 }}";
@@ -296,13 +296,13 @@
     })();
   </script>
   {% endif %}
-  {% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
+  {% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password', '/minha-conta/excluir'] and not request.path.startswith('/reset-password') %}
   <link rel="stylesheet" href="{{ url_for('static', filename='accessibility.css') }}">
   {% endif %}
 </head>
 <body>
 
-{% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
+{% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password', '/minha-conta/excluir'] and not request.path.startswith('/reset-password') %}
 <a href="#acc-main-content" class="acc-skip">Pular para o conteúdo principal</a>
 <input type="checkbox" id="acc-open" class="acc-state">
 {% endif %}
@@ -608,7 +608,7 @@
 </div>
 
 <!-- PAINEL DE ACESSIBILIDADE: botão flutuante e controles WCAG 2.1 (apenas páginas públicas) -->
-{% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
+{% if not request.path.startswith('/admin') and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password', '/minha-conta/excluir'] and not request.path.startswith('/reset-password') %}
 <label for="acc-open" class="acc-fab" role="button" aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/>
@@ -943,7 +943,7 @@
 </script>
 
 <!-- SIDEBAR MOBILE: menu hambúrguer injetado no header para usuários não-admin em telas pequenas -->
-{% if not (current_user.is_authenticated and current_user.is_admin) and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password'] and not request.path.startswith('/reset-password') %}
+{% if not (current_user.is_authenticated and current_user.is_admin) and request.path not in ['/login', '/signup', '/logout', '/forgot-password', '/change-password', '/minha-conta/excluir'] and not request.path.startswith('/reset-password') %}
 <style>
 .sidebar-hamburger{display:none;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;padding:.45rem .5rem;border-radius:8px;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;margin-right:.4rem;}
 .sidebar-hamburger:hover{background:rgba(255,255,255,.28);}
