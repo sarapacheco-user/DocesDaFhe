@@ -49,7 +49,7 @@ class Product(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     name        = db.Column(db.String(200), nullable=False, index=True)
     resumo      = db.Column(db.String(400), nullable=True)
-    description = db.Column(db.String(800), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     image_url   = db.Column(db.String(300))
     price       = db.Column(db.Numeric(10, 2), nullable=False)
     category          = db.Column(db.String(100), nullable=True, default='geral')  # ✅ NOVO
@@ -678,12 +678,12 @@ class UserPerfil(db.Model):
     telefone = db.Column(db.String(30), nullable=True)
     cidade = db.Column(db.String(100), nullable=True)
     profissao = db.Column(db.String(100), nullable=True)
-    site = db.Column(db.String(200), nullable=True)
-    instagram = db.Column(db.String(100), nullable=True)
-    tiktok = db.Column(db.String(100), nullable=True)
-    facebook = db.Column(db.String(100), nullable=True)
-    linkedin = db.Column(db.String(100), nullable=True)
-    threads = db.Column(db.String(100), nullable=True)
+    site = db.Column(db.String(300), nullable=True)
+    instagram = db.Column(db.String(300), nullable=True)
+    tiktok = db.Column(db.String(300), nullable=True)
+    facebook = db.Column(db.String(300), nullable=True)
+    linkedin = db.Column(db.String(300), nullable=True)
+    threads = db.Column(db.String(300), nullable=True)
     usuario = db.relationship('User', backref=db.backref('perfil', uselist=False))
 
     def __repr__(self):

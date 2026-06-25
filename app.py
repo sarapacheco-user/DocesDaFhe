@@ -17,7 +17,13 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+
+# Usa PostgreSQL em produção (Render) quando DATABASE_URL existir; SQLite local em desenvolvimento.
+# O Render fornece a URL com prefixo "postgres://", que o SQLAlchemy moderno exige como "postgresql://".
+_database_url = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
+if _database_url.startswith('postgres://'):
+    _database_url = _database_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
 
 # Email transacional via API da Brevo (SMTP é bloqueado em hospedagens como o Render)
 BREVO_API_KEY        = os.environ.get('BREVO_API_KEY')
@@ -177,20 +183,20 @@ with app.app_context():
     # Migrações seguras
     with db.engine.connect() as conn:
         for tbl, col, typedef in [
-            ('eventos_especiais', 'data_inicio',    'DATETIME'),
-            ('eventos_especiais', 'data_fim',       'DATETIME'),
+            ('eventos_especiais', 'data_inicio',    'TIMESTAMP'),
+            ('eventos_especiais', 'data_fim',       'TIMESTAMP'),
             ('site_config',       'auth_bg_color1',  'VARCHAR(20)'),
             ('site_config',       'auth_bg_color2',  'VARCHAR(20)'),
             ('site_config',       'auth_text_color', 'VARCHAR(20)'),
-            ('users',             'conta_excluida',  'BOOLEAN DEFAULT 0'),
-            ('site_config',       'desconto_novo_ativo', 'BOOLEAN DEFAULT 1'),
+            ('users',             'conta_excluida',  'BOOLEAN DEFAULT FALSE'),
+            ('site_config',       'desconto_novo_ativo', 'BOOLEAN DEFAULT TRUE'),
             ('site_config',       'desconto_novo_pct',   'NUMERIC(5,2) DEFAULT 10'),
         ]:
             try:
                 conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typedef}'))
                 conn.commit()
             except Exception:
-                pass
+                conn.rollback()
 
 
 # Verifica se o usuário atual tem permissão para editar ou excluir um kit
