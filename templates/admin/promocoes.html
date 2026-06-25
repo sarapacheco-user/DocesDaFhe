@@ -95,6 +95,7 @@
     <button class="promo-tab active" onclick="trocarAba('tab-brindes', this)">🎁 Brindes</button>
     <button class="promo-tab"        onclick="trocarAba('tab-promocoes', this)">🏷️ Promoções de Desconto</button>
     <button class="promo-tab"        onclick="trocarAba('tab-leve-pague', this)">🛒 Leve X Pague Y</button>
+    <button class="promo-tab"        onclick="trocarAba('tab-novo-cliente', this)">🆕 Cliente Novo</button>
   </div>
 
   <!-- ═══════════════════════════════════════════ -->
@@ -405,6 +406,42 @@
       {% else %}
       <div class="empty-msg">Nenhuma promoção Leve/Pague cadastrada ainda.</div>
       {% endif %}
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ABA CLIENTE NOVO -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="tab-novo-cliente" class="promo-panel">
+
+    <p class="lmb-hint">
+      Desconto automático: aplicado sozinho no carrinho de quem ainda não fez nenhum pedido na loja.
+    </p>
+
+    <div class="lmb-form-card">
+      <h3>Desconto de boas-vindas</h3>
+      <form method="POST">
+        <input type="hidden" name="acao" value="salvar">
+        <input type="hidden" name="secao" value="novo_cliente">
+        <div class="lmb-grid-4">
+          <div class="lmb-field">
+            <label>Ativo?</label>
+            <select name="desconto_novo_ativo">
+              <option value="1" {% if site_config and site_config.desconto_novo_ativo %}selected{% endif %}>Sim</option>
+              <option value="0" {% if site_config and not site_config.desconto_novo_ativo %}selected{% endif %}>Não</option>
+            </select>
+          </div>
+          <div class="lmb-field">
+            <label>Desconto (%)</label>
+            <input type="number" name="desconto_novo_pct" min="0" max="100" step="0.5"
+                   value="{{ site_config.desconto_novo_pct if site_config else 10 }}" required>
+          </div>
+          <div class="lmb-field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-add">Salvar</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 

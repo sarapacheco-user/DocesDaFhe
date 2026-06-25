@@ -386,6 +386,9 @@ class SiteConfig(db.Model):
     blog_card_bg    = db.Column(db.String(20), default='#ffffff')
     blog_text       = db.Column(db.String(20), default='#1e293b')
     agenda_dias_arquivar = db.Column(db.Integer, default=30)
+    # Desconto automático para clientes que nunca fizeram pedido
+    desconto_novo_ativo = db.Column(db.Boolean, default=True)
+    desconto_novo_pct   = db.Column(db.Numeric(5, 2), default=10)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):

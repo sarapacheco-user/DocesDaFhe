@@ -210,6 +210,13 @@
       </div>
       {% endif %}
 
+      {% if desconto_novo_cliente and desconto_novo_cliente > 0 %}
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:.6rem .85rem;margin:.5rem 0;display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+        <span style="font-size:.83rem;font-weight:800;color:#b45309;">🆕 Desconto de boas-vindas ({{ desconto_novo_pct|round|int }}%)</span>
+        <span style="font-size:.9rem;font-weight:800;color:#b45309;white-space:nowrap;">- R$ {{ "%.2f"|format(desconto_novo_cliente) }}</span>
+      </div>
+      {% endif %}
+
       <div class="resumo-total">
         <span>Total a pagar</span>
         <span>R$ {{ "%.2f"|format(total_final) }}</span>

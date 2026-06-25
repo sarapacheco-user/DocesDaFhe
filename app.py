@@ -183,6 +183,8 @@ with app.app_context():
             ('site_config',       'auth_bg_color2',  'VARCHAR(20)'),
             ('site_config',       'auth_text_color', 'VARCHAR(20)'),
             ('users',             'conta_excluida',  'BOOLEAN DEFAULT 0'),
+            ('site_config',       'desconto_novo_ativo', 'BOOLEAN DEFAULT 1'),
+            ('site_config',       'desconto_novo_pct',   'NUMERIC(5,2) DEFAULT 10'),
         ]:
             try:
                 conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col} {typedef}'))
@@ -1453,13 +1455,24 @@ def carrinho():
         else:
             flask_session.pop('promocao_id', None)
 
-    desconto    = round(desconto_manual + desconto_leve_pague, 2)
+    # desconto automático de boas-vindas para quem nunca fez pedido
+    desconto_novo_pct = 0.0
+    desconto_novo_cliente = 0.0
+    cfg = SiteConfig.query.first()
+    if (cfg and cfg.desconto_novo_ativo and not current_user.is_admin
+            and len(current_user.pedidos) == 0):
+        desconto_novo_pct = float(cfg.desconto_novo_pct or 0)
+        desconto_novo_cliente = round(total * desconto_novo_pct / 100, 2)
+
+    desconto    = round(desconto_manual + desconto_leve_pague + desconto_novo_cliente, 2)
     total_final = round(total - desconto, 2)
     return render_template('pedidos/carrinho.html', itens=itens,
                            total=total, quantidade_total=quantidade_total,
                            brinde=brinde, todas_promocoes=todas_promocoes,
                            promocao=promocao_aplicada,
                            desconto=desconto_manual, total_final=total_final,
+                           desconto_novo_pct=desconto_novo_pct,
+                           desconto_novo_cliente=desconto_novo_cliente,
                            leve_pague_info=leve_pague_info)
 
 
@@ -1663,7 +1676,14 @@ def finalizar_pedido():
         if p and p.ativo and p.tipo != 'leve_pague' and float(p.valor_minimo) <= total:
             desconto_manual = p.desconto_para(total)
             promocao_aplicada = p
-    desconto = round(desconto_manual + desconto_lp, 2)
+    # ── DESCONTO AUTOMÁTICO DE BOAS-VINDAS (cliente que nunca fez pedido) ──
+    desconto_novo_cliente = 0.0
+    cfg = SiteConfig.query.first()
+    if (cfg and cfg.desconto_novo_ativo and not current_user.is_admin
+            and len(current_user.pedidos) == 0):
+        desconto_novo_cliente = round(total * float(cfg.desconto_novo_pct or 0) / 100, 2)
+
+    desconto = round(desconto_manual + desconto_lp + desconto_novo_cliente, 2)
     total_final = round(total - desconto, 2)
     flask_session.pop('promocao_id', None)
 
@@ -1672,6 +1692,8 @@ def finalizar_pedido():
         linhas.append(f'*Desconto Leve/Pague: -R$ {desconto_lp:.2f}*')
     if promocao_aplicada:
         linhas.append(f'*Promoção "{promocao_aplicada.nome}": -R$ {desconto_manual:.2f}*')
+    if desconto_novo_cliente > 0:
+        linhas.append(f'*Desconto de boas-vindas ({float(cfg.desconto_novo_pct):.0f}%): -R$ {desconto_novo_cliente:.2f}*')
     linhas.append(f'*Total: R$ {total_final:.2f}*')
 
     # ── LEMBRANCINHA ──
@@ -2665,6 +2687,21 @@ def admin_promocoes():
                 db.session.delete(p)
                 db.session.commit()
                 flash('Promoção removida.', 'info')
+
+        elif secao == 'novo_cliente':
+            cfg = SiteConfig.query.first()
+            if not cfg:
+                cfg = SiteConfig()
+                db.session.add(cfg)
+            cfg.desconto_novo_ativo = request.form.get('desconto_novo_ativo') == '1'
+            try:
+                pct = float(request.form.get('desconto_novo_pct', 0))
+                cfg.desconto_novo_pct = max(0, min(100, pct))
+            except ValueError:
+                flash('Porcentagem inválida.', 'error')
+            else:
+                db.session.commit()
+                flash('Desconto de boas-vindas atualizado!', 'success')
 
         dest = url_for('admin_promocoes') + ('#leve-pague' if secao == 'leve_pague' else '')
         return redirect(dest)
