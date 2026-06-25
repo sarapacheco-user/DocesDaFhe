@@ -104,7 +104,7 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
 }
 
 /* Selo de cliente novo */
-.badge-novo {
+.usu-badge-novo {
   display: inline-flex; align-items: center; gap: .3rem;
   font-size: .68rem; font-weight: 800; padding: .22rem .7rem;
   border-radius: 20px; text-transform: uppercase; letter-spacing: .05em;
@@ -243,7 +243,7 @@ html body .usu-table tbody tr:hover { background: #f1f5f9 !important; }
               Cliente
             </span>
             {% if u.pedidos|length == 0 %}
-            <span class="badge-novo" title="Esse cliente ainda não fez nenhum pedido">🆕 Novo</span>
+            <span class="usu-badge-novo" title="Esse cliente ainda não fez nenhum pedido">🆕 Novo</span>
             {% endif %}
             {% endif %}
           </td>
