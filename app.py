@@ -521,13 +521,11 @@ def excluir_conta():
         BlogSalvo.query.filter_by(user_id=user_id).delete()
         UserPerfil.query.filter_by(user_id=user_id).delete()
 
-        # anonimiza a conta (pedidos e avaliações permanecem para o histórico/relatórios do admin)
-        user.name             = 'Conta excluída'
-        user.email            = f'conta-excluida-{user_id}@deletado.local'
-        user.phone            = ''
-        user.password         = bcrypt.hashpw(secrets.token_hex(32).encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        user.conta_excluida   = True
-        user.reset_token      = None
+        # bloqueia o login, mas mantém nome/e-mail visíveis para o admin saber quem excluiu a conta
+        # (pedidos e avaliações também permanecem, para o histórico/relatórios do admin)
+        user.password           = bcrypt.hashpw(secrets.token_hex(32).encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user.conta_excluida     = True
+        user.reset_token        = None
         user.reset_token_expiry = None
         db.session.commit()
 
