@@ -290,9 +290,9 @@
               {% if p.logo_url %}
               <div style="margin-bottom:.5rem;">
                 <strong>Logo enviada:</strong><br>
-                <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+                <img src="{{ p.logo_url }}" alt="Logo"
                      style="max-height:60px;max-width:160px;border-radius:6px;border:1px solid #e2e8f0;margin-top:.3rem;">
-                <a href="{{ url_for('static', filename=p.logo_url) }}" target="_blank"
+                <a href="{{ p.logo_url }}" target="_blank"
                    style="display:block;font-size:.73rem;color:var(--color-primary);margin-top:.2rem;">Abrir em tamanho completo</a>
               </div>
               {% endif %}

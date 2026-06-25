@@ -125,7 +125,7 @@
     <div class="bc-preview" id="preview-{{ cat }}">
       {% if b and b.imagem_url %}
         <img id="img-{{ cat }}"
-             src="{{ url_for('static', filename=b.imagem_url) }}"
+             src="{{ b.imagem_url }}"
              style="object-position: {{ pos }};">
         <div class="bc-overlay">
           <div class="bc-overlay-title" id="ptitle-{{ cat }}">{{ b.titulo or (cat | capitalize) }}</div>
@@ -154,7 +154,7 @@
            onclick="onFocalClick(event,'{{ cat }}')"
            onmousemove="onFocalHover(event,'{{ cat }}')">
         <img id="fullimg-{{ cat }}"
-             src="{% if b and b.imagem_url %}{{ url_for('static', filename=b.imagem_url) }}{% endif %}"
+             src="{% if b and b.imagem_url %}{{ b.imagem_url }}{% endif %}"
              onload="initFrame('{{ cat }}')">
         <div class="focal-frame" id="frame-{{ cat }}"></div>
         <div class="focal-dot"   id="dot-{{ cat }}"></div>

@@ -10,7 +10,7 @@
 <!-- Banner -->
 <div style="position:relative; height:220px; overflow:hidden; background:linear-gradient(135deg,var(--color-primary),var(--color-hover-primary));">
   {% if perfil and perfil.banner_url %}
-  <img src="{{ url_for('static', filename=perfil.banner_url) }}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="">
+  <img src="{{ perfil.banner_url }}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="">
   {% endif %}
 </div>
 
@@ -22,7 +22,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
       <div style="margin-top:-4rem;">
         {% if perfil and perfil.avatar_url %}
-        <img src="{{ url_for('static', filename=perfil.avatar_url) }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);" alt="{{ autor.name }}">
+        <img src="{{ perfil.avatar_url }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);" alt="{{ autor.name }}">
         {% else %}
         <div style="width:110px;height:110px;border-radius:50%;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.12);">{{ (autor.name or autor.email)[0].upper() }}</div>
         {% endif %}
@@ -133,7 +133,7 @@
         {% endif %}
         {% if post.capa_url %}
         <a href="{{ url_for('blog.post', slug=post.slug) }}">
-          <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+          <img class="blog-card-img" src="{{ post.capa_url }}" alt="{{ post.titulo }}" loading="lazy">
         </a>
         {% else %}
         <div class="blog-card-img-placeholder">

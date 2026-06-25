@@ -60,7 +60,7 @@
         <label for="capaInput">Imagem de Capa</label>
         <input type="file" name="capa" id="capaInput" accept="image/*" onchange="adminOpenCropper(this, 'capaPreview')">
         {% if post and post.capa_url %}
-        <img id="capaPreview" class="editor-capa-preview show" src="{{ url_for('static', filename=post.capa_url) }}" alt="Capa atual">
+        <img id="capaPreview" class="editor-capa-preview show" src="{{ post.capa_url }}" alt="Capa atual">
         <p style="font-size:.75rem; color:var(--blog-muted); margin-top:.3rem;">Capa atual. Selecione nova imagem para substituir.</p>
         {% else %}
         <img id="capaPreview" class="editor-capa-preview" src="" alt="Preview da capa">

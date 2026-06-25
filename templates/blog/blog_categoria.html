@@ -33,7 +33,7 @@
         <article class="blog-card">
           {% if post.capa_url %}
           <a href="{{ url_for('blog.post', slug=post.slug) }}">
-            <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+            <img class="blog-card-img" src="{{ post.capa_url }}" alt="{{ post.titulo }}" loading="lazy">
           </a>
           {% else %}
           <div class="blog-card-img-placeholder">
@@ -109,7 +109,7 @@
         {% for p in populares %}
         <a href="{{ url_for('blog.post', slug=p.slug) }}" class="sidebar-post-item">
           {% if p.capa_url %}
-          <img class="sidebar-post-img" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}" loading="lazy">
+          <img class="sidebar-post-img" src="{{ p.capa_url }}" alt="{{ p.titulo }}" loading="lazy">
           {% else %}
           <div class="sidebar-post-img-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
           {% endif %}

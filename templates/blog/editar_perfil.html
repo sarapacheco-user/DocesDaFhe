@@ -29,7 +29,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}">
-      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+      <img class="logo-img" src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="header-right">
@@ -60,7 +60,7 @@
         <div class="editor-field">
           <label>Avatar</label>
           {% if perfil and perfil.avatar_url %}
-          <img class="perfil-avatar-preview show" id="avatarPreview" src="{{ url_for('static', filename=perfil.avatar_url) }}" alt="Avatar atual">
+          <img class="perfil-avatar-preview show" id="avatarPreview" src="{{ perfil.avatar_url }}" alt="Avatar atual">
           {% else %}
           <img class="perfil-avatar-preview" id="avatarPreview" src="" alt="Preview">
           {% endif %}
@@ -71,7 +71,7 @@
         <div class="editor-field">
           <label>Banner de Capa</label>
           {% if perfil and perfil.banner_url %}
-          <img class="perfil-banner-preview show" id="bannerPreview" src="{{ url_for('static', filename=perfil.banner_url) }}" alt="Banner atual">
+          <img class="perfil-banner-preview show" id="bannerPreview" src="{{ perfil.banner_url }}" alt="Banner atual">
           {% else %}
           <img class="perfil-banner-preview" id="bannerPreview" src="" alt="Preview">
           {% endif %}

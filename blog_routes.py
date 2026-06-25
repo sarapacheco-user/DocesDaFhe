@@ -1,11 +1,11 @@
 import os
 import re
-import time
 import threading
 import requests
+import cloudinary
+import cloudinary.uploader
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, current_app
 from flask_login import current_user, login_required
-from werkzeug.utils import secure_filename
 from sqlalchemy import func
 
 from models import (db, User, BlogPost, BlogCategoria, BlogTag, BlogComentario, SiteConfig,
@@ -92,13 +92,7 @@ def _enviar_newsletter(post, app):
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-UPLOAD_FOLDER_BLOG    = os.path.join('static', 'uploads', 'blog')
-UPLOAD_FOLDER_AVATARES = os.path.join('static', 'uploads', 'avatares')
-UPLOAD_FOLDER_BANNERS  = os.path.join('static', 'uploads', 'banners')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
-
-for _f in [UPLOAD_FOLDER_BLOG, UPLOAD_FOLDER_AVATARES, UPLOAD_FOLDER_BANNERS]:
-    os.makedirs(_f, exist_ok=True)
 
 
 # Verifica se a extensão do arquivo está na lista de formatos permitidos
@@ -106,16 +100,17 @@ def _allowed(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# Salva um arquivo de upload na pasta indicada e retorna o nome do arquivo gerado
-def _save_file(arquivo, folder, prefix=''):
+# Envia um arquivo de upload para o Cloudinary e retorna a URL pública gerada
+def _save_file(arquivo, pasta):
     if not arquivo or arquivo.filename == '':
         return None
     if not _allowed(arquivo.filename):
         return None
-    ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-    fname = f"{prefix}{int(time.time())}_{secure_filename(arquivo.filename)}"
-    arquivo.save(os.path.join(folder, fname))
-    return fname
+    try:
+        resultado = cloudinary.uploader.upload(arquivo, folder=f'docesdafhe/{pasta}')
+        return resultado['secure_url']
+    except Exception:
+        return None
 
 
 # Converte um texto em slug URL-amigável removendo acentos e caracteres especiais
@@ -369,16 +364,16 @@ def editar_perfil():
         # avatar upload
         avatar = request.files.get('avatar')
         if avatar and avatar.filename:
-            fname = _save_file(avatar, UPLOAD_FOLDER_AVATARES, 'avatar_')
-            if fname:
-                perfil.avatar_url = f'uploads/avatares/{fname}'
+            url = _save_file(avatar, 'avatares')
+            if url:
+                perfil.avatar_url = url
 
         # banner upload
         banner = request.files.get('banner')
         if banner and banner.filename:
-            fname = _save_file(banner, UPLOAD_FOLDER_BANNERS, 'banner_')
-            if fname:
-                perfil.banner_url = f'uploads/banners/{fname}'
+            url = _save_file(banner, 'banners')
+            if url:
+                perfil.banner_url = url
 
         db.session.commit()
         flash('Perfil atualizado com sucesso!', 'success')
@@ -604,12 +599,7 @@ def admin_novo():
         tempo_leitura = _calc_tempo(conteudo)
 
         # capa upload
-        capa_url = None
-        capa = request.files.get('capa')
-        if capa and capa.filename:
-            fname = _save_file(capa, UPLOAD_FOLDER_BLOG, 'capa_')
-            if fname:
-                capa_url = f'uploads/blog/{fname}'
+        capa_url = _save_file(request.files.get('capa'), 'blog')
 
         post = BlogPost(
             titulo=titulo,
@@ -686,11 +676,9 @@ def admin_editar(id):
         post.meta_descricao = request.form.get('meta_descricao', '').strip() or None
         post.tempo_leitura = _calc_tempo(post.conteudo)
 
-        capa = request.files.get('capa')
-        if capa and capa.filename:
-            fname = _save_file(capa, UPLOAD_FOLDER_BLOG, 'capa_')
-            if fname:
-                post.capa_url = f'uploads/blog/{fname}'
+        nova_capa = _save_file(request.files.get('capa'), 'blog')
+        if nova_capa:
+            post.capa_url = nova_capa
 
         # update tags
         post.tags = []

@@ -107,7 +107,7 @@
         <tr>
           <td>
             {% if p.capa_url %}
-            <img class="admin-table-thumb" src="{{ url_for('static', filename=p.capa_url) }}" alt="{{ p.titulo }}">
+            <img class="admin-table-thumb" src="{{ p.capa_url }}" alt="{{ p.titulo }}">
             {% else %}
             <div class="admin-table-thumb-placeholder">sem capa</div>
             {% endif %}

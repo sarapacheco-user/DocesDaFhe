@@ -153,7 +153,7 @@
         <td>R$ {{ "%.2f"|format(product.price) }}</td>
         <td>
           {% if product.image_url %}
-            <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.name }}">
+            <img src="{{ product.image_url }}" alt="{{ product.name }}">
           {% else %}
             <span style="color:#aaa; font-size:.8rem;">Sem imagem</span>
           {% endif %}

@@ -968,7 +968,7 @@
 <aside class="sidebar-drawer" id="sidebarDrawer" aria-label="Menu de navegação">
   <div class="sidebar-head">
     <img class="sidebar-head-logo"
-         src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}"
+         src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}"
          alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}">
     <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

@@ -23,7 +23,7 @@
         <div class="card h-100" {% if not kit.ativo %}style="opacity:0.5;"{% endif %}>
 
           {% if kit.image_url %}
-            <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">
+            <img src="{{ kit.image_url }}" alt="{{ kit.name }}">
           {% else %}
             <div class="d-flex align-items-center justify-content-center bg-secondary text-white" style="height:200px;">
               No image

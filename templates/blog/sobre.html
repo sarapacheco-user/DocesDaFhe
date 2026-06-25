@@ -312,7 +312,7 @@
     <!-- Foto -->
     <div class="sobre-foto-wrap">
       {% if perfil and perfil.avatar_url %}
-      <img class="sobre-foto" src="{{ url_for('static', filename=perfil.avatar_url) }}" alt="{{ admin.name }}">
+      <img class="sobre-foto" src="{{ perfil.avatar_url }}" alt="{{ admin.name }}">
       {% else %}
       <div class="sobre-foto-placeholder">{{ (admin.name or admin.email)[0].upper() }}</div>
       {% endif %}
@@ -391,7 +391,7 @@
     {% for post in posts_destaque %}
     <a href="{{ url_for('blog.post', slug=post.slug) }}" class="sobre-portfolio-card">
       {% if post.capa_url %}
-      <img src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}">
+      <img src="{{ post.capa_url }}" alt="{{ post.titulo }}">
       {% else %}
       <div class="sobre-portfolio-card-placeholder">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>

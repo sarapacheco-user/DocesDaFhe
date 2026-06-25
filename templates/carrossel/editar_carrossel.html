@@ -95,7 +95,7 @@
 
     <div class="preview-box" id="previewBox">
       <img id="previewImg"
-           src="{{ url_for('static', filename='uploads/carrossel/' + item.imagem) }}"
+           src="{{ item.imagem }}"
            alt="{{ item.titulo or 'imagem' }}">
       <div class="preview-label">Imagem atual — escolha um arquivo abaixo para substituir</div>
     </div>

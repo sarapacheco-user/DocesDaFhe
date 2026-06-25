@@ -111,7 +111,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}">
-      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+      <img class="logo-img" src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="search-bar-wrap">
@@ -153,7 +153,7 @@
 
 {% if banner and banner.imagem_url %}
 <div class="cat-banner">
-  <img src="{{ url_for('static', filename=banner.imagem_url) }}"
+  <img src="{{ banner.imagem_url }}"
        alt="Kits"
        style="object-position: {{ banner.posicao or 'center center' }};">
 </div>
@@ -222,7 +222,7 @@
            data-created="{{ kit.created_at.timestamp() if kit.created_at else 0 }}">
 
         <div class="cat-card-img">
-          {% if kit.image_url %}<img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}">{% else %}🎁{% endif %}
+          {% if kit.image_url %}<img src="{{ kit.image_url }}" alt="{{ kit.name }}">{% else %}🎁{% endif %}
         </div>
 
         <button class="btn-fav {% if kit.id in fav_k %}ativo{% endif %}" data-tipo="kit" data-id="{{ kit.id }}" onclick="toggleFav(this)" title="Favoritar">

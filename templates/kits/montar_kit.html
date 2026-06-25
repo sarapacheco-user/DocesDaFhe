@@ -155,7 +155,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}">
-      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+      <img class="logo-img" src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="search-bar-wrap">
@@ -229,7 +229,7 @@
         <div class="mk-card" id="card-{{ p.id }}" data-id="{{ p.id }}" data-price="{{ p.price }}" onclick="toggleCard(+this.dataset.id)">
           <div class="mk-card-img">
             {% if p.image_url %}
-              <img src="{{ url_for('static', filename=p.image_url) }}" alt="{{ p.name }}">
+              <img src="{{ p.image_url }}" alt="{{ p.name }}">
             {% else %}🍰{% endif %}
           </div>
           <div class="mk-card-body">

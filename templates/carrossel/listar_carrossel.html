@@ -100,7 +100,7 @@
 <div class="carrossel-grid">
   {% for item in itens %}
   <div class="carrossel-card">
-    <img src="{{ url_for('static', filename='uploads/carrossel/' + item.imagem) }}" alt="{{ item.titulo }}">
+    <img src="{{ item.imagem }}" alt="{{ item.titulo }}">
     <div class="carrossel-card-body">
       <h4>{{ item.titulo or 'Sem título' }}</h4>
       <p>{{ item.subtitulo or '' }}</p>

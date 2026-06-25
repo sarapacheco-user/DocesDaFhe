@@ -9,7 +9,7 @@
 
   {% if kit.image_url %}
   <div class="kit-view-img-wrap">
-    <img src="{{ url_for('static', filename=kit.image_url) }}" alt="{{ kit.name }}" class="kit-view-img">
+    <img src="{{ kit.image_url }}" alt="{{ kit.name }}" class="kit-view-img">
   </div>
   {% endif %}
 

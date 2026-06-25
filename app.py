@@ -6,7 +6,6 @@ import bcrypt
 import re
 import requests
 import secrets
-from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 import time
@@ -14,6 +13,10 @@ import os
 import urllib.parse
 from dotenv import load_dotenv
 load_dotenv()
+
+import cloudinary
+import cloudinary.uploader
+cloudinary.config(secure=True)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret'
@@ -29,21 +32,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
 BREVO_API_KEY        = os.environ.get('BREVO_API_KEY')
 MAIL_DEFAULT_SENDER  = os.environ.get('MAIL_DEFAULT_SENDER', 'docesdafhe@gmail.com')
 
-# ── UPLOAD FOLDERS ──
-UPLOAD_FOLDER_CARROSSEL = os.path.join('static', 'uploads', 'carrossel')
-UPLOAD_FOLDER_PRODUTOS  = os.path.join('static', 'uploads', 'produtos')
-UPLOAD_FOLDER_KITS      = os.path.join('static', 'uploads', 'kits')
-UPLOAD_FOLDER_ESPECIAIS = os.path.join('static', 'uploads', 'especiais')
-UPLOAD_FOLDER_LOGO      = os.path.join('static', 'uploads', 'logo')
-UPLOAD_FOLDER_CORP      = os.path.join('static', 'uploads', 'corporativo')
-UPLOAD_FOLDER_FOTOS     = os.path.join('static', 'uploads', 'fotos_extras')
-UPLOAD_FOLDER_BANNERS   = os.path.join('static', 'uploads', 'banners_categoria')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
-
-for folder in [UPLOAD_FOLDER_CARROSSEL, UPLOAD_FOLDER_PRODUTOS,
-               UPLOAD_FOLDER_KITS, UPLOAD_FOLDER_ESPECIAIS, UPLOAD_FOLDER_LOGO,
-               UPLOAD_FOLDER_CORP, UPLOAD_FOLDER_FOTOS, UPLOAD_FOLDER_BANNERS]:
-    os.makedirs(folder, exist_ok=True)
 
 
 # ── FUNÇÕES AUXILIARES ──
@@ -78,54 +67,59 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# Salva imagem de produto enviada via formulário e retorna o caminho relativo
-def salvar_imagem_produto(arquivo):
+# Envia um arquivo (request.files) para o Cloudinary e retorna a URL pública, ou None
+def upload_imagem(arquivo, pasta='geral'):
     if not arquivo or arquivo.filename == '':
         return None
-    ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
+    if not allowed_file(arquivo.filename):
         return None
-    filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-    arquivo.save(os.path.join(UPLOAD_FOLDER_PRODUTOS, filename))
-    return f"uploads/produtos/{filename}"
+    try:
+        resultado = cloudinary.uploader.upload(arquivo, folder=f'docesdafhe/{pasta}')
+        return resultado['secure_url']
+    except Exception as e:
+        app.logger.error(f"[CLOUDINARY] Erro ao enviar imagem: {type(e).__name__}: {e}")
+        return None
 
 
+# Envia uma imagem em base64 dataURL (recorte do cropper.js) para o Cloudinary e retorna a URL, ou None
+def upload_imagem_base64(data_url, pasta='geral'):
+    if not data_url:
+        return None
+    try:
+        resultado = cloudinary.uploader.upload(data_url, folder=f'docesdafhe/{pasta}')
+        return resultado['secure_url']
+    except Exception as e:
+        app.logger.error(f"[CLOUDINARY] Erro ao enviar imagem base64: {type(e).__name__}: {e}")
+        return None
+
+
+# Remove do Cloudinary a imagem apontada por uma URL salva no banco (ignora URLs antigas/locais)
+def excluir_imagem_cloudinary(url):
+    if not url or 'res.cloudinary.com' not in url:
+        return
+    try:
+        public_id = url.split('/upload/')[-1]
+        if public_id.split('/')[0].startswith('v') and public_id.split('/')[0][1:].isdigit():
+            public_id = public_id.split('/', 1)[1]
+        public_id = public_id.rsplit('.', 1)[0]
+        cloudinary.uploader.destroy(public_id)
+    except Exception as e:
+        app.logger.error(f"[CLOUDINARY] Erro ao excluir imagem: {type(e).__name__}: {e}")
+
+
+# Salva imagem de produto enviada via formulário e retorna a URL pública
+def salvar_imagem_produto(arquivo):
+    return upload_imagem(arquivo, 'produtos')
+
+
+# Salva imagem a partir de base64 dataURL (fallback para Safari/mobile)
 def salvar_imagem_produto_b64(data_url):
-    """Salva imagem a partir de base64 dataURL (fallback para Safari/mobile)."""
-    import base64, re
-    m = re.match(r'data:(image/[\w+]+);base64,(.+)', data_url, re.DOTALL)
-    if not m:
-        return None
-    mime_type, b64data = m.groups()
-    ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}
-    ext = ext_map.get(mime_type, 'jpg')
-    filename = f"{int(time.time())}_crop.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER_PRODUTOS, filename)
-    try:
-        with open(filepath, 'wb') as f:
-            f.write(base64.b64decode(b64data))
-        return f"uploads/produtos/{filename}"
-    except Exception:
-        return None
+    return upload_imagem_base64(data_url, 'produtos')
 
 
-# Salva imagem de produto especial a partir de base64 dataURL e retorna o caminho relativo
+# Salva imagem de produto especial a partir de base64 dataURL e retorna a URL pública
 def salvar_imagem_especial_b64(data_url):
-    import base64, re
-    m = re.match(r'data:(image/[\w+]+);base64,(.+)', data_url, re.DOTALL)
-    if not m:
-        return None
-    mime_type, b64data = m.groups()
-    ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}
-    ext = ext_map.get(mime_type, 'jpg')
-    filename = f"{int(time.time())}_crop.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER_ESPECIAIS, filename)
-    try:
-        with open(filepath, 'wb') as f:
-            f.write(base64.b64decode(b64data))
-        return f"uploads/especiais/{filename}"
-    except Exception:
-        return None
+    return upload_imagem_base64(data_url, 'especiais')
 
 
 # ── LOGIN MANAGER ──
@@ -705,19 +699,12 @@ def create_product():
         db.session.add(product)
         db.session.flush()  # gera o product.id antes do commit
         # fotos extras via base64 (crop)
-        import base64 as _b64, re as _re
         for b64data in request.form.getlist('fotos_extras_b64'):
             if not b64data:
                 continue
-            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
-            if not m:
-                continue
-            mime, raw = m.groups()
-            ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}.get(mime,'jpg')
-            fname = f"{int(time.time())}_extra.{ext}"
-            with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as fout:
-                fout.write(_b64.b64decode(raw))
-            db.session.add(ItemFoto(produto_id=product.id, url=f"uploads/fotos_extras/{fname}"))
+            foto_url = upload_imagem_base64(b64data, 'fotos_extras')
+            if foto_url:
+                db.session.add(ItemFoto(produto_id=product.id, url=foto_url))
         db.session.commit()
         flash("Produto criado com sucesso!", 'success')
         return redirect(url_for('list_products'))
@@ -757,14 +744,9 @@ def edit_product(id):
             product.image_url = nova_imagem
         # fotos extras novas
         for arq in request.files.getlist('fotos_extras'):
-            if not arq or arq.filename == '':
-                continue
-            ext = arq.filename.rsplit('.', 1)[-1].lower()
-            if ext not in ALLOWED_EXTENSIONS:
-                continue
-            fname = f"{int(time.time())}_{secure_filename(arq.filename)}"
-            arq.save(os.path.join(UPLOAD_FOLDER_FOTOS, fname))
-            db.session.add(ItemFoto(produto_id=product.id, url=f"uploads/fotos_extras/{fname}"))
+            foto_url = upload_imagem(arq, 'fotos_extras')
+            if foto_url:
+                db.session.add(ItemFoto(produto_id=product.id, url=foto_url))
         db.session.commit()
         flash("Produto atualizado com sucesso!", 'success')
         return redirect(url_for('list_products'))
@@ -841,24 +823,11 @@ def create_kit():
         if not name:
             flash("O nome do kit é obrigatório.", 'error')
             return redirect(url_for('create_kit'))
-        image_url = None
         imagem_b64 = request.form.get('imagem_b64', '').strip()
         if imagem_b64:
-            import base64, re as _re
-            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', imagem_b64, _re.DOTALL)
-            if m:
-                mime_type, b64data = m.groups()
-                ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime_type,'jpg')
-                fname = f"{int(time.time())}_crop.{ext}"
-                with open(os.path.join(UPLOAD_FOLDER_KITS, fname), 'wb') as f:
-                    f.write(base64.b64decode(b64data))
-                image_url = f"uploads/kits/{fname}"
-        elif arquivo and arquivo.filename != '':
-            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in ALLOWED_EXTENSIONS:
-                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-                arquivo.save(os.path.join(UPLOAD_FOLDER_KITS, filename))
-                image_url = f"uploads/kits/{filename}"
+            image_url = upload_imagem_base64(imagem_b64, 'kits')
+        else:
+            image_url = upload_imagem(arquivo, 'kits')
         kit = Kit(name=name, resumo=resumo, description=description,
                   created_by=current_user.id, image_url=image_url,
                   is_admin_kit=current_user.is_admin)
@@ -884,21 +853,11 @@ def edit_kit(kit_id):
         arquivo    = request.files.get('arquivo')
         imagem_b64 = request.form.get('imagem_b64', '').strip()
         if imagem_b64:
-            import base64, re as _re
-            m = _re.match(r'data:(image/[\w+]+);base64,(.+)', imagem_b64, _re.DOTALL)
-            if m:
-                mime_type, b64data = m.groups()
-                ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime_type,'jpg')
-                fname = f"{int(time.time())}_crop.{ext}"
-                with open(os.path.join(UPLOAD_FOLDER_KITS, fname), 'wb') as f:
-                    f.write(base64.b64decode(b64data))
-                kit.image_url = f"uploads/kits/{fname}"
-        elif arquivo and arquivo.filename != '':
-            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in ALLOWED_EXTENSIONS:
-                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-                arquivo.save(os.path.join(UPLOAD_FOLDER_KITS, filename))
-                kit.image_url = f"uploads/kits/{filename}"
+            nova_imagem = upload_imagem_base64(imagem_b64, 'kits')
+        else:
+            nova_imagem = upload_imagem(arquivo, 'kits')
+        if nova_imagem:
+            kit.image_url = nova_imagem
         db.session.commit()
         flash("Kit atualizado!", 'success')
         return redirect(url_for('view_kit', kit_id=kit.id))
@@ -1287,15 +1246,10 @@ def criar_produto_especial(evento_id):
             return redirect(url_for('criar_produto_especial', evento_id=evento_id))
 
         imagem_b64 = request.form.get('imagem_b64', '').strip()
-        image_url = None
         if imagem_b64:
             image_url = salvar_imagem_especial_b64(imagem_b64)
-        elif arquivo and arquivo.filename != '':
-            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in ALLOWED_EXTENSIONS:
-                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-                arquivo.save(os.path.join(UPLOAD_FOLDER_ESPECIAIS, filename))
-                image_url = f"uploads/especiais/{filename}"
+        else:
+            image_url = upload_imagem(arquivo, 'especiais')
 
         qtd_min = max(1, int(request.form.get('quantidade_minima', 1) or 1))
         qtd_max_raw = request.form.get('quantidade_maxima', '').strip()
@@ -1347,14 +1301,10 @@ def editar_produto_especial(id):
         imagem_b64 = request.form.get('imagem_b64', '').strip()
         if imagem_b64:
             nova = salvar_imagem_especial_b64(imagem_b64)
-            if nova:
-                produto.image_url = nova
-        elif arquivo and arquivo.filename != '':
-            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in ALLOWED_EXTENSIONS:
-                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-                arquivo.save(os.path.join(UPLOAD_FOLDER_ESPECIAIS, filename))
-                produto.image_url = f"uploads/especiais/{filename}"
+        else:
+            nova = upload_imagem(arquivo, 'especiais')
+        if nova:
+            produto.image_url = nova
 
         db.session.commit()
         flash(f'Produto "{produto.name}" atualizado!', 'success')
@@ -2257,12 +2207,9 @@ def admin_banners_categoria():
         banner.descricao = descricao or None
         banner.posicao   = request.form.get('posicao', 'center center')
 
-        if arquivo and arquivo.filename:
-            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in ALLOWED_EXTENSIONS:
-                filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-                arquivo.save(os.path.join(UPLOAD_FOLDER_BANNERS, filename))
-                banner.imagem_url = f"uploads/banners_categoria/{filename}"
+        nova_imagem = upload_imagem(arquivo, 'banners_categoria')
+        if nova_imagem:
+            banner.imagem_url = nova_imagem
 
         db.session.commit()
         flash(f'Banner da categoria "{nome}" salvo com sucesso!', 'success')
@@ -2302,11 +2249,10 @@ def carrossel_adicionar():
         flash('Formato inválido. Use PNG, JPG, JPEG ou WEBP.', 'error')
         return redirect(url_for('carrossel_admin'))
 
-    filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-    arquivo.save(os.path.join(UPLOAD_FOLDER_CARROSSEL, filename))
+    imagem_url = upload_imagem(arquivo, 'carrossel')
 
     item = CarrosselItem(titulo=titulo or None, subtitulo=subtitulo or None,
-                         imagem=filename, ordem=ordem)
+                         imagem=imagem_url, ordem=ordem)
     db.session.add(item)
     db.session.commit()
     flash('Imagem adicionada ao carrossel!', 'success')
@@ -2329,10 +2275,8 @@ def carrossel_toggle(id):
 @login_required
 @admin_required
 def carrossel_deletar(id):
-    item    = CarrosselItem.query.get_or_404(id)
-    caminho = os.path.join(UPLOAD_FOLDER_CARROSSEL, item.imagem)
-    if os.path.exists(caminho):
-        os.remove(caminho)
+    item = CarrosselItem.query.get_or_404(id)
+    excluir_imagem_cloudinary(item.imagem)
     db.session.delete(item)
     db.session.commit()
     flash('Imagem removida do carrossel!', 'success')
@@ -2362,14 +2306,10 @@ def carrossel_editar(id):
         item.ordem     = request.form.get('ordem', 0, type=int)
 
         arquivo = request.files.get('imagem')
-        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
-            caminho_antigo = os.path.join(UPLOAD_FOLDER_CARROSSEL, item.imagem)
-            if os.path.exists(caminho_antigo):
-                os.remove(caminho_antigo)
-            ext      = arquivo.filename.rsplit('.', 1)[1].lower()
-            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-            arquivo.save(os.path.join(UPLOAD_FOLDER_CARROSSEL, filename))
-            item.imagem = filename
+        nova_imagem = upload_imagem(arquivo, 'carrossel')
+        if nova_imagem:
+            excluir_imagem_cloudinary(item.imagem)
+            item.imagem = nova_imagem
 
         db.session.commit()
         flash('Carrossel atualizado!', 'success')
@@ -2462,21 +2402,13 @@ def admin_design():
 
         logo_file = request.files.get('logo_file')
         if logo_file and logo_file.filename != '':
-            if not allowed_file(logo_file.filename):
+            nova_logo = upload_imagem(logo_file, 'logo')
+            if not nova_logo:
                 flash('Formato de imagem não suportado. Use PNG, JPG, JPEG ou WebP.', 'error')
                 return redirect(url_for('admin_design'))
-            ext = logo_file.filename.rsplit('.', 1)[-1].lower()
-            logo_name = f"logo_{int(time.time())}.{ext}"
-            logo_dir  = os.path.join(app.root_path, 'static', 'uploads', 'logo')
-            os.makedirs(logo_dir, exist_ok=True)
-            logo_path = os.path.join(logo_dir, logo_name)
-            logo_file.save(logo_path)
-            # apaga logo anterior se não for o padrão
-            if config.logo_url and config.logo_url != f'uploads/logo/{logo_name}':
-                old_path = os.path.join(app.root_path, 'static', config.logo_url)
-                if os.path.exists(old_path) and 'logo.png' not in old_path:
-                    os.remove(old_path)
-            config.logo_url = f'uploads/logo/{logo_name}'
+            # apaga logo anterior (a logo padrão não é enviada ao Cloudinary, então é ignorada)
+            excluir_imagem_cloudinary(config.logo_url)
+            config.logo_url = nova_logo
 
         db.session.commit()
         flash('Design salvo com sucesso!', 'success')
@@ -2770,12 +2702,8 @@ def corporativo_personalizar():
             flash('Selecione um produto.', 'error')
             return redirect(request.url)
 
-        logo_url = None
         arquivo = request.files.get('logo')
-        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
-            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-            arquivo.save(os.path.join(UPLOAD_FOLDER_CORP, filename))
-            logo_url = f"uploads/corporativo/{filename}"
+        logo_url = upload_imagem(arquivo, 'corporativo')
 
         partes = ['[Pedido Corporativo]']
         if personalizacao: partes.append(f'Personalização: {personalizacao}')
@@ -2784,8 +2712,7 @@ def corporativo_personalizar():
         if modelo_tag:     partes.append(f'Modelo de tag: {modelo_tag}')
         if frase_tag:      partes.append(f'Frase na tag: {frase_tag}')
         if logo_url:
-            logo_link = url_for('static', filename=logo_url, _external=True)
-            partes.append(f'Logo da empresa: {logo_link}')
+            partes.append(f'Logo da empresa: {logo_url}')
         if observacoes:    partes.append(f'Observações: {observacoes}')
         notas = '\n'.join(partes)
 
@@ -2841,12 +2768,8 @@ def corporativo_solicitar():
             flash('Descreva o produto desejado.', 'error')
             return redirect(request.url)
 
-        logo_url = None
         arquivo = request.files.get('logo')
-        if arquivo and arquivo.filename and allowed_file(arquivo.filename):
-            filename = f"{int(time.time())}_{secure_filename(arquivo.filename)}"
-            arquivo.save(os.path.join(UPLOAD_FOLDER_CORP, filename))
-            logo_url = f"uploads/corporativo/{filename}"
+        logo_url = upload_imagem(arquivo, 'corporativo')
 
         qtd_int = int(quantidade) if quantidade.isdigit() else None
         pedido = PedidoCorporativo(
@@ -3093,14 +3016,9 @@ def admin_foto_add():
     redirect_url = request.form.get('next', url_for('dashboard'))
 
     for arq in arquivos:
-        if not arq or arq.filename == '':
+        url = upload_imagem(arq, 'fotos_extras')
+        if not url:
             continue
-        ext = arq.filename.rsplit('.', 1)[-1].lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            continue
-        fname = f"{int(time.time())}_{secure_filename(arq.filename)}"
-        arq.save(os.path.join(UPLOAD_FOLDER_FOTOS, fname))
-        url = f"uploads/fotos_extras/{fname}"
 
         kwargs = {'url': url}
         if tipo == 'produto':   kwargs['produto_id']  = item_id
@@ -3124,26 +3042,15 @@ def admin_foto_add():
 @login_required
 @admin_required
 def admin_foto_add_ajax():
-    import base64 as _b64, re as _re
     data    = request.get_json(force=True)
     tipo    = data.get('tipo')
     item_id = data.get('item_id')
     b64data = data.get('data', '')
 
-    m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
-    if not m:
+    url = upload_imagem_base64(b64data, 'fotos_extras')
+    if not url:
         return jsonify(error='Dados inválidos'), 400
 
-    mime, raw = m.groups()
-    ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}.get(mime,'jpg')
-    fname = f"{int(time.time())}_extra.{ext}"
-    try:
-        with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as f:
-            f.write(_b64.b64decode(raw))
-    except Exception as e:
-        return jsonify(error=str(e)), 500
-
-    url    = f"uploads/fotos_extras/{fname}"
     kwargs = {'url': url}
     if   tipo == 'produto':   kwargs['produto_id']  = item_id
     elif tipo == 'kit':       kwargs['kit_id']      = item_id
@@ -3163,23 +3070,14 @@ def admin_foto_add_ajax():
 @login_required
 @admin_required
 def admin_foto_atualizar_ajax(foto_id):
-    import base64 as _b64, re as _re
     data    = request.get_json(force=True)
     b64data = data.get('data', '')
-    m = _re.match(r'data:(image/[\w+]+);base64,(.+)', b64data, _re.DOTALL)
-    if not m:
+    nova_url = upload_imagem_base64(b64data, 'fotos_extras')
+    if not nova_url:
         return jsonify(error='Dados inválidos'), 400
     foto = ItemFoto.query.get_or_404(foto_id)
-    # remove arquivo antigo
-    caminho_antigo = os.path.join('static', foto.url)
-    if os.path.exists(caminho_antigo):
-        os.remove(caminho_antigo)
-    mime, raw = m.groups()
-    ext  = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}.get(mime,'jpg')
-    fname = f"{int(time.time())}_extra.{ext}"
-    with open(os.path.join(UPLOAD_FOLDER_FOTOS, fname), 'wb') as f:
-        f.write(_b64.b64decode(raw))
-    foto.url = f"uploads/fotos_extras/{fname}"
+    excluir_imagem_cloudinary(foto.url)
+    foto.url = nova_url
     db.session.commit()
     return jsonify(ok=True, url=foto.url)
 
@@ -3190,9 +3088,7 @@ def admin_foto_atualizar_ajax(foto_id):
 @admin_required
 def admin_foto_excluir_ajax(foto_id):
     foto = ItemFoto.query.get_or_404(foto_id)
-    caminho = os.path.join('static', foto.url)
-    if os.path.exists(caminho):
-        os.remove(caminho)
+    excluir_imagem_cloudinary(foto.url)
     db.session.delete(foto)
     db.session.commit()
     return jsonify(ok=True)
@@ -3205,10 +3101,7 @@ def admin_foto_excluir_ajax(foto_id):
 def admin_foto_excluir(foto_id):
     foto = ItemFoto.query.get_or_404(foto_id)
     redirect_url = request.form.get('next', url_for('dashboard'))
-    # remove o arquivo físico
-    caminho = os.path.join('static', foto.url)
-    if os.path.exists(caminho):
-        os.remove(caminho)
+    excluir_imagem_cloudinary(foto.url)
     db.session.delete(foto)
     db.session.commit()
     flash('Foto removida.', 'info')

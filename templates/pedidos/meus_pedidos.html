@@ -118,7 +118,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}" >
-      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+      <img class="logo-img" src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="search-bar-wrap">
@@ -315,7 +315,7 @@
             {% if p.logo_url %}
             <div style="font-size:.76rem;color:#475569;">
               Logo enviada:
-              <img src="{{ url_for('static', filename=p.logo_url) }}" alt="Logo"
+              <img src="{{ p.logo_url }}" alt="Logo"
                    style="max-height:36px;vertical-align:middle;border-radius:4px;border:1px solid #e2e8f0;margin-left:.3rem;">
             </div>
             {% endif %}

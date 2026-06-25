@@ -10,7 +10,7 @@
 <header>
   <div class="logo">
     <a href="{{ url_for('dashboard') }}">
-      <img class="logo-img" src="{{ url_for('static', filename=site_config.logo_url if site_config and site_config.logo_url else 'uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
+      <img class="logo-img" src="{{ site_config.logo_url if site_config and site_config.logo_url else url_for('static', filename='uploads/logo.png') }}" alt="{{ site_config.site_name if site_config else 'Doces da Fhê' }}" />
     </a>
   </div>
   <div class="search-bar-wrap">
@@ -70,7 +70,7 @@
         <article class="blog-card">
           {% if post.capa_url %}
           <a href="{{ url_for('blog.post', slug=post.slug) }}">
-            <img class="blog-card-img" src="{{ url_for('static', filename=post.capa_url) }}" alt="{{ post.titulo }}" loading="lazy">
+            <img class="blog-card-img" src="{{ post.capa_url }}" alt="{{ post.titulo }}" loading="lazy">
           </a>
           {% else %}
           <div class="blog-card-img-placeholder">
